@@ -22,6 +22,7 @@ export default function BoardTable({
   onDeleteGroup,
   onChangeGroupColor,
   onReorderGroup,
+  onReorderItem,
   currentUserId,
   trackedSecondsByItem,
   activeSessionsByItem,
@@ -29,6 +30,7 @@ export default function BoardTable({
   readOnly,
   canAddGroup,
   canReorderGroups,
+  canReorderItems,
 }: {
   displayGroups: DisplayGroup[];
   profiles: Profile[];
@@ -45,6 +47,7 @@ export default function BoardTable({
   onDeleteGroup: (groupId: string) => void;
   onChangeGroupColor: (groupId: string, color: string) => void;
   onReorderGroup: (draggedId: string, targetId: string) => void;
+  onReorderItem: (groupId: string, draggedId: string, targetId: string) => void;
   currentUserId: string | null;
   trackedSecondsByItem: Record<string, number>;
   activeSessionsByItem: Record<string, ActiveTimeLog[]>;
@@ -52,10 +55,12 @@ export default function BoardTable({
   readOnly?: boolean;
   canAddGroup: boolean;
   canReorderGroups: boolean;
+  canReorderItems: boolean;
 }) {
   const [addingGroup, setAddingGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverGroupId, setDragOverGroupId] = useState<string | null>(null);
 
   function submitNewGroup() {
     const trimmed = newGroupName.trim();
@@ -72,6 +77,7 @@ export default function BoardTable({
 
       {displayGroups.map((group) => {
         const canReorderThis = canReorderGroups && group.isRealGroup && !readOnly;
+        const canReorderItemsHere = canReorderItems && group.isRealGroup && !readOnly;
         return (
           <GroupSection
             key={group.id}
@@ -96,19 +102,35 @@ export default function BoardTable({
             }
             canReorder={canReorderThis}
             isDragging={draggingId === group.id}
+            isDropTarget={dragOverGroupId === group.id && draggingId !== group.id}
             onDragStart={canReorderThis ? () => setDraggingId(group.id) : undefined}
-            onDragEnd={canReorderThis ? () => setDraggingId(null) : undefined}
+            onDragEnd={
+              canReorderThis
+                ? () => {
+                    setDraggingId(null);
+                    setDragOverGroupId(null);
+                  }
+                : undefined
+            }
             onDragOverGroup={
-              canReorderThis && draggingId ? (e) => e.preventDefault() : undefined
+              canReorderThis && draggingId
+                ? (e) => {
+                    e.preventDefault();
+                    setDragOverGroupId(group.id);
+                  }
+                : undefined
             }
             onDropOnGroup={
               canReorderThis && draggingId
                 ? () => {
-                    if (draggingId) onReorderGroup(draggingId, group.id);
+                    onReorderGroup(draggingId, group.id);
                     setDraggingId(null);
+                    setDragOverGroupId(null);
                   }
                 : undefined
             }
+            canReorderItems={canReorderItemsHere}
+            onReorderItem={(draggedId, targetId) => onReorderItem(group.id, draggedId, targetId)}
             currentUserId={currentUserId}
             trackedSecondsByItem={trackedSecondsByItem}
             activeSessionsByItem={activeSessionsByItem}

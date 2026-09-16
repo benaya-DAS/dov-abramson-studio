@@ -4,6 +4,18 @@ const config: Config = {
   content: [
     "./src/app/**/*.{ts,tsx}",
     "./src/components/**/*.{ts,tsx}",
+    // STATUS_COLORS/GROUP_COLORS in src/lib/constants.ts hold Tailwind class
+    // name strings (e.g. "bg-rose-700") that only ever appear as string
+    // values, never as literal JSX class text in app/ or components/.
+    // Tailwind's JIT compiler only emits CSS for classes it can find by
+    // scanning these globs as plain text - a class that exists ONLY in a
+    // file outside them is silently never generated, no error, nothing
+    // "broken" to see in devtools except an element with no background at
+    // all. This was the actual, root cause of the status badge contrast
+    // bug across every previous attempt to fix it by changing the color
+    // values: the values were always correct, the CSS for them just never
+    // shipped.
+    "./src/lib/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {

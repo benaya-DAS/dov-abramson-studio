@@ -173,6 +173,30 @@ export default function BoardWorkspace({
     await supabase.from("items").delete().in("id", ids);
   }
 
+  // Drag-and-drop reorder within a single group - item.position is scoped
+  // per group_id (addItem seeds new rows at `inGroup.length`), so this only
+  // ever reorders draggedId/targetId's shared group, never mixes positions
+  // across groups.
+  function reorderItem(groupId: string, draggedId: string, targetId: string) {
+    if (draggedId === targetId) return;
+    setItems((prev) => {
+      const inGroup = prev.filter((i) => i.group_id === groupId).sort((a, b) => a.position - b.position);
+      const fromIndex = inGroup.findIndex((i) => i.id === draggedId);
+      const toIndex = inGroup.findIndex((i) => i.id === targetId);
+      if (fromIndex === -1 || toIndex === -1) return prev;
+      const [moved] = inGroup.splice(fromIndex, 1);
+      inGroup.splice(toIndex, 0, moved);
+      const positionById = new Map(inGroup.map((it, i) => [it.id, i]));
+      positionById.forEach((position, id) => {
+        const current = prev.find((i) => i.id === id);
+        if (current && current.position !== position) {
+          supabase.from("items").update({ position }).eq("id", id).then();
+        }
+      });
+      return prev.map((it) => (positionById.has(it.id) ? { ...it, position: positionById.get(it.id)! } : it));
+    });
+  }
+
   async function addGroup(name: string) {
     const color = GROUP_COLORS[groups.length % GROUP_COLORS.length];
     const { data } = await supabase
@@ -404,6 +428,7 @@ export default function BoardWorkspace({
             onDeleteGroup={deleteGroup}
             onChangeGroupColor={changeGroupColor}
             onReorderGroup={reorderGroup}
+            onReorderItem={reorderItem}
             currentUserId={currentUserId}
             trackedSecondsByItem={trackedSecondsByItem}
             activeSessionsByItem={activeSessionsByItem}
@@ -411,6 +436,7 @@ export default function BoardWorkspace({
             readOnly={readOnly}
             canAddGroup={groupBy === "group"}
             canReorderGroups={groupBy === "group"}
+            canReorderItems={groupBy === "group" && sortBy === "none"}
           />
         )}
         {view === "gantt" && (

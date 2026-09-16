@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { GripVertical, Trash2 } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import PersonPicker from "./PersonPicker";
 import TimeTracker from "./TimeTracker";
@@ -22,6 +22,13 @@ export default function ItemRow({
   activeSessions,
   onTimeLogChanged,
   readOnly,
+  canReorder,
+  isDragging,
+  isDropTarget,
+  onDragStart,
+  onDragEnd,
+  onDragOverRow,
+  onDropOnRow,
 }: {
   item: Item;
   profiles: Profile[];
@@ -36,11 +43,23 @@ export default function ItemRow({
   activeSessions: ActiveTimeLog[];
   onTimeLogChanged: () => void;
   readOnly?: boolean;
+  /** True only when this board is grouped by "group" (real, position-backed
+   * groups) with no sort active - dragging to reorder while a different
+   * sort or grouping is driving the display order has nothing stable to
+   * write a position against. */
+  canReorder?: boolean;
+  isDragging?: boolean;
+  isDropTarget?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+  onDragOverRow?: (e: React.DragEvent) => void;
+  onDropOnRow?: () => void;
 }) {
   const [name, setName] = useState(item.name);
   const [serial, setSerial] = useState(item.serial_id ?? "");
   const [deliverable, setDeliverable] = useState(item.deliverable ?? "");
   const [hours, setHours] = useState(String(item.hours ?? 0));
+  const rowRef = useRef<HTMLTableRowElement>(null);
 
   // Keep local editable state in sync when the item changes from outside
   // this row (catalog auto-fill, realtime updates from other users, etc).
@@ -54,7 +73,45 @@ export default function ItemRow({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
-    <tr className={cn("group border-b border-slate-100 hover:bg-slate-50", selected && "bg-brand-50/60")}>
+    <tr
+      ref={rowRef}
+      className={cn(
+        "group border-b border-slate-100 hover:bg-slate-50",
+        selected && "bg-brand-50/60",
+        isDragging && "opacity-40",
+        isDropTarget && "bg-brand-50 outline outline-2 -outline-offset-2 outline-brand-400"
+      )}
+      onDragOver={onDragOverRow}
+      onDrop={(e) => {
+        if (onDropOnRow) {
+          e.preventDefault();
+          onDropOnRow();
+        }
+      }}
+    >
+      {canReorder && (
+        <td className="w-6 px-1 py-2 text-center">
+          <button
+            type="button"
+            draggable
+            onDragStart={(e) => {
+              // Show the whole row as the drag preview, not just this tiny
+              // handle - see the matching comment in GroupSection.tsx.
+              if (rowRef.current) {
+                const rect = rowRef.current.getBoundingClientRect();
+                e.dataTransfer.setDragImage(rowRef.current, rect.width / 2, rect.height / 2);
+              }
+              e.dataTransfer.effectAllowed = "move";
+              onDragStart?.();
+            }}
+            onDragEnd={onDragEnd}
+            title="גרירה לשינוי סדר המשימות"
+            className="cursor-grab text-slate-300 opacity-0 hover:text-slate-500 group-hover:opacity-100 active:cursor-grabbing"
+          >
+            <GripVertical size={13} />
+          </button>
+        </td>
+      )}
       <td className="w-10 px-3 py-2 text-center">
         <input
           type="checkbox"

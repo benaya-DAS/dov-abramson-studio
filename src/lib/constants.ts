@@ -43,13 +43,21 @@ export const DELIVERABLE_OPTIONS = [
 
 export const GROUP_COLORS = [
   "#579bfc",
-  "#fdab3d",
-  "#e2445c",
-  "#00c875",
-  "#a25ddc",
-  "#037f4c",
+  "#0086c0",
   "#66ccff",
+  "#037f4c",
+  "#00c875",
+  "#9cd326",
+  "#cab641",
+  "#fdab3d",
   "#ff642e",
+  "#e2445c",
+  "#ff5ac4",
+  "#a25ddc",
+  "#7f5347",
+  "#808080",
+  "#333333",
+  "#bb3354",
 ];
 
 export const HEBREW_MONTHS = [

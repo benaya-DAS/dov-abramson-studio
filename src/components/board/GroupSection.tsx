@@ -37,10 +37,13 @@ export default function GroupSection({
   onColorChange,
   canReorder,
   isDragging,
+  isDropTarget,
   onDragStart,
   onDragEnd,
   onDragOverGroup,
   onDropOnGroup,
+  canReorderItems,
+  onReorderItem,
   currentUserId,
   trackedSecondsByItem,
   activeSessionsByItem,
@@ -66,10 +69,17 @@ export default function GroupSection({
    * read-only board, has nothing real to reorder. */
   canReorder?: boolean;
   isDragging?: boolean;
+  isDropTarget?: boolean;
   onDragStart?: () => void;
   onDragEnd?: () => void;
   onDragOverGroup?: (e: React.DragEvent) => void;
   onDropOnGroup?: () => void;
+  /** Same gating as canReorder, plus: only meaningful while items are
+   * actually displayed in position order (sortBy === "none") - dragging to
+   * "reorder" while a different sort is active would just get overridden
+   * the instant it re-renders. */
+  canReorderItems?: boolean;
+  onReorderItem: (draggedId: string, targetId: string) => void;
   currentUserId: string | null;
   trackedSecondsByItem: Record<string, number>;
   activeSessionsByItem: Record<string, ActiveTimeLog[]>;
@@ -80,6 +90,9 @@ export default function GroupSection({
     (sum, i) => sum + (trackedSecondsByItem[i.id] ?? 0),
     0
   );
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
+  const [dragOverItemId, setDragOverItemId] = useState<string | null>(null);
 
   return (
     <div
@@ -99,14 +112,29 @@ export default function GroupSection({
        * differs from React's DOM and trips a hydration mismatch on first
        * load. Each control here is its own sibling button instead. */}
       <div
-        className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2"
+        ref={headerRef}
+        className={cn(
+          "flex w-full items-center gap-2 rounded-t-lg px-3 py-2 transition",
+          isDropTarget && "ring-2 ring-inset ring-brand-400"
+        )}
         style={{ backgroundColor: `${group.color}1a` }}
       >
         {canReorder && (
           <button
             type="button"
             draggable
-            onDragStart={onDragStart}
+            onDragStart={(e) => {
+              // Without this, the browser's default drag preview is just
+              // the tiny grip icon itself (the only element marked
+              // draggable) - dragging the whole visible header instead
+              // makes it obvious what's actually being moved.
+              if (headerRef.current) {
+                const rect = headerRef.current.getBoundingClientRect();
+                e.dataTransfer.setDragImage(headerRef.current, rect.width / 2, rect.height / 2);
+              }
+              e.dataTransfer.effectAllowed = "move";
+              onDragStart?.();
+            }}
             onDragEnd={onDragEnd}
             title="גרירה לשינוי סדר הקבוצות"
             className="shrink-0 cursor-grab text-slate-300 hover:text-slate-500 active:cursor-grabbing"
@@ -171,6 +199,7 @@ export default function GroupSection({
           <table className="w-full border-collapse text-right">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50 text-[11px] font-semibold text-slate-400">
+                {canReorderItems && <th className="w-6 px-1 py-2"></th>}
                 <th className="w-10 px-3 py-2"></th>
                 <th className="min-w-[220px] px-2 py-2 text-right">פריט</th>
                 <th className="w-16 px-1 py-2">איש צוות</th>
@@ -201,12 +230,37 @@ export default function GroupSection({
                   activeSessions={activeSessionsByItem[item.id] ?? NO_ACTIVE_SESSIONS}
                   onTimeLogChanged={onTimeLogChanged}
                   readOnly={readOnly}
+                  canReorder={canReorderItems}
+                  isDragging={draggingItemId === item.id}
+                  isDropTarget={dragOverItemId === item.id && draggingItemId !== item.id}
+                  onDragStart={() => setDraggingItemId(item.id)}
+                  onDragEnd={() => {
+                    setDraggingItemId(null);
+                    setDragOverItemId(null);
+                  }}
+                  onDragOverRow={
+                    draggingItemId
+                      ? (e) => {
+                          e.preventDefault();
+                          setDragOverItemId(item.id);
+                        }
+                      : undefined
+                  }
+                  onDropOnRow={
+                    draggingItemId
+                      ? () => {
+                          onReorderItem(draggingItemId, item.id);
+                          setDraggingItemId(null);
+                          setDragOverItemId(null);
+                        }
+                      : undefined
+                  }
                 />
               ))}
 
               {!readOnly && group.isRealGroup && (
                 <tr>
-                  <td colSpan={11} className="px-3 py-1.5">
+                  <td colSpan={canReorderItems ? 12 : 11} className="px-3 py-1.5">
                     <button
                       onClick={onAddItem}
                       className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-slate-400 hover:bg-slate-50 hover:text-brand-600"
@@ -220,7 +274,7 @@ export default function GroupSection({
             </tbody>
             <tfoot>
               <tr className="border-t border-slate-200 bg-slate-50 text-xs font-bold text-slate-600">
-                <td colSpan={8} className="px-3 py-2 text-left">
+                <td colSpan={canReorderItems ? 9 : 8} className="px-3 py-2 text-left">
                   סה&quot;כ
                 </td>
                 <td className="px-2 py-2 text-center">{formatHours(totalHours)}</td>
@@ -252,7 +306,7 @@ function GroupColorPicker({
         type="button"
         onClick={() => setOpen((o) => !o)}
         title="צבע הקבוצה"
-        className="flex h-5 w-5 items-center justify-center rounded-full ring-1 ring-inset ring-black/10 hover:ring-black/20"
+        className="flex h-5 w-5 items-center justify-center rounded ring-1 ring-inset ring-black/10 hover:ring-black/20"
         style={{ backgroundColor: color }}
       />
 
@@ -274,7 +328,7 @@ function GroupColorPicker({
                 }}
                 title={c}
                 className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded-full ring-1 ring-inset ring-black/10 transition hover:scale-110",
+                  "flex h-6 w-6 items-center justify-center rounded ring-1 ring-inset ring-black/10 transition hover:scale-110",
                   c === color && "ring-2 ring-offset-1 ring-slate-500"
                 )}
                 style={{ backgroundColor: c }}

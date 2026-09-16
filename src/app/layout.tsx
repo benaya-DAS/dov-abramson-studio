@@ -9,7 +9,7 @@ const assistant = Assistant({
 });
 
 export const metadata: Metadata = {
-  title: "סטודיו דב אברמסון | ניהול פרויקטים",
+  title: "סטודיו דוב אברמסון | ניהול פרויקטים",
   description: "מערכת ניהול הסטודיו - לוחות, משימות, זמנים וקטלוג פרויקטים",
   icons: {
     icon: [

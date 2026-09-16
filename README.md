@@ -1,4 +1,4 @@
-# סטודיו דב אברמסון — מערכת ניהול פרויקטים
+# סטודיו דוב אברמסון — מערכת ניהול פרויקטים
 
 Full-featured, RTL-native studio management app for Dov Abramson Studio — a
 Monday.com-style tool built with **Next.js 16 (App Router)**, **Tailwind

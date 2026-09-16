@@ -16,7 +16,7 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
       <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-4">
         <Image
           src="/web-app-manifest-512x512.png"
-          alt="סטודיו דב אברמסון"
+          alt="סטודיו דוב אברמסון"
           width={36}
           height={36}
           className="h-9 w-9 shrink-0 rounded-lg object-contain"

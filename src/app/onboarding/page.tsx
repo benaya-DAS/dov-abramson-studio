@@ -7,7 +7,7 @@ export default function OnboardingPage() {
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-2xl">
           🗂️
         </div>
-        <h1 className="text-lg font-bold text-slate-900">ברוכים הבאים לסטודיו דב אברמסון</h1>
+        <h1 className="text-lg font-bold text-slate-900">ברוכים הבאים לסטודיו דוב אברמסון</h1>
         <p className="mt-2 text-sm text-slate-600">
           עדיין לא הוגדרה אף מחלקה במערכת. צרו את המחלקה הראשונה למטה, או הריצו את הקובץ{" "}
           <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">supabase/seed.sql</code> כדי

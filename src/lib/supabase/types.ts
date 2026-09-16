@@ -154,7 +154,10 @@ export interface Database {
     };
     Functions: {
       rollover_board_month: { Args: { p_board_id: string }; Returns: Board };
-      stop_time_log: { Args: { p_log_id: string }; Returns: TimeLog };
+      // Returns null (not an error) when the UPDATE matches zero rows - e.g.
+      // the session was already stopped elsewhere, or p_log_id/user_id no
+      // longer line up - so callers must check for that explicitly.
+      stop_time_log: { Args: { p_log_id: string }; Returns: TimeLog | null };
       is_allowed_email: { Args: { p_email: string }; Returns: boolean };
     };
     Enums: Record<string, never>;

@@ -39,9 +39,23 @@ export default function TimeTracker({
   readOnly?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [logOpen, setLogOpen] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const errorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const durationButtonRef = useRef<HTMLButtonElement>(null);
+
+  // A failed start/stop request used to fail completely silently (console
+  // only) - the on-screen button would just snap back, which reads as
+  // "nothing happened". Surface it as a brief red state on the button
+  // itself, self-clearing so it doesn't linger forever.
+  useEffect(() => {
+    if (!errorMsg) return;
+    errorTimeoutRef.current = setTimeout(() => setErrorMsg(null), 5000);
+    return () => {
+      if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+    };
+  }, [errorMsg]);
 
   const myActiveFromProps = activeSessions.find((s) => s.user_id === userId) ?? null;
   const propsActiveId = myActiveFromProps?.id ?? null;
@@ -110,31 +124,57 @@ export default function TimeTracker({
   async function toggle() {
     if (!userId || readOnly || loading) return;
     setLoading(true);
+    setErrorMsg(null);
     const supabase = createClient();
 
-    if (myActive) {
-      setMyActiveOverride(null);
-      const { error } = await supabase.rpc("stop_time_log", { p_log_id: myActive.id });
-      if (error) {
-        console.error("Failed to stop time session:", error);
-        setMyActiveOverride(undefined);
+    // try/catch/finally matters here beyond the usual reflex: supabase-js
+    // resolves to { error } for ordinary request failures, but a lower-level
+    // failure (network drop, CORS, an ad/tracking blocker on the request)
+    // rejects the promise instead. Without a catch, that throw would skip
+    // setLoading(false) entirely and leave the button permanently disabled
+    // - which looks exactly like "clicking does nothing" with zero clue why.
+    try {
+      if (myActive) {
+        const stoppingId = myActive.id;
+        setMyActiveOverride(null);
+        const { data, error } = await supabase.rpc("stop_time_log", { p_log_id: stoppingId });
+        if (error) {
+          console.error("Failed to stop time session:", error);
+          setErrorMsg(error.message);
+          setMyActiveOverride(undefined);
+        } else if (!data) {
+          // No SQL error, but stop_time_log's UPDATE matched zero rows (the
+          // session was already stopped elsewhere, or p_log_id/user_id no
+          // longer line up) - treat that as a failure too instead of
+          // silently trusting an optimistic update that didn't actually land.
+          console.error("Failed to stop time session: no matching active session on the server");
+          setErrorMsg("לא ניתן היה לעצור את המדידה (יתכן שכבר נעצרה)");
+          setMyActiveOverride(undefined);
+          onTimeLogChanged();
+        } else {
+          onTimeLogChanged();
+        }
       } else {
-        onTimeLogChanged();
+        const { data, error } = await supabase
+          .from("time_logs")
+          .insert({ item_id: itemId, user_id: userId })
+          .select("id, user_id, start_time")
+          .single();
+        if (error) {
+          console.error("Failed to start time session:", error);
+          setErrorMsg(error.message);
+        } else if (data) {
+          setMyActiveOverride(data);
+          onTimeLogChanged();
+        }
       }
-    } else {
-      const { data, error } = await supabase
-        .from("time_logs")
-        .insert({ item_id: itemId, user_id: userId })
-        .select("id, user_id, start_time")
-        .single();
-      if (error) {
-        console.error("Failed to start time session:", error);
-      } else if (data) {
-        setMyActiveOverride(data);
-        onTimeLogChanged();
-      }
+    } catch (err) {
+      console.error("Time tracking request failed:", err);
+      setErrorMsg(err instanceof Error ? err.message : "שגיאת רשת");
+      setMyActiveOverride(undefined);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (
@@ -144,9 +184,9 @@ export default function TimeTracker({
         disabled={readOnly || !userId || loading}
         className={cn(
           "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white transition hover:brightness-90 disabled:opacity-40",
-          myActive ? "bg-[#579bfc]" : "bg-emerald-500"
+          errorMsg ? "bg-red-500 ring-2 ring-red-300" : myActive ? "bg-[#579bfc]" : "bg-emerald-500"
         )}
-        title={myActive ? "עצירת מדידת זמן" : "התחלת מדידת זמן"}
+        title={errorMsg ?? (myActive ? "עצירת מדידת זמן" : "התחלת מדידת זמן")}
       >
         {myActive ? <Pause size={11} fill="white" /> : <Play size={11} fill="white" />}
       </button>

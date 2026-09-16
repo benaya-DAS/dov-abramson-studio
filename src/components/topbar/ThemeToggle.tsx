@@ -45,7 +45,7 @@ export default function ThemeToggle() {
       onClick={toggle}
       title={isDark ? "מעבר למצב בהיר" : "מעבר למצב כהה"}
       aria-label={isDark ? "מעבר למצב בהיר" : "מעבר למצב כהה"}
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-night-800 dark:hover:text-slate-200"
     >
       {isDark ? <Sun size={18} /> : <Moon size={18} />}
     </button>

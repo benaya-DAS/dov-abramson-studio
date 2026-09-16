@@ -34,8 +34,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-brand-50 to-white px-4 dark:from-slate-900 dark:to-slate-950">
-      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-panel dark:border-slate-700 dark:bg-slate-800">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-brand-50 to-white px-4 dark:from-night-900 dark:to-black">
+      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-panel dark:border-night-700 dark:bg-night-800">
         <div className="mb-8 text-center">
           <Image
             src="/web-app-manifest-512x512.png"
@@ -52,7 +52,7 @@ export default function LoginPage() {
         <button
           onClick={signInWithGoogle}
           disabled={loading}
-          className="flex w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="flex w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60 dark:border-night-600 dark:bg-night-900 dark:text-slate-200 dark:hover:bg-night-800"
         >
           <GoogleIcon />
           {loading ? "מתחבר..." : "התחברות עם Google"}

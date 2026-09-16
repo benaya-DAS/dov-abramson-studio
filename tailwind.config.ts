@@ -55,6 +55,19 @@ const config: Config = {
           stuck: "#e2445c",
           done: "#00c875",
         },
+        // Dark-mode neutral scale, standing in for `slate` on every
+        // dark:bg-*/border-*/ring-offset-* class - a deep indigo-navy
+        // rather than slate's neutral gray, matching Monday.com's own dark
+        // theme (a reference screenshot) and tying dark mode to the same
+        // indigo hue `brand` already uses, instead of an arbitrary gray.
+        // Text stays on `slate` (kept legible/neutral, not retinted) -
+        // only surfaces and borders use this scale.
+        night: {
+          600: "#3a3c5e", // lighter borders (was border-slate-600)
+          700: "#2b2d4d", // hover bg / mid borders (was slate-700)
+          800: "#20223d", // sidebar, top bar, cards, popovers (was slate-800)
+          900: "#181a30", // page background (was slate-900)
+        },
       },
       boxShadow: {
         panel: "0 1px 3px 0 rgba(0,0,0,0.08)",

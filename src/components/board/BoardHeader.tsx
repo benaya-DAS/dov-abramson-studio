@@ -46,13 +46,13 @@ export default function BoardHeader({
                 const trimmed = e.target.value.trim();
                 if (trimmed && trimmed !== boardName) onRenameBoard(trimmed);
               }}
-              className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1 -mx-1 text-lg font-bold text-slate-900 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-100 dark:hover:border-slate-700 dark:focus:bg-slate-800"
+              className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1 -mx-1 text-lg font-bold text-slate-900 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-100 dark:hover:border-night-700 dark:focus:bg-night-800"
             />
           ) : (
             <h1 className="truncate text-lg font-bold text-slate-900 dark:text-slate-100">{boardName}</h1>
           )}
           {isArchived && (
-            <span className="flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-night-800 dark:text-slate-400">
               <Lock size={11} />
               ארכיון - לקריאה בלבד
             </span>
@@ -82,7 +82,7 @@ export default function BoardHeader({
         <>
           <button
             onClick={() => setShowImporter(true)}
-            className="flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-night-700 dark:text-slate-300 dark:hover:bg-night-800"
           >
             <FileSpreadsheet size={14} />
             ייבוא קטלוג

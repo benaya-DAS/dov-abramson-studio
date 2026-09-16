@@ -6,7 +6,7 @@ export default async function TopBar() {
   const profile = await getCurrentProfile();
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-5 dark:border-slate-700 dark:bg-slate-900">
+    <header className="flex h-16 shrink-0 items-center gap-4 border-b border-slate-200 bg-white px-5 dark:border-night-700 dark:bg-night-900">
       <div className="flex-1" />
       {/* JSX order sets visual position under dir="rtl": UserMenu (avatar)
        * comes first here so it sits closer to center, ThemeToggle after it

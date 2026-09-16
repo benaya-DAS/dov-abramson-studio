@@ -194,7 +194,7 @@ export default function TimeTracker({
         ref={durationButtonRef}
         onClick={() => setLogOpen((o) => !o)}
         className={cn(
-          "min-w-[64px] rounded px-1 text-center font-mono text-xs tabular-nums hover:bg-slate-100 dark:hover:bg-slate-700",
+          "min-w-[64px] rounded px-1 text-center font-mono text-xs tabular-nums hover:bg-slate-100 dark:hover:bg-night-700",
           myActive ? "font-semibold text-[#579bfc]" : "text-slate-500 dark:text-slate-400"
         )}
         title="יומן מעקב זמן"

@@ -100,7 +100,7 @@ export default function SessionEditView({
 
   return (
     <div>
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-700">
+      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-night-700">
         <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">עדכון רישום</h3>
         <button
           onClick={onBack}
@@ -115,7 +115,7 @@ export default function SessionEditView({
         <div className="mb-3 flex items-center justify-between">
           <button
             onClick={() => setCursor((c) => subMonths(c, 1))}
-            className="rounded-md p-1 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+            className="rounded-md p-1 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-700"
           >
             <ChevronRight size={14} />
           </button>
@@ -124,7 +124,7 @@ export default function SessionEditView({
           </span>
           <button
             onClick={() => setCursor((c) => addMonths(c, 1))}
-            className="rounded-md p-1 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+            className="rounded-md p-1 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-700"
           >
             <ChevronLeft size={14} />
           </button>
@@ -151,8 +151,8 @@ export default function SessionEditView({
                     : today
                       ? "font-semibold text-brand-700 dark:text-brand-400"
                       : inMonth
-                        ? "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
-                        : "text-slate-300 hover:bg-slate-50 dark:text-slate-600 dark:hover:bg-slate-800"
+                        ? "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-700"
+                        : "text-slate-300 hover:bg-slate-50 dark:text-slate-600 dark:hover:bg-night-800"
                 }`}
               >
                 {format(day, "d")}
@@ -168,7 +168,7 @@ export default function SessionEditView({
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-brand-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:[color-scheme:dark]"
+              className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-brand-400 dark:border-night-600 dark:bg-night-900 dark:text-slate-100 dark:[color-scheme:dark]"
             />
           </label>
           <label className="block">
@@ -177,7 +177,7 @@ export default function SessionEditView({
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-brand-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:[color-scheme:dark]"
+              className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-brand-400 dark:border-night-600 dark:bg-night-900 dark:text-slate-100 dark:[color-scheme:dark]"
             />
           </label>
         </div>

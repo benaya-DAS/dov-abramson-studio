@@ -27,7 +27,7 @@ export default function PersonPicker({
         ref={buttonRef}
         onClick={() => !readOnly && setOpen((o) => !o)}
         className={cn(
-          "flex items-center gap-1.5 rounded-full px-1.5 py-1 hover:bg-slate-100 dark:hover:bg-slate-700",
+          "flex items-center gap-1.5 rounded-full px-1.5 py-1 hover:bg-slate-100 dark:hover:bg-night-700",
           readOnly && "cursor-default hover:bg-transparent dark:hover:bg-transparent"
         )}
         title={person?.full_name || person?.email || "לא הוקצה"}
@@ -40,16 +40,16 @@ export default function PersonPicker({
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <FloatingPanel
             anchorRef={buttonRef}
-            className="z-50 max-h-64 w-52 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-800"
+            className="z-50 max-h-64 w-52 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-night-700 dark:bg-night-800"
           >
             <button
               onClick={() => {
                 onChange?.(null);
                 setOpen(false);
               }}
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-700"
+              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-night-700"
             >
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs dark:bg-slate-700">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs dark:bg-night-700">
                 ✕
               </span>
               ללא הקצאה
@@ -61,7 +61,7 @@ export default function PersonPicker({
                   onChange?.(p.id);
                   setOpen(false);
                 }}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-night-700"
               >
                 <Avatar profile={p} size={22} />
                 <span className="truncate">{p.full_name || p.email}</span>

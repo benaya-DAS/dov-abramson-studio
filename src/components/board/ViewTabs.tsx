@@ -19,7 +19,7 @@ export default function ViewTabs({
   onChange: (v: BoardView) => void;
 }) {
   return (
-    <div className="flex items-center gap-1 border-b border-slate-200 px-5 dark:border-slate-700">
+    <div className="flex items-center gap-1 border-b border-slate-200 px-5 dark:border-night-700">
       {TABS.map((tab) => {
         const Icon = tab.icon;
         const active = view === tab.id;

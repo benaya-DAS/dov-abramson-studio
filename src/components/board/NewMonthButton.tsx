@@ -39,10 +39,10 @@ export default function NewMonthButton({ boardId, boardName }: { boardId: string
 
       {confirming && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-800">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-night-800">
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">פתיחת חודש חדש</h2>
-              <button onClick={() => setConfirming(false)} className="rounded-md p-1 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700">
+              <button onClick={() => setConfirming(false)} className="rounded-md p-1 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-700">
                 <X size={16} />
               </button>
             </div>
@@ -54,7 +54,7 @@ export default function NewMonthButton({ boardId, boardName }: { boardId: string
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setConfirming(false)}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+                className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-700"
               >
                 ביטול
               </button>

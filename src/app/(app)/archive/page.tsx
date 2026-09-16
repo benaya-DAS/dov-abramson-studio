@@ -21,7 +21,7 @@ export default async function ArchivePage() {
             <Link
               key={board.id}
               href={`/board/${board.id}`}
-              className="rounded-xl border border-slate-200 bg-white p-4 shadow-panel transition hover:border-brand-300 hover:shadow dark:border-slate-700 dark:bg-slate-800 dark:hover:border-brand-600"
+              className="rounded-xl border border-slate-200 bg-white p-4 shadow-panel transition hover:border-brand-300 hover:shadow dark:border-night-700 dark:bg-night-800 dark:hover:border-brand-600"
             >
               <p className="mb-1 text-xs text-slate-400 dark:text-slate-500">
                 {(board as unknown as { workspaces?: { name: string } }).workspaces?.name}

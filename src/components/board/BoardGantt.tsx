@@ -49,16 +49,16 @@ export default function BoardGantt({
     <div className="overflow-auto p-5">
       <div style={{ minWidth: days.length * DAY_WIDTH + 260 }}>
         {/* Header row: day scale */}
-        <div className="sticky top-0 z-10 flex bg-white dark:bg-slate-900">
-          <div className="w-64 shrink-0 border-b border-slate-200 dark:border-slate-700" />
+        <div className="sticky top-0 z-10 flex bg-white dark:bg-night-900">
+          <div className="w-64 shrink-0 border-b border-slate-200 dark:border-night-700" />
           <div className="flex">
             {days.map((d) => (
               <div
                 key={d.toISOString()}
                 style={{ width: DAY_WIDTH }}
                 className={cn(
-                  "shrink-0 border-b border-l border-slate-100 py-1 text-center text-[10px] font-medium dark:border-slate-800",
-                  isWeekend(d) ? "bg-slate-50 text-slate-400 dark:bg-slate-800/60 dark:text-slate-500" : "text-slate-500 dark:text-slate-400",
+                  "shrink-0 border-b border-l border-slate-100 py-1 text-center text-[10px] font-medium dark:border-night-800",
+                  isWeekend(d) ? "bg-slate-50 text-slate-400 dark:bg-night-800/60 dark:text-slate-500" : "text-slate-500 dark:text-slate-400",
                   format(d, "yyyy-MM-dd") === format(today, "yyyy-MM-dd") &&
                     "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
                 )}

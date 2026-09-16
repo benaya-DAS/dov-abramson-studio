@@ -28,7 +28,7 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
       <button
         ref={buttonRef}
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-full border border-slate-200 py-1 pl-3 pr-1 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+        className="flex items-center gap-2 rounded-full border border-slate-200 py-1 pl-3 pr-1 hover:bg-slate-50 dark:border-night-700 dark:hover:bg-night-800"
       >
         <Avatar profile={profile} size={28} />
         <span className="hidden text-sm font-medium text-slate-700 dark:text-slate-200 sm:inline">
@@ -42,7 +42,7 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
           <FloatingPanel
             anchorRef={buttonRef}
             align="end"
-            className="z-50 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-800"
+            className="z-50 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-night-700 dark:bg-night-800"
           >
             <div className="px-3 py-2">
               <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
@@ -75,7 +75,7 @@ export function Avatar({
     return (
       <span
         style={{ width: size, height: size }}
-        className="inline-flex items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-500 dark:bg-slate-700 dark:text-slate-400"
+        className="inline-flex items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-500 dark:bg-night-700 dark:text-slate-400"
       >
         ?
       </span>

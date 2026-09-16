@@ -231,10 +231,10 @@ export default function GroupSection({
       </div>
 
       {!group.collapsed && (
-        <div className="overflow-x-auto rounded-b-lg border border-t-0 border-slate-300 dark:border-slate-700">
+        <div className="overflow-x-auto rounded-b-lg border border-t-0 border-slate-300 dark:border-night-700">
           <table className="w-full border-collapse text-right">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-400 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-500">
+              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-400 dark:border-night-700 dark:bg-night-800/60 dark:text-slate-500">
                 {canReorderItems && <th className="w-6 px-1 py-2"></th>}
                 <th className="w-10 px-3 py-2"></th>
                 <th className="min-w-[220px] px-2 py-2 text-right">פריט</th>
@@ -295,7 +295,7 @@ export default function GroupSection({
                   <td colSpan={canReorderItems ? 12 : 11} className="px-3 py-1.5">
                     <button
                       onClick={onAddItem}
-                      className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-slate-400 hover:bg-slate-50 hover:text-brand-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-brand-400"
+                      className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-slate-400 hover:bg-slate-50 hover:text-brand-600 dark:text-slate-500 dark:hover:bg-night-800 dark:hover:text-brand-400"
                     >
                       <Plus size={14} />
                       הוספת פריט
@@ -305,7 +305,7 @@ export default function GroupSection({
               )}
             </tbody>
             <tfoot>
-              <tr className="border-t border-slate-300 bg-slate-50 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+              <tr className="border-t border-slate-300 bg-slate-50 text-xs font-bold text-slate-600 dark:border-night-700 dark:bg-night-800/60 dark:text-slate-300">
                 <td colSpan={canReorderItems ? 9 : 8} className="px-3 py-2 text-left">
                   סה&quot;כ
                 </td>
@@ -348,7 +348,7 @@ function GroupColorPicker({
           <FloatingPanel
             anchorRef={buttonRef}
             align="end"
-            className="z-50 grid grid-cols-4 gap-1.5 rounded-lg border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-800"
+            className="z-50 grid grid-cols-4 gap-1.5 rounded-lg border border-slate-200 bg-white p-2 shadow-lg dark:border-night-700 dark:bg-night-800"
           >
             {GROUP_COLORS.map((c) => (
               <button
@@ -361,7 +361,7 @@ function GroupColorPicker({
                 title={c}
                 className={cn(
                   "flex h-6 w-6 items-center justify-center rounded ring-1 ring-inset ring-black/10 transition hover:scale-110 dark:ring-white/10",
-                  c === color && "ring-2 ring-offset-1 ring-slate-500 dark:ring-offset-slate-800"
+                  c === color && "ring-2 ring-offset-1 ring-slate-500 dark:ring-offset-night-800"
                 )}
                 style={{ backgroundColor: c }}
               />

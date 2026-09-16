@@ -172,12 +172,12 @@ export default function BoardTable({
                 if (e.key === "Escape") setAddingGroup(false);
               }}
               placeholder="שם הקבוצה החדשה"
-              className="w-56 rounded-md border border-brand-300 bg-white px-3 py-1.5 text-sm text-slate-900 outline-none dark:border-brand-700 dark:bg-slate-800 dark:text-slate-100"
+              className="w-56 rounded-md border border-brand-300 bg-white px-3 py-1.5 text-sm text-slate-900 outline-none dark:border-brand-700 dark:bg-night-800 dark:text-slate-100"
             />
           ) : (
             <button
               onClick={() => setAddingGroup(true)}
-              className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-slate-400 hover:bg-slate-100 hover:text-brand-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-brand-400"
+              className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-slate-400 hover:bg-slate-100 hover:text-brand-600 dark:text-slate-500 dark:hover:bg-night-800 dark:hover:text-brand-400"
             >
               <Plus size={15} />
               הוספת קבוצה

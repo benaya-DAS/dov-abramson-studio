@@ -62,30 +62,30 @@ export default function BoardCalendar({
         <div className="flex items-center gap-1">
           <button
             onClick={() => setCursor((c) => subMonths(c, 1))}
-            className="rounded-md p-1.5 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="rounded-md p-1.5 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-800"
           >
             <ChevronRight size={16} />
           </button>
           <button
             onClick={() => setCursor(new Date())}
-            className="rounded-md px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+            className="rounded-md px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-night-800"
           >
             היום
           </button>
           <button
             onClick={() => setCursor((c) => addMonths(c, 1))}
-            className="rounded-md p-1.5 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="rounded-md p-1.5 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-800"
           >
             <ChevronLeft size={16} />
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
+      <div className="grid grid-cols-7 overflow-hidden rounded-lg border border-slate-200 dark:border-night-700">
         {WEEKDAYS.map((d) => (
           <div
             key={d}
-            className="border-b border-slate-200 bg-slate-50 py-2 text-center text-xs font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400"
+            className="border-b border-slate-200 bg-slate-50 py-2 text-center text-xs font-semibold text-slate-500 dark:border-night-700 dark:bg-night-800/60 dark:text-slate-400"
           >
             {d}
           </div>
@@ -100,8 +100,8 @@ export default function BoardCalendar({
             <div
               key={key}
               className={cn(
-                "min-h-[110px] border-b border-l border-slate-100 p-1.5 dark:border-slate-800",
-                !inMonth && "bg-slate-50/60 dark:bg-slate-900/40"
+                "min-h-[110px] border-b border-l border-slate-100 p-1.5 dark:border-night-800",
+                !inMonth && "bg-slate-50/60 dark:bg-night-900/40"
               )}
             >
               <div

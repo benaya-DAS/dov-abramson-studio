@@ -108,7 +108,7 @@ export default function TimeLogPopover({
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <FloatingPanel
         anchorRef={anchorRef}
-        className="z-50 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white text-right shadow-xl dark:border-slate-700 dark:bg-slate-800"
+        className="z-50 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white text-right shadow-xl dark:border-night-700 dark:bg-night-800"
       >
         {editingSession !== null ? (
           <SessionEditView
@@ -124,7 +124,7 @@ export default function TimeLogPopover({
           />
         ) : (
           <>
-            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-700">
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-night-700">
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">יומן מעקב זמן</h3>
               <div className="flex items-center gap-3">
                 {sessions.length > 0 && !readOnly && currentUserId && (
@@ -149,10 +149,10 @@ export default function TimeLogPopover({
             </div>
 
             {!readOnly && currentUserId && (
-              <div className="border-b border-slate-100 p-2 dark:border-slate-700">
+              <div className="border-b border-slate-100 p-2 dark:border-night-700">
                 <button
                   onClick={() => setEditingSession("new")}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-night-600 dark:text-slate-300 dark:hover:bg-night-700"
                 >
                   <Plus size={14} />
                   הוספת רישום ידני
@@ -184,7 +184,7 @@ export default function TimeLogPopover({
                     return (
                       <li
                         key={s.id}
-                        className="flex items-center gap-2 border-b border-slate-50 px-4 py-2 last:border-0 hover:bg-slate-50 dark:border-slate-700/60 dark:hover:bg-slate-700/40"
+                        className="flex items-center gap-2 border-b border-slate-50 px-4 py-2 last:border-0 hover:bg-slate-50 dark:border-night-700/60 dark:hover:bg-night-700/40"
                       >
                         <Avatar profile={person ?? null} size={22} />
                         <button
@@ -221,7 +221,7 @@ export default function TimeLogPopover({
               )}
             </div>
 
-            <div className="flex items-center justify-center border-t border-slate-100 bg-slate-50 py-3 dark:border-slate-700 dark:bg-slate-900/40">
+            <div className="flex items-center justify-center border-t border-slate-100 bg-slate-50 py-3 dark:border-night-700 dark:bg-night-900/40">
               <span className="font-mono text-sm font-bold text-slate-700 dark:text-slate-200">
                 סה&quot;כ {formatDurationCompact(totalSeconds)}
               </span>

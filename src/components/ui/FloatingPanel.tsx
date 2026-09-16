@@ -41,20 +41,17 @@ export default function FloatingPanel({
     left: -9999,
     visibility: "hidden",
   });
-  const [mounted, setMounted] = useState(false);
-
-  // createPortal needs document.body, which doesn't exist during SSR — this
-  // defers the portal to the client-only mount pass, the standard fix for
-  // that (not a derived-state pattern the lint rule is meant to catch).
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useLayoutEffect(() => setMounted(true), []);
+  // Lazy-initialized once, synchronously, instead of flipped true in a
+  // later effect: every call site only ever mounts this component after a
+  // real client-side click, so document.body already exists the very
+  // first time this runs — there's no SSR pass to guard against here, and
+  // deferring "mounted" to an effect previously meant the portal (and
+  // panelRef) didn't exist yet on the render where the position effect
+  // below ran, leaving the panel stuck permanently invisible.
+  const [mounted] = useState(() => typeof document !== "undefined");
 
   useLayoutEffect(() => {
-    function update() {
-      const anchor = anchorRef.current;
-      const panel = panelRef.current;
-      if (!anchor || !panel) return;
-
+    function positionAt(anchor: HTMLElement, panel: HTMLDivElement) {
       const anchorRect = anchor.getBoundingClientRect();
       const panelRect = panel.getBoundingClientRect();
       const viewportW = document.documentElement.clientWidth;
@@ -73,12 +70,37 @@ export default function FloatingPanel({
       setStyle({ position: "fixed", top, left, visibility: "visible" });
     }
 
-    update();
+    function update() {
+      const anchor = anchorRef.current;
+      const panel = panelRef.current;
+      if (anchor && panel) positionAt(anchor, panel);
+    }
+
+    // The refs can legitimately still be null on the very first paint in
+    // edge cases (e.g. the anchor itself mounts in the same commit as this
+    // panel). Retry a few times via rAF rather than leaving the panel
+    // stuck invisible if that happens, instead of assuming both refs are
+    // already attached by the time this effect body runs.
+    let cancelled = false;
+    function updateWithRetry(attemptsLeft = 5) {
+      const anchor = anchorRef.current;
+      const panel = panelRef.current;
+      if (anchor && panel) {
+        positionAt(anchor, panel);
+      } else if (attemptsLeft > 0) {
+        requestAnimationFrame(() => {
+          if (!cancelled) updateWithRetry(attemptsLeft - 1);
+        });
+      }
+    }
+
+    updateWithRetry();
     // capture: true so this also fires for scroll on the table's own
     // overflow-x-auto wrapper, not just window-level scrolling.
     window.addEventListener("scroll", update, true);
     window.addEventListener("resize", update);
     return () => {
+      cancelled = true;
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
     };

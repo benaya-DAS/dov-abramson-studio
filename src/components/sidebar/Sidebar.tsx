@@ -13,7 +13,11 @@ import CreateWorkspaceButton from "./CreateWorkspaceButton";
 export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoards[] }) {
   return (
     <aside className="flex h-screen w-72 shrink-0 flex-col border-l border-slate-200 bg-white">
-      <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-4">
+      {/* h-16 matches TopBar.tsx's own h-16 exactly, so this header's
+       * border-b lands on the same Y as the top bar's border-b instead of
+       * sitting a few px lower (py-4 here vs. a fixed height there) - the
+       * two rules read as one continuous line across the top of the app. */}
+      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-4">
         <Image
           src="/web-app-manifest-512x512.png"
           alt="סטודיו דוב אברמסון"

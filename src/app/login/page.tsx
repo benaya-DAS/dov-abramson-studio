@@ -39,13 +39,13 @@ export default function LoginPage() {
         <div className="mb-8 text-center">
           <Image
             src="/web-app-manifest-512x512.png"
-            alt="סטודיו דב אברמסון"
+            alt="סטודיו דוב אברמסון"
             width={56}
             height={56}
             className="mx-auto mb-4 h-14 w-14 rounded-xl object-contain"
             priority
           />
-          <h1 className="text-xl font-bold text-slate-900">סטודיו דב אברמסון</h1>
+          <h1 className="text-xl font-bold text-slate-900">סטודיו דוב אברמסון</h1>
           <p className="mt-1 text-sm text-slate-500">מערכת ניהול פרויקטים פנימית</p>
         </div>
 

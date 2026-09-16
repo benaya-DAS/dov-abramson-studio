@@ -30,6 +30,7 @@ export default function CreateWorkspaceButton({ nextPosition }: { nextPosition: 
       // policy) rejects the write. That row is created automatically on
       // sign-in, so a refresh usually clears this; schema.sql also
       // backfills it for any account missing one.
+      console.error("Failed to create workspace:", error);
       setError("יצירת המחלקה נכשלה. נסו לרענן את הדף ולנסות שוב.");
       return;
     }

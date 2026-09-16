@@ -27,6 +27,7 @@ export default function CreateFirstWorkspaceForm() {
       // for any account missing one) — is_studio_member() then rejects
       // the write. Not the current studio-domain check: that would have
       // blocked sign-in entirely, before this form was ever reachable.
+      console.error("Failed to create workspace:", error);
       setError("יצירת המחלקה נכשלה. נסו לרענן את הדף ולהתחבר מחדש, ואז לנסות שוב.");
       setLoading(false);
       return;

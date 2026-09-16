@@ -18,6 +18,7 @@ export default function TimeTracker({
   profiles,
   baseSeconds,
   activeSessions,
+  onTimeLogChanged,
   readOnly,
 }: {
   itemId: string;
@@ -29,6 +30,12 @@ export default function TimeTracker({
    * every studio member — sourced centrally in BoardWorkspace and kept
    * live via its realtime subscription on time_logs. */
   activeSessions: ActiveTimeLog[];
+  /** Re-fetches trackedSecondsByItem/activeSessionsByItem in BoardWorkspace
+   * immediately. Called right after a successful start/stop so the total
+   * updates without waiting on the realtime round-trip — belt-and-braces
+   * alongside the subscription, not a replacement for it (other viewers'
+   * screens still depend on realtime actually being wired up). */
+  onTimeLogChanged: () => void;
   readOnly?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
@@ -111,6 +118,8 @@ export default function TimeTracker({
       if (error) {
         console.error("Failed to stop time session:", error);
         setMyActiveOverride(undefined);
+      } else {
+        onTimeLogChanged();
       }
     } else {
       const { data, error } = await supabase
@@ -122,6 +131,7 @@ export default function TimeTracker({
         console.error("Failed to start time session:", error);
       } else if (data) {
         setMyActiveOverride(data);
+        onTimeLogChanged();
       }
     }
     setLoading(false);
@@ -161,6 +171,7 @@ export default function TimeTracker({
           totalSeconds={totalSeconds}
           readOnly={readOnly}
           onClose={() => setLogOpen(false)}
+          onChanged={onTimeLogChanged}
         />
       )}
     </div>

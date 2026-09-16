@@ -34,6 +34,7 @@ export default function GroupSection({
   currentUserId,
   trackedSecondsByItem,
   activeSessionsByItem,
+  onTimeLogChanged,
   readOnly,
 }: {
   group: DisplayGroup;
@@ -46,6 +47,7 @@ export default function GroupSection({
   onSerialBlur: (id: string, serial: string) => void;
   onNameBlur: (id: string, name: string) => void;
   onAddItem: () => void;
+  onTimeLogChanged: () => void;
   onRenameGroup?: (name: string) => void;
   onDeleteGroup?: () => void;
   currentUserId: string | null;
@@ -131,6 +133,7 @@ export default function GroupSection({
                   currentUserId={currentUserId}
                   trackedSeconds={trackedSecondsByItem[item.id] ?? 0}
                   activeSessions={activeSessionsByItem[item.id] ?? NO_ACTIVE_SESSIONS}
+                  onTimeLogChanged={onTimeLogChanged}
                   readOnly={readOnly}
                 />
               ))}

@@ -18,6 +18,7 @@ export default function TimeLogPopover({
   totalSeconds,
   readOnly,
   onClose,
+  onChanged,
 }: {
   anchorRef: React.RefObject<HTMLElement | null>;
   itemId: string;
@@ -26,6 +27,9 @@ export default function TimeLogPopover({
   totalSeconds: number;
   readOnly?: boolean;
   onClose: () => void;
+  /** Notifies BoardWorkspace to re-fetch totals immediately after a manual
+   * add/edit/delete/clear, instead of waiting on the realtime round-trip. */
+  onChanged: () => void;
 }) {
   const [sessions, setSessions] = useState<TimeLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +61,7 @@ export default function TimeLogPopover({
       return;
     }
     fetchSessions();
+    onChanged();
   }
 
   async function handleClear() {
@@ -75,6 +80,7 @@ export default function TimeLogPopover({
       return;
     }
     fetchSessions();
+    onChanged();
   }
 
   function handleExport() {
@@ -113,6 +119,7 @@ export default function TimeLogPopover({
             onSaved={() => {
               setEditingSession(null);
               fetchSessions();
+              onChanged();
             }}
           />
         ) : (

@@ -20,6 +20,7 @@ export default function ItemRow({
   currentUserId,
   trackedSeconds,
   activeSessions,
+  onTimeLogChanged,
   readOnly,
 }: {
   item: Item;
@@ -33,6 +34,7 @@ export default function ItemRow({
   currentUserId: string | null;
   trackedSeconds: number;
   activeSessions: ActiveTimeLog[];
+  onTimeLogChanged: () => void;
   readOnly?: boolean;
 }) {
   const [name, setName] = useState(item.name);
@@ -102,8 +104,10 @@ export default function ItemRow({
       <td className="w-32 px-1 py-1.5">
         <StatusBadge
           status={item.status}
+          customLabel={item.status_label}
           readOnly={readOnly}
           onChange={(status: ItemStatus) => onUpdate({ status })}
+          onCustomLabelChange={(status_label) => onUpdate({ status_label })}
         />
       </td>
 
@@ -167,6 +171,7 @@ export default function ItemRow({
           profiles={profiles}
           baseSeconds={trackedSeconds}
           activeSessions={activeSessions}
+          onTimeLogChanged={onTimeLogChanged}
           readOnly={readOnly}
         />
       </td>

@@ -27,7 +27,7 @@ export default function ExportButton({
         פריט: item.name,
         "איש צוות": person?.full_name || person?.email || "",
         'תוצר עיצובי': item.deliverable ?? "",
-        סטטוס: STATUS_LABELS[item.status],
+        סטטוס: item.status_label?.trim() || STATUS_LABELS[item.status],
         'מס"ד': item.serial_id ?? "",
         "תאריך התחלה": formatDateHe(item.start_date),
         "תאריך יעד": formatDateHe(item.due_date),

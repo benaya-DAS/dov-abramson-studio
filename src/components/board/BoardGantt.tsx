@@ -91,7 +91,7 @@ export default function BoardGantt({
                   </div>
                   <div className="relative flex" style={{ width: days.length * DAY_WIDTH, height: 26 }}>
                     <div
-                      title={`${STATUS_LABELS[item.status]} · ${item.name}`}
+                      title={`${item.status_label?.trim() || STATUS_LABELS[item.status]} · ${item.name}`}
                       style={{
                         insetInlineStart: offset * DAY_WIDTH + 2,
                         width: span * DAY_WIDTH - 4,

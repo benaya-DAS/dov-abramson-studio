@@ -60,6 +60,7 @@ export type Item = {
   person_id: string | null;
   deliverable: string | null;
   status: ItemStatus;
+  status_label: string | null;
   serial_id: string | null;
   start_date: string | null;
   due_date: string | null;

@@ -9,6 +9,17 @@ body {
 
 body {
   @apply bg-slate-50 text-slate-800;
+  /* Matches tailwind.config.ts's `sans` stack (also applied via the
+     `font-sans` class on <body> in layout.tsx) — kept explicit here too so
+     the intent reads directly from this file. Assistant (self-hosted,
+     already Hebrew-safe) is the fallback while the Google Sans <link> in
+     layout.tsx's <head> loads, and stays the effective font entirely if
+     that external stylesheet is ever blocked or slow. */
+  font-family:
+    "Google Sans",
+    var(--font-assistant),
+    Arial,
+    sans-serif;
   font-feature-settings: "tnum";
 }
 

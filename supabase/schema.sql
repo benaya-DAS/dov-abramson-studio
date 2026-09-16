@@ -251,6 +251,10 @@ create table if not exists public.items (
   person_id uuid references public.profiles (id) on delete set null,
   deliverable text,
   status public.item_status not null default 'not_started',
+  -- Optional free-text override shown instead of the fixed status label
+  -- (e.g. "ממתין לאישור לקוח") without giving up the underlying enum that
+  -- grouping/sorting/filtering and the status color all still key off.
+  status_label text,
   serial_id text,
   start_date date,
   due_date date,
@@ -260,6 +264,9 @@ create table if not exists public.items (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Idempotent: adds status_label to a project whose items table predates it.
+alter table public.items add column if not exists status_label text;
 
 create index if not exists items_board_id_idx on public.items (board_id);
 create index if not exists items_group_id_idx on public.items (group_id);
@@ -632,6 +639,46 @@ grant select on public.item_tracked_seconds to authenticated;
 grant execute on function public.rollover_board_month(uuid) to authenticated;
 grant execute on function public.stop_time_log(uuid) to authenticated;
 grant execute on function public.is_allowed_email(text) to authenticated, anon;
+
+-- ============================================================================
+-- 13. REALTIME
+--
+-- Supabase's Realtime service only streams postgres_changes for tables
+-- explicitly added to the `supabase_realtime` publication — a table isn't
+-- included just because RLS/grants allow reading it. Every Supabase
+-- project provisions this publication empty by default, so without this
+-- block none of the app's `.channel(...).on("postgres_changes", ...)`
+-- subscriptions (BoardWorkspace's live sync of items/groups, and the
+-- time-tracking totals/active-session state that time_logs changes drive)
+-- ever receive anything: the client-side code is correct and the writes
+-- do land in the database, but nothing ever tells connected clients about
+-- them, so a board only shows a change after a manual reload. Guarded
+-- with a pg_publication_tables existence check since, unlike most of this
+-- file, `alter publication ... add table` has no native IF NOT EXISTS and
+-- errors on a table that's already a member.
+-- ============================================================================
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'items'
+  ) then
+    alter publication supabase_realtime add table public.items;
+  end if;
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'groups'
+  ) then
+    alter publication supabase_realtime add table public.groups;
+  end if;
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'time_logs'
+  ) then
+    alter publication supabase_realtime add table public.time_logs;
+  end if;
+end $$;
 
 -- ============================================================================
 -- Done. See supabase/seed.sql for optional sample workspaces/boards, and

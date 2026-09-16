@@ -8,7 +8,15 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-assistant)", "Arial", "sans-serif"],
+        // "Google Sans" loads from the public Google Fonts CDN (a <link>
+        // in layout.tsx — it isn't in this Next.js version's next/font/google
+        // metadata yet, so it can't be self-hosted the way Assistant is).
+        // Assistant (self-hosted, zero extra network request, already has a
+        // Hebrew subset) stays as the fallback for the brief window before
+        // the external stylesheet loads, and as a safety net if it ever
+        // fails to load at all — RTL Hebrew text must never fall through to
+        // a font with no Hebrew glyphs.
+        sans: ["'Google Sans'", "var(--font-assistant)", "Arial", "sans-serif"],
       },
       colors: {
         brand: {

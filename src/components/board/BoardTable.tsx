@@ -23,6 +23,7 @@ export default function BoardTable({
   currentUserId,
   trackedSecondsByItem,
   activeSessionsByItem,
+  onTimeLogChanged,
   readOnly,
   canAddGroup,
 }: {
@@ -42,6 +43,7 @@ export default function BoardTable({
   currentUserId: string | null;
   trackedSecondsByItem: Record<string, number>;
   activeSessionsByItem: Record<string, ActiveTimeLog[]>;
+  onTimeLogChanged: () => void;
   readOnly?: boolean;
   canAddGroup: boolean;
 }) {
@@ -83,6 +85,7 @@ export default function BoardTable({
           currentUserId={currentUserId}
           trackedSecondsByItem={trackedSecondsByItem}
           activeSessionsByItem={activeSessionsByItem}
+          onTimeLogChanged={onTimeLogChanged}
           readOnly={readOnly}
         />
       ))}

@@ -379,6 +379,7 @@ export default function BoardWorkspace({
             currentUserId={currentUserId}
             trackedSecondsByItem={trackedSecondsByItem}
             activeSessionsByItem={activeSessionsByItem}
+            onTimeLogChanged={refreshTrackedSeconds}
             readOnly={readOnly}
             canAddGroup={groupBy === "group"}
           />

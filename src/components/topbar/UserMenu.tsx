@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { initials } from "@/lib/utils";
 import type { Profile } from "@/lib/supabase/types";
+import FloatingPanel from "@/components/ui/FloatingPanel";
 
 export default function UserMenu({ profile }: { profile: Profile | null }) {
   const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
 
   async function signOut() {
@@ -22,8 +24,9 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
   if (!profile) return null;
 
   return (
-    <div className="relative">
+    <div>
       <button
+        ref={buttonRef}
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-2 rounded-full border border-slate-200 py-1 pl-3 pr-1 hover:bg-slate-50"
       >
@@ -35,8 +38,12 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 z-20 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <FloatingPanel
+            anchorRef={buttonRef}
+            align="end"
+            className="z-50 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+          >
             <div className="px-3 py-2">
               <p className="truncate text-sm font-semibold text-slate-900">
                 {profile.full_name}
@@ -50,7 +57,7 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
               <LogOut size={16} />
               התנתקות
             </button>
-          </div>
+          </FloatingPanel>
         </>
       )}
     </div>

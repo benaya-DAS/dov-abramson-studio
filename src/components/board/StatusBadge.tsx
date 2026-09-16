@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { STATUS_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
 import type { ItemStatus } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
+import FloatingPanel from "@/components/ui/FloatingPanel";
 
 export default function StatusBadge({
   status,
@@ -15,6 +16,7 @@ export default function StatusBadge({
   readOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const colors = STATUS_COLORS[status];
 
   if (readOnly || !onChange) {
@@ -32,8 +34,9 @@ export default function StatusBadge({
   }
 
   return (
-    <div className="relative w-full">
+    <div className="w-full">
       <button
+        ref={buttonRef}
         onClick={() => setOpen((o) => !o)}
         className={cn(
           "flex w-full items-center justify-center rounded px-2 py-1.5 text-xs font-semibold transition hover:brightness-95",
@@ -45,8 +48,11 @@ export default function StatusBadge({
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute z-20 mt-1 w-36 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <FloatingPanel
+            anchorRef={buttonRef}
+            className="z-50 w-36 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
+          >
             {STATUS_ORDER.map((s) => (
               <button
                 key={s}
@@ -63,7 +69,7 @@ export default function StatusBadge({
                 {STATUS_LABELS[s]}
               </button>
             ))}
-          </div>
+          </FloatingPanel>
         </>
       )}
     </div>

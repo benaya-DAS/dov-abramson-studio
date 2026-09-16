@@ -176,6 +176,7 @@ src/
     (app)/board/[boardId]/       # main board (table/gantt/calendar views)
     (app)/archive/               # archived boards gallery (read-only)
   components/
+    ui/FloatingPanel.tsx  # portal + fixed-position dropdown/popover anchor
     sidebar/     # workspace tree, board nav, "+ לוח חדש"
     topbar/      # user menu, avatar
     board/       # BoardWorkspace (state owner), BoardTable, BoardGantt,
@@ -191,6 +192,22 @@ src/
 
 ### Key feature notes
 
+- **Dropdown/popover positioning** (`ui/FloatingPanel.tsx`): every dropdown
+  and popover in the app — status picker, person picker, the user menu, the
+  time-tracking log — is rendered through this one shared component rather
+  than a plain `absolute`-positioned `<div>`. It portals its content to
+  `document.body` via `createPortal` and positions it with
+  `position: fixed` computed from the trigger element's live
+  `getBoundingClientRect()` (recalculated on scroll/resize), flipping above
+  the trigger and clamping to the viewport when there isn't room. Because
+  it's a portal, it's structurally outside the table's `overflow-x-auto`
+  wrapper (`GroupSection.tsx`) and any other scrollable/clipping ancestor —
+  there's nothing for those containers to clip, so that wrapper's
+  `overflow-x-auto` (needed for horizontal scrolling on the wide table)
+  never had to be touched. `position: fixed` (not `absolute`) is what
+  actually escapes the ancestor, independent of the portal — an absolutely
+  positioned portal child still resolves against its nearest *positioned*
+  ancestor, which a naive portal-only fix can still leave clipped.
 - **Excel catalog import** (`CatalogImporter.tsx` + `lib/catalog/parse.ts`):
   parses column A ("הגדרת אירוע") and B ("מס\"ד") from the uploaded
   workbook client-side (SheetJS), strips a redundant leading

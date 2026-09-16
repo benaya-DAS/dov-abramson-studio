@@ -7,9 +7,11 @@ import { Avatar } from "@/components/topbar/UserMenu";
 import { createClient } from "@/lib/supabase/client";
 import { formatDuration, formatDurationCompact, formatSessionDate, formatSessionTime } from "@/lib/utils";
 import SessionEditView from "./SessionEditView";
+import FloatingPanel from "@/components/ui/FloatingPanel";
 import type { Profile, TimeLog } from "@/lib/supabase/types";
 
 export default function TimeLogPopover({
+  anchorRef,
   itemId,
   currentUserId,
   profiles,
@@ -17,6 +19,7 @@ export default function TimeLogPopover({
   readOnly,
   onClose,
 }: {
+  anchorRef: React.RefObject<HTMLElement | null>;
   itemId: string;
   currentUserId: string | null;
   profiles: Profile[];
@@ -96,8 +99,11 @@ export default function TimeLogPopover({
 
   return (
     <>
-      <div className="fixed inset-0 z-30" onClick={onClose} />
-      <div className="absolute top-full z-40 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white text-right shadow-xl">
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <FloatingPanel
+        anchorRef={anchorRef}
+        className="z-50 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white text-right shadow-xl"
+      >
         {editingSession !== null ? (
           <SessionEditView
             session={editingSession === "new" ? null : editingSession}
@@ -215,7 +221,7 @@ export default function TimeLogPopover({
             </div>
           </>
         )}
-      </div>
+      </FloatingPanel>
     </>
   );
 }

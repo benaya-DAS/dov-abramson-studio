@@ -27,6 +27,7 @@ export default function TimeTracker({
   const [loading, setLoading] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const durationButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -90,7 +91,7 @@ export default function TimeTracker({
   }
 
   return (
-    <div className="relative flex items-center justify-center gap-2">
+    <div className="flex items-center justify-center gap-2">
       <button
         onClick={toggle}
         disabled={readOnly || !userId || loading}
@@ -103,6 +104,7 @@ export default function TimeTracker({
         {activeLogId ? <Square size={11} fill="white" /> : <Play size={11} fill="white" />}
       </button>
       <button
+        ref={durationButtonRef}
         onClick={() => setLogOpen((o) => !o)}
         className={cn(
           "min-w-[64px] rounded px-1 text-center font-mono text-xs tabular-nums hover:bg-slate-100",
@@ -115,6 +117,7 @@ export default function TimeTracker({
 
       {logOpen && (
         <TimeLogPopover
+          anchorRef={durationButtonRef}
           itemId={itemId}
           currentUserId={userId}
           profiles={profiles}

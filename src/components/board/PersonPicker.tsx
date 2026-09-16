@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Avatar } from "@/components/topbar/UserMenu";
 import type { Profile } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
+import FloatingPanel from "@/components/ui/FloatingPanel";
 
 export default function PersonPicker({
   profiles,
@@ -17,11 +18,13 @@ export default function PersonPicker({
   readOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const person = profiles.find((p) => p.id === personId) ?? null;
 
   return (
-    <div className="relative flex w-full justify-center">
+    <div className="flex w-full justify-center">
       <button
+        ref={buttonRef}
         onClick={() => !readOnly && setOpen((o) => !o)}
         className={cn(
           "flex items-center gap-1.5 rounded-full px-1.5 py-1 hover:bg-slate-100",
@@ -34,8 +37,11 @@ export default function PersonPicker({
 
       {open && !readOnly && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute top-full z-20 mt-1 max-h-64 w-52 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <FloatingPanel
+            anchorRef={buttonRef}
+            className="z-50 max-h-64 w-52 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
+          >
             <button
               onClick={() => {
                 onChange?.(null);
@@ -61,7 +67,7 @@ export default function PersonPicker({
                 <span className="truncate">{p.full_name || p.email}</span>
               </button>
             ))}
-          </div>
+          </FloatingPanel>
         </>
       )}
     </div>

@@ -20,7 +20,7 @@ export default function LoginPage() {
         // Workspace domain. This is a UX hint only — the database trigger
         // `enforce_studio_domain` is the actual security boundary.
         queryParams: {
-          hd: process.env.NEXT_PUBLIC_STUDIO_DOMAIN || "dovabramson.com",
+          hd: process.env.NEXT_PUBLIC_STUDIO_DOMAIN || "studiodov.com",
           prompt: "select_account",
         },
       },

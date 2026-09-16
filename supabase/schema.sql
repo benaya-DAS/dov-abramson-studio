@@ -20,7 +20,7 @@ create table if not exists public.allowed_domains (
 -- Seed with the studio's domain. Add more rows here if the studio ever
 -- needs to allow a second domain (e.g. a sister company).
 insert into public.allowed_domains (domain)
-values ('dovabramson.com')
+values ('studiodov.com')
 on conflict (domain) do nothing;
 
 create or replace function public.is_allowed_email(p_email text)

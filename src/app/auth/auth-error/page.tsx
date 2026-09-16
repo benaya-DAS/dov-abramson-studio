@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const REASONS: Record<string, string> = {
   domain:
-    'החשבון שבחרת אינו שייך לדומיין הסטודיו המורשה. יש להתחבר עם חשבון Google הרשמי של הסטודיו (@dovabramson.com).',
+    'החשבון שבחרת אינו שייך לדומיין הסטודיו המורשה. יש להתחבר עם חשבון Google הרשמי של הסטודיו (@studiodov.com).',
   missing_code: "אירעה שגיאה בתהליך ההתחברות. נסו שוב.",
   unknown: "אירעה שגיאה לא צפויה בתהליך ההתחברות.",
 };

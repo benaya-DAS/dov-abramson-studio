@@ -70,16 +70,25 @@ misconfiguration in any single one never opens the app to outside accounts:
 
 | Layer | Where | What it does |
 |---|---|---|
-| 1. UX hint | `src/app/login/page.tsx` | Passes `hd=dovabramson.com` to Google's OAuth screen so only Workspace accounts on that domain appear in the picker. Cosmetic only — bypassable by URL editing. |
+| 1. UX hint | `src/app/login/page.tsx` | Passes `hd=studiodov.com` to Google's OAuth screen so only Workspace accounts on that domain appear in the picker. Cosmetic only — bypassable by URL editing. |
 | 2. Database trigger (authoritative) | `supabase/schema.sql` → `enforce_studio_domain()` | A `BEFORE INSERT` trigger on `auth.users` that raises an exception (aborting sign-up) for any email outside `public.allowed_domains`. This runs inside Postgres and cannot be bypassed from the client. |
 | 3. Middleware re-check | `src/lib/supabase/middleware.ts` | On every request, re-validates the signed-in user's email against `is_allowed_email()` and force-signs-out + redirects to `/auth/auth-error` if it ever fails (defense in depth for pre-existing sessions after a domain-list change). |
 
 To change or add allowed domains later, update the `public.allowed_domains`
-table — no redeploy needed:
+table directly in the Supabase SQL editor — no redeploy needed, but note this
+is a **live data change**, not something a code push applies on its own:
 
 ```sql
 insert into public.allowed_domains (domain) values ('anotherdomain.com');
+-- and to fully replace the studio's domain rather than add to it:
+delete from public.allowed_domains where domain <> 'anotherdomain.com';
 ```
+
+(`supabase/schema.sql`'s own `insert ... on conflict do nothing` seed only
+ever runs against a brand-new project — re-running the file will not remove
+or rename a domain that's already stored, so a domain rename always needs
+this manual step against every environment that already has the schema
+applied.)
 
 **Optional extra layer** — Supabase's native "Before User Created" Auth
 Hook gives a nicer error message *before* Supabase even attempts the insert.

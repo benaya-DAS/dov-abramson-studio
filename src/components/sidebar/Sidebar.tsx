@@ -22,7 +22,7 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
           className="h-9 w-9 shrink-0 rounded-lg object-contain"
         />
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-slate-900">סטודיו דב אברמסון</p>
+          <p className="truncate text-sm font-bold text-slate-900">סטודיו דוב אברמסון</p>
           <p className="text-xs text-slate-400">ניהול פרויקטים</p>
         </div>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -13,9 +14,13 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
   return (
     <aside className="flex h-screen w-72 shrink-0 flex-col border-l border-slate-200 bg-white">
       <div className="flex items-center gap-3 border-b border-slate-200 px-4 py-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
-          דא
-        </div>
+        <Image
+          src="/web-app-manifest-512x512.png"
+          alt="סטודיו דב אברמסון"
+          width={36}
+          height={36}
+          className="h-9 w-9 shrink-0 rounded-lg object-contain"
+        />
         <div className="min-w-0">
           <p className="truncate text-sm font-bold text-slate-900">סטודיו דב אברמסון</p>
           <p className="text-xs text-slate-400">ניהול פרויקטים</p>

@@ -72,7 +72,7 @@ misconfiguration in any single one never opens the app to outside accounts:
 |---|---|---|
 | 1. UX hint | `src/app/login/page.tsx` | Passes `hd=studiodov.com` to Google's OAuth screen so only Workspace accounts on that domain appear in the picker. Cosmetic only — bypassable by URL editing. |
 | 2. Database trigger (authoritative) | `supabase/schema.sql` → `enforce_studio_domain()` | A `BEFORE INSERT` trigger on `auth.users` that raises an exception (aborting sign-up) for any email outside `public.allowed_domains`. This runs inside Postgres and cannot be bypassed from the client. |
-| 3. Middleware re-check | `src/lib/supabase/middleware.ts` | On every request, re-validates the signed-in user's email against `is_allowed_email()` and force-signs-out + redirects to `/auth/auth-error` if it ever fails (defense in depth for pre-existing sessions after a domain-list change). |
+| 3. Middleware re-check | `src/lib/supabase/middleware.ts` | On every request, re-validates the signed-in user's email against `is_allowed_email()` and force-signs-out + redirects to `/auth/auth-error` only when that check explicitly returns `false` (defense in depth for pre-existing sessions after a domain-list change). A technical failure calling the RPC itself (not a rejection) is logged and does not sign the user out — layer 2 remains the authoritative gate either way. |
 
 To change or add allowed domains later, update the `public.allowed_domains`
 table directly in the Supabase SQL editor — no redeploy needed, but note this

@@ -17,12 +17,36 @@ create table if not exists public.allowed_domains (
   domain text primary key
 );
 
+-- Domains are always stored lowercase and trimmed, so a manually
+-- copy-pasted row (stray whitespace, mixed case) can never silently break
+-- matching in is_allowed_email() below.
+create or replace function public.normalize_allowed_domain()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.domain = lower(trim(new.domain));
+  return new;
+end;
+$$;
+
+drop trigger if exists normalize_allowed_domain_trigger on public.allowed_domains;
+create trigger normalize_allowed_domain_trigger
+  before insert or update on public.allowed_domains
+  for each row execute function public.normalize_allowed_domain();
+
 -- Seed with the studio's domain. Add more rows here if the studio ever
 -- needs to allow a second domain (e.g. a sister company).
 insert into public.allowed_domains (domain)
 values ('studiodov.com')
 on conflict (domain) do nothing;
 
+-- Strictly extracts the domain portion of the email (everything after the
+-- last '@', lowercased and trimmed) and compares it for exact equality
+-- against the (also lowercased/trimmed) allowed_domains rows. Deliberately
+-- NOT a LIKE/pattern match — that form is fragile (a stray space in a
+-- stored domain silently breaks it) and, if a domain value ever came from
+-- untrusted input, would be vulnerable to LIKE wildcard injection ('%', '_').
 create or replace function public.is_allowed_email(p_email text)
 returns boolean
 language sql
@@ -33,7 +57,8 @@ as $$
   select exists (
     select 1
     from public.allowed_domains d
-    where lower(p_email) like '%@' || lower(d.domain)
+    where lower(trim(d.domain)) = lower(trim(split_part(coalesce(p_email, ''), '@', 2)))
+      and split_part(coalesce(p_email, ''), '@', 2) <> ''
   );
 $$;
 

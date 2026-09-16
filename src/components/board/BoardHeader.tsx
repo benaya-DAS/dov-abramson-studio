@@ -10,6 +10,7 @@ import type { Item, Profile } from "@/lib/supabase/types";
 export default function BoardHeader({
   boardId,
   boardName,
+  onRenameBoard,
   workspaceName,
   isArchived,
   selectedCount,
@@ -21,6 +22,7 @@ export default function BoardHeader({
 }: {
   boardId: string;
   boardName: string;
+  onRenameBoard?: (name: string) => void;
   workspaceName?: string;
   isArchived: boolean;
   selectedCount: number;
@@ -36,15 +38,26 @@ export default function BoardHeader({
     <div className="flex flex-wrap items-center gap-3 px-5 pt-4">
       <div className="min-w-0 flex-1">
         {workspaceName && <p className="text-xs text-slate-400">{workspaceName}</p>}
-        <h1 className="flex items-center gap-2 truncate text-lg font-bold text-slate-900">
-          {boardName}
+        <div className="flex items-center gap-2">
+          {onRenameBoard ? (
+            <input
+              defaultValue={boardName}
+              onBlur={(e) => {
+                const trimmed = e.target.value.trim();
+                if (trimmed && trimmed !== boardName) onRenameBoard(trimmed);
+              }}
+              className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1 -mx-1 text-lg font-bold text-slate-900 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white"
+            />
+          ) : (
+            <h1 className="truncate text-lg font-bold text-slate-900">{boardName}</h1>
+          )}
           {isArchived && (
-            <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
               <Lock size={11} />
               ארכיון - לקריאה בלבד
             </span>
           )}
-        </h1>
+        </div>
       </div>
 
       {selectedCount > 0 && !isArchived && (

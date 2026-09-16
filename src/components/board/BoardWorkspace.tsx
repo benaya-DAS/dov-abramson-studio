@@ -30,6 +30,7 @@ export default function BoardWorkspace({
   const supabase = useMemo(() => createClient(), []);
   const readOnly = board.is_archived;
 
+  const [boardName, setBoardName] = useState(board.name);
   const [groups, setGroups] = useState<Group[]>(initialGroups);
   const [items, setItems] = useState<Item[]>(initialItems);
   const [trackedSecondsByItem, setTrackedSecondsByItem] = useState<Record<string, number>>({});
@@ -46,6 +47,11 @@ export default function BoardWorkspace({
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(initialGroups.map((g) => [g.id, g.is_collapsed]))
   );
+
+  function renameBoard(name: string) {
+    setBoardName(name);
+    supabase.from("boards").update({ name }).eq("id", board.id).then();
+  }
 
   // ---- Realtime sync -------------------------------------------------
   useEffect(() => {
@@ -173,27 +179,51 @@ export default function BoardWorkspace({
     await supabase.from("items").delete().in("id", ids);
   }
 
-  // Drag-and-drop reorder within a single group - item.position is scoped
-  // per group_id (addItem seeds new rows at `inGroup.length`), so this only
-  // ever reorders draggedId/targetId's shared group, never mixes positions
-  // across groups.
-  function reorderItem(groupId: string, draggedId: string, targetId: string) {
-    if (draggedId === targetId) return;
+  // Drag-and-drop move: item.position is scoped per group_id (addItem seeds
+  // new rows at `inGroup.length`), so moving into a different group means
+  // giving the item that group's group_id AND renumbering both the
+  // target group (to make room) and the source group (to close the gap it
+  // left behind) - not just a single position swap. targetItemId === null
+  // means "drop at the end of targetGroupId" (dropped on the group header,
+  // or into a currently-empty group).
+  function moveItem(draggedId: string, targetGroupId: string, targetItemId: string | null) {
+    if (draggedId === targetItemId) return;
     setItems((prev) => {
-      const inGroup = prev.filter((i) => i.group_id === groupId).sort((a, b) => a.position - b.position);
-      const fromIndex = inGroup.findIndex((i) => i.id === draggedId);
-      const toIndex = inGroup.findIndex((i) => i.id === targetId);
-      if (fromIndex === -1 || toIndex === -1) return prev;
-      const [moved] = inGroup.splice(fromIndex, 1);
-      inGroup.splice(toIndex, 0, moved);
-      const positionById = new Map(inGroup.map((it, i) => [it.id, i]));
-      positionById.forEach((position, id) => {
-        const current = prev.find((i) => i.id === id);
-        if (current && current.position !== position) {
-          supabase.from("items").update({ position }).eq("id", id).then();
-        }
+      const dragged = prev.find((i) => i.id === draggedId);
+      if (!dragged) return prev;
+      const sourceGroupId = dragged.group_id;
+
+      const targetList = prev
+        .filter((i) => i.group_id === targetGroupId && i.id !== draggedId)
+        .sort((a, b) => a.position - b.position);
+      const insertIndex = targetItemId
+        ? Math.max(0, targetList.findIndex((i) => i.id === targetItemId))
+        : targetList.length;
+      targetList.splice(insertIndex, 0, dragged);
+
+      const patches = new Map<string, { position: number; group_id?: string }>();
+      targetList.forEach((it, i) => {
+        patches.set(it.id, { position: i, group_id: it.id === draggedId ? targetGroupId : undefined });
       });
-      return prev.map((it) => (positionById.has(it.id) ? { ...it, position: positionById.get(it.id)! } : it));
+
+      if (sourceGroupId !== targetGroupId) {
+        prev
+          .filter((i) => i.group_id === sourceGroupId && i.id !== draggedId)
+          .sort((a, b) => a.position - b.position)
+          .forEach((it, i) => patches.set(it.id, { position: i }));
+      }
+
+      patches.forEach((patch, id) => {
+        const dbPatch: Partial<Item> = { position: patch.position };
+        if (patch.group_id) dbPatch.group_id = patch.group_id;
+        supabase.from("items").update(dbPatch).eq("id", id).then();
+      });
+
+      return prev.map((it) => {
+        const patch = patches.get(it.id);
+        if (!patch) return it;
+        return { ...it, position: patch.position, ...(patch.group_id ? { group_id: patch.group_id } : {}) };
+      });
     });
   }
 
@@ -384,7 +414,8 @@ export default function BoardWorkspace({
     <div className="flex h-full flex-col">
       <BoardHeader
         boardId={board.id}
-        boardName={board.name}
+        boardName={boardName}
+        onRenameBoard={readOnly ? undefined : renameBoard}
         workspaceName={workspaceName}
         isArchived={readOnly}
         selectedCount={selected.size}
@@ -428,7 +459,7 @@ export default function BoardWorkspace({
             onDeleteGroup={deleteGroup}
             onChangeGroupColor={changeGroupColor}
             onReorderGroup={reorderGroup}
-            onReorderItem={reorderItem}
+            onMoveItem={moveItem}
             currentUserId={currentUserId}
             trackedSecondsByItem={trackedSecondsByItem}
             activeSessionsByItem={activeSessionsByItem}

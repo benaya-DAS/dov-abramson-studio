@@ -43,7 +43,12 @@ export default function GroupSection({
   onDragOverGroup,
   onDropOnGroup,
   canReorderItems,
-  onReorderItem,
+  draggingItemId,
+  dragOverItemKey,
+  onItemDragStart,
+  onItemDragEnd,
+  onItemDragOver,
+  onMoveItemHere,
   currentUserId,
   trackedSecondsByItem,
   activeSessionsByItem,
@@ -79,32 +84,59 @@ export default function GroupSection({
    * "reorder" while a different sort is active would just get overridden
    * the instant it re-renders. */
   canReorderItems?: boolean;
-  onReorderItem: (draggedId: string, targetId: string) => void;
+  /** Lifted to BoardTable (not local state) so a row in THIS group can
+   * recognize an item drag that started in a different group's table -
+   * that's what makes cross-group moves possible. */
+  draggingItemId: string | null;
+  /** Either an item id (hovering a row) or `group:<id>` (hovering this
+   * group's header/empty body, meaning "append at the end here"). */
+  dragOverItemKey: string | null;
+  onItemDragStart: (itemId: string) => void;
+  onItemDragEnd: () => void;
+  onItemDragOver: (key: string) => void;
+  onMoveItemHere: (draggedId: string, targetItemId: string | null) => void;
   currentUserId: string | null;
   trackedSecondsByItem: Record<string, number>;
   activeSessionsByItem: Record<string, ActiveTimeLog[]>;
   readOnly?: boolean;
 }) {
-  const totalHours = group.items.reduce((sum, i) => sum + Number(i.hours || 0), 0);
+  // Both footer cells (decimal hours, HH:MM:SS) derive from the same
+  // tracked-seconds sum, now that the Hours column itself is tracked time
+  // rather than a separately typed estimate.
   const totalTracked = group.items.reduce(
     (sum, i) => sum + (trackedSecondsByItem[i.id] ?? 0),
     0
   );
   const headerRef = useRef<HTMLDivElement>(null);
-  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
-  const [dragOverItemId, setDragOverItemId] = useState<string | null>(null);
+  const headerDropKey = `group:${group.id}`;
+  const isHeaderItemDropTarget = canReorderItems && dragOverItemKey === headerDropKey;
+
+  // The group header doubles as a drop target for two different drags -
+  // reordering the group itself, and appending a dragged item to this
+  // group (its header is the only drop target an empty group has). Only
+  // one kind of drag is ever active at a time, so dispatch on which.
+  function handleHeaderDragOver(e: React.DragEvent) {
+    if (draggingItemId && canReorderItems) {
+      e.preventDefault();
+      onItemDragOver(headerDropKey);
+    } else if (onDragOverGroup) {
+      onDragOverGroup(e);
+    }
+  }
+
+  function handleHeaderDrop(e: React.DragEvent) {
+    if (draggingItemId && canReorderItems) {
+      e.preventDefault();
+      onMoveItemHere(draggingItemId, null);
+      onItemDragEnd();
+    } else if (onDropOnGroup) {
+      e.preventDefault();
+      onDropOnGroup();
+    }
+  }
 
   return (
-    <div
-      className={cn("mb-4", isDragging && "opacity-40")}
-      onDragOver={onDragOverGroup}
-      onDrop={(e) => {
-        if (onDropOnGroup) {
-          e.preventDefault();
-          onDropOnGroup();
-        }
-      }}
-    >
+    <div className={cn("mb-4", isDragging && "opacity-40")} onDragOver={handleHeaderDragOver} onDrop={handleHeaderDrop}>
       {/* A plain div, not a <button>, wrapping the row: the name field below
        * is a real <input> when the group is renameable, and interactive
        * content (an input, another button) can't legally nest inside a
@@ -115,7 +147,7 @@ export default function GroupSection({
         ref={headerRef}
         className={cn(
           "flex w-full items-center gap-2 rounded-t-lg px-3 py-2 transition",
-          isDropTarget && "ring-2 ring-inset ring-brand-400"
+          (isDropTarget || isHeaderItemDropTarget) && "ring-2 ring-inset ring-brand-400"
         )}
         style={{ backgroundColor: `${group.color}1a` }}
       >
@@ -195,10 +227,10 @@ export default function GroupSection({
       </div>
 
       {!group.collapsed && (
-        <div className="overflow-x-auto rounded-b-lg border border-t-0 border-slate-200">
+        <div className="overflow-x-auto rounded-b-lg border border-t-0 border-slate-300">
           <table className="w-full border-collapse text-right">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50 text-[11px] font-semibold text-slate-400">
+              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-400">
                 {canReorderItems && <th className="w-6 px-1 py-2"></th>}
                 <th className="w-10 px-3 py-2"></th>
                 <th className="min-w-[220px] px-2 py-2 text-right">פריט</th>
@@ -232,26 +264,22 @@ export default function GroupSection({
                   readOnly={readOnly}
                   canReorder={canReorderItems}
                   isDragging={draggingItemId === item.id}
-                  isDropTarget={dragOverItemId === item.id && draggingItemId !== item.id}
-                  onDragStart={() => setDraggingItemId(item.id)}
-                  onDragEnd={() => {
-                    setDraggingItemId(null);
-                    setDragOverItemId(null);
-                  }}
+                  isDropTarget={canReorderItems && dragOverItemKey === item.id && draggingItemId !== item.id}
+                  onDragStart={() => onItemDragStart(item.id)}
+                  onDragEnd={onItemDragEnd}
                   onDragOverRow={
-                    draggingItemId
+                    draggingItemId && canReorderItems
                       ? (e) => {
                           e.preventDefault();
-                          setDragOverItemId(item.id);
+                          onItemDragOver(item.id);
                         }
                       : undefined
                   }
                   onDropOnRow={
-                    draggingItemId
+                    draggingItemId && canReorderItems
                       ? () => {
-                          onReorderItem(draggingItemId, item.id);
-                          setDraggingItemId(null);
-                          setDragOverItemId(null);
+                          onMoveItemHere(draggingItemId, item.id);
+                          onItemDragEnd();
                         }
                       : undefined
                   }
@@ -273,11 +301,11 @@ export default function GroupSection({
               )}
             </tbody>
             <tfoot>
-              <tr className="border-t border-slate-200 bg-slate-50 text-xs font-bold text-slate-600">
+              <tr className="border-t border-slate-300 bg-slate-50 text-xs font-bold text-slate-600">
                 <td colSpan={canReorderItems ? 9 : 8} className="px-3 py-2 text-left">
                   סה&quot;כ
                 </td>
-                <td className="px-2 py-2 text-center">{formatHours(totalHours)}</td>
+                <td className="px-2 py-2 text-center">{formatHours(totalTracked / 3600)}</td>
                 <td className="px-2 py-2 text-center font-mono">{formatDuration(totalTracked)}</td>
                 <td></td>
               </tr>

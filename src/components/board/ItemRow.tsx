@@ -6,7 +6,7 @@ import StatusBadge from "./StatusBadge";
 import PersonPicker from "./PersonPicker";
 import TimeTracker from "./TimeTracker";
 import type { ActiveTimeLog, Item, ItemStatus, Profile } from "@/lib/supabase/types";
-import { cn } from "@/lib/utils";
+import { cn, formatHours } from "@/lib/utils";
 
 export default function ItemRow({
   item,
@@ -58,7 +58,6 @@ export default function ItemRow({
   const [name, setName] = useState(item.name);
   const [serial, setSerial] = useState(item.serial_id ?? "");
   const [deliverable, setDeliverable] = useState(item.deliverable ?? "");
-  const [hours, setHours] = useState(String(item.hours ?? 0));
   const rowRef = useRef<HTMLTableRowElement>(null);
 
   // Keep local editable state in sync when the item changes from outside
@@ -69,14 +68,13 @@ export default function ItemRow({
   useEffect(() => setName(item.name), [item.name]);
   useEffect(() => setSerial(item.serial_id ?? ""), [item.serial_id]);
   useEffect(() => setDeliverable(item.deliverable ?? ""), [item.deliverable]);
-  useEffect(() => setHours(String(item.hours ?? 0)), [item.hours]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <tr
       ref={rowRef}
       className={cn(
-        "group border-b border-slate-100 hover:bg-slate-50",
+        "group border-b border-slate-200 hover:bg-slate-100",
         selected && "bg-brand-50/60",
         isDragging && "opacity-40",
         isDropTarget && "bg-brand-50 outline outline-2 -outline-offset-2 outline-brand-400"
@@ -205,20 +203,16 @@ export default function ItemRow({
         />
       </td>
 
-      <td className="w-20 px-2 py-1.5">
-        <input
-          type="number"
-          step="0.25"
-          min="0"
-          value={hours}
-          disabled={readOnly}
-          onChange={(e) => setHours(e.target.value)}
-          onBlur={() => {
-            const n = parseFloat(hours) || 0;
-            if (n !== item.hours) onUpdate({ hours: n });
-          }}
-          className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-center text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white"
-        />
+      <td className="w-20 px-2 py-1.5 text-center">
+        {/* Read-only: this is the tracked time (time_logs), not a manual
+         * estimate - decimal hours (1h30m -> "1.5"), derived the same way
+         * as the time-tracking button's total, just formatted differently. */}
+        <span
+          className="font-mono text-xs text-slate-600"
+          title="שעות בפועל (ממעקב זמן)"
+        >
+          {formatHours(trackedSeconds / 3600)}
+        </span>
       </td>
 
       <td className="w-32 px-2 py-1.5">

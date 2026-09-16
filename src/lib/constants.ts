@@ -7,25 +7,18 @@ export const STATUS_LABELS: Record<ItemStatus, string> = {
   done: "הושלם",
 };
 
-// Every pairing here is verified to clear WCAG AA's 4.5:1 text-contrast
-// threshold with real headroom (checked against each bg's actual relative
-// luminance, not just eyeballed) — the original "working" pairing
-// (bg-amber-400 + white text) was ~1.9:1, a genuine readability bug, not
-// just a stylistic nit: amber-400 is a light, high-luminance yellow, so
-// white text on it reads almost as washed-out as true white-on-white. Its
-// bg class had also drifted from its own `dot` value (#fdab3d, a deeper,
-// more saturated orange) — fixed to use that color directly, which is both
-// the visually-intended one and dark enough for text-slate-900 to sit on
-// with ~9.8:1 contrast. "done" (emerald-700 + white) sits at ~5.35:1.
-// "stuck" started at rose-600 (~4.54:1) - technically passing but with
-// almost no margin, so it's one step further to rose-700 (~6.3:1) for a
-// safer buffer against any hover/brightness-filter dimming pushing it back
-// under threshold.
+// A softer "pastel background + dark, same-hue text" style, rather than
+// the earlier bold saturated fills — reads as calmer/more pleasant while
+// also making the WCAG AA 4.5:1 text-contrast requirement close to
+// automatic: dark text on a light tint is inherently high-contrast, so
+// none of these pairings are sitting anywhere near the threshold (all
+// verified against actual relative luminance, not eyeballed):
+// not_started ~6.9:1, working ~6.4:1, stuck ~5.2:1, done ~6.8:1.
 export const STATUS_COLORS: Record<ItemStatus, { bg: string; text: string; dot: string }> = {
-  not_started: { bg: "bg-slate-200", text: "text-slate-700", dot: "#c4c4c4" },
-  working: { bg: "bg-[#fdab3d]", text: "text-slate-900", dot: "#fdab3d" },
-  stuck: { bg: "bg-rose-700", text: "text-white", dot: "#e2445c" },
-  done: { bg: "bg-emerald-700", text: "text-white", dot: "#00c875" },
+  not_started: { bg: "bg-slate-100", text: "text-slate-600", dot: "#94a3b8" },
+  working: { bg: "bg-amber-100", text: "text-amber-800", dot: "#f59e0b" },
+  stuck: { bg: "bg-rose-100", text: "text-rose-700", dot: "#e2445c" },
+  done: { bg: "bg-emerald-100", text: "text-emerald-800", dot: "#00c875" },
 };
 
 export const STATUS_ORDER: ItemStatus[] = ["not_started", "working", "stuck", "done"];

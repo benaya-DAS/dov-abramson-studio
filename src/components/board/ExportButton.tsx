@@ -3,7 +3,7 @@
 import { Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { STATUS_LABELS } from "@/lib/constants";
-import { formatDateHe } from "@/lib/utils";
+import { formatDateHe, formatHours } from "@/lib/utils";
 import type { Item, Profile } from "@/lib/supabase/types";
 
 export default function ExportButton({
@@ -31,8 +31,9 @@ export default function ExportButton({
         'מס"ד': item.serial_id ?? "",
         "תאריך התחלה": formatDateHe(item.start_date),
         "תאריך יעד": formatDateHe(item.due_date),
-        שעות: item.hours,
-        "זמן במעקב (שעות)": ((trackedSecondsByItem[item.id] ?? 0) / 3600).toFixed(2),
+        // Decimal hours from time tracking (e.g. 1h30m -> "1.5") - the same
+        // value the Hours column shows on screen, not a manual estimate.
+        שעות: formatHours((trackedSecondsByItem[item.id] ?? 0) / 3600),
       };
     });
 
@@ -47,7 +48,6 @@ export default function ExportButton({
         "תאריך התחלה",
         "תאריך יעד",
         "שעות",
-        "זמן במעקב (שעות)",
       ],
     });
     worksheet["!cols"] = [
@@ -60,7 +60,6 @@ export default function ExportButton({
       { wch: 14 },
       { wch: 14 },
       { wch: 8 },
-      { wch: 16 },
     ];
 
     const workbook = XLSX.utils.book_new();

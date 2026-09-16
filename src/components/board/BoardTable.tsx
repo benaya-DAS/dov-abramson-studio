@@ -22,7 +22,7 @@ export default function BoardTable({
   onDeleteGroup,
   onChangeGroupColor,
   onReorderGroup,
-  onReorderItem,
+  onMoveItem,
   currentUserId,
   trackedSecondsByItem,
   activeSessionsByItem,
@@ -47,7 +47,9 @@ export default function BoardTable({
   onDeleteGroup: (groupId: string) => void;
   onChangeGroupColor: (groupId: string, color: string) => void;
   onReorderGroup: (draggedId: string, targetId: string) => void;
-  onReorderItem: (groupId: string, draggedId: string, targetId: string) => void;
+  /** targetItemId null means "append at the end of targetGroupId" (dropped
+   * on the group header, or into a currently-empty group). */
+  onMoveItem: (draggedId: string, targetGroupId: string, targetItemId: string | null) => void;
   currentUserId: string | null;
   trackedSecondsByItem: Record<string, number>;
   activeSessionsByItem: Record<string, ActiveTimeLog[]>;
@@ -61,6 +63,15 @@ export default function BoardTable({
   const [newGroupName, setNewGroupName] = useState("");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverGroupId, setDragOverGroupId] = useState<string | null>(null);
+
+  // Lifted above per-group state (rather than living inside each
+  // GroupSection) so a row in one group can recognize an item drag that
+  // started in a DIFFERENT group's table - that's what makes moving an
+  // item across groups possible, not just reordering within one.
+  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
+  // Either an item id (hovering a row) or `group:<id>` (hovering a group's
+  // header/empty body, for appending at the end of that group).
+  const [dragOverItemKey, setDragOverItemKey] = useState<string | null>(null);
 
   function submitNewGroup() {
     const trimmed = newGroupName.trim();
@@ -130,7 +141,15 @@ export default function BoardTable({
                 : undefined
             }
             canReorderItems={canReorderItemsHere}
-            onReorderItem={(draggedId, targetId) => onReorderItem(group.id, draggedId, targetId)}
+            draggingItemId={draggingItemId}
+            dragOverItemKey={dragOverItemKey}
+            onItemDragStart={(itemId) => setDraggingItemId(itemId)}
+            onItemDragEnd={() => {
+              setDraggingItemId(null);
+              setDragOverItemKey(null);
+            }}
+            onItemDragOver={(key) => setDragOverItemKey(key)}
+            onMoveItemHere={(draggedId, targetItemId) => onMoveItem(draggedId, group.id, targetItemId)}
             currentUserId={currentUserId}
             trackedSecondsByItem={trackedSecondsByItem}
             activeSessionsByItem={activeSessionsByItem}

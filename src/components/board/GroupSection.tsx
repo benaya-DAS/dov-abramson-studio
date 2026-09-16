@@ -1,9 +1,12 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, Plus } from "lucide-react";
+import { useRef, useState } from "react";
+import { ChevronDown, ChevronLeft, GripVertical, Plus } from "lucide-react";
 import ItemRow from "./ItemRow";
-import { formatDuration, formatHours } from "@/lib/utils";
+import { formatDuration, formatHours, cn } from "@/lib/utils";
+import { GROUP_COLORS } from "@/lib/constants";
 import type { ActiveTimeLog, Item, Profile } from "@/lib/supabase/types";
+import FloatingPanel from "@/components/ui/FloatingPanel";
 
 // Stable reference so items with no active session don't hand TimeTracker
 // a freshly-allocated empty array on every render.
@@ -31,6 +34,13 @@ export default function GroupSection({
   onAddItem,
   onRenameGroup,
   onDeleteGroup,
+  onColorChange,
+  canReorder,
+  isDragging,
+  onDragStart,
+  onDragEnd,
+  onDragOverGroup,
+  onDropOnGroup,
   currentUserId,
   trackedSecondsByItem,
   activeSessionsByItem,
@@ -50,6 +60,16 @@ export default function GroupSection({
   onTimeLogChanged: () => void;
   onRenameGroup?: (name: string) => void;
   onDeleteGroup?: () => void;
+  onColorChange?: (color: string) => void;
+  /** True only for a real, unarchived group while the board is grouped by
+   * "group" - dragging a synthetic person/status bucket, or a row on a
+   * read-only board, has nothing real to reorder. */
+  canReorder?: boolean;
+  isDragging?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+  onDragOverGroup?: (e: React.DragEvent) => void;
+  onDropOnGroup?: () => void;
   currentUserId: string | null;
   trackedSecondsByItem: Record<string, number>;
   activeSessionsByItem: Record<string, ActiveTimeLog[]>;
@@ -62,43 +82,89 @@ export default function GroupSection({
   );
 
   return (
-    <div className="mb-4">
-      <button
-        onClick={onToggleCollapse}
+    <div
+      className={cn("mb-4", isDragging && "opacity-40")}
+      onDragOver={onDragOverGroup}
+      onDrop={(e) => {
+        if (onDropOnGroup) {
+          e.preventDefault();
+          onDropOnGroup();
+        }
+      }}
+    >
+      {/* A plain div, not a <button>, wrapping the row: the name field below
+       * is a real <input> when the group is renameable, and interactive
+       * content (an input, another button) can't legally nest inside a
+       * <button> - the browser's HTML parser silently un-nests it, which
+       * differs from React's DOM and trips a hydration mismatch on first
+       * load. Each control here is its own sibling button instead. */}
+      <div
         className="flex w-full items-center gap-2 rounded-t-lg px-3 py-2"
         style={{ backgroundColor: `${group.color}1a` }}
       >
-        {group.collapsed ? (
-          <ChevronLeft size={16} style={{ color: group.color }} />
-        ) : (
-          <ChevronDown size={16} style={{ color: group.color }} />
+        {canReorder && (
+          <button
+            type="button"
+            draggable
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            title="גרירה לשינוי סדר הקבוצות"
+            className="shrink-0 cursor-grab text-slate-300 hover:text-slate-500 active:cursor-grabbing"
+          >
+            <GripVertical size={15} />
+          </button>
         )}
+
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="shrink-0 text-slate-400 hover:text-slate-600"
+          title={group.collapsed ? "הרחבת קבוצה" : "כיווץ קבוצה"}
+        >
+          {group.collapsed ? (
+            <ChevronLeft size={16} style={{ color: group.color }} />
+          ) : (
+            <ChevronDown size={16} style={{ color: group.color }} />
+          )}
+        </button>
+
         {onRenameGroup ? (
           <input
             defaultValue={group.name}
             onBlur={(e) => e.target.value.trim() && onRenameGroup(e.target.value.trim())}
-            onClick={(e) => e.stopPropagation()}
-            className="bg-transparent text-sm font-bold outline-none"
+            className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none"
             style={{ color: group.color }}
           />
         ) : (
-          <span className="text-sm font-bold" style={{ color: group.color }}>
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            className="min-w-0 flex-1 truncate text-right text-sm font-bold"
+            style={{ color: group.color }}
+          >
             {group.name}
-          </span>
+          </button>
         )}
-        <span className="text-xs font-medium text-slate-400">{group.items.length} משימות</span>
+
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          className="shrink-0 text-xs font-medium text-slate-400"
+        >
+          {group.items.length} משימות
+        </button>
+
+        {onColorChange && <GroupColorPicker color={group.color} onChange={onColorChange} />}
+
         {onDeleteGroup && group.items.length === 0 && (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteGroup();
-            }}
-            className="mr-auto text-xs text-slate-400 hover:text-red-500"
+            onClick={onDeleteGroup}
+            className="shrink-0 text-xs text-slate-400 hover:text-red-500"
           >
             מחיקת קבוצה
           </button>
         )}
-      </button>
+      </div>
 
       {!group.collapsed && (
         <div className="overflow-x-auto rounded-b-lg border border-t-0 border-slate-200">
@@ -164,6 +230,58 @@ export default function GroupSection({
             </tfoot>
           </table>
         </div>
+      )}
+    </div>
+  );
+}
+
+function GroupColorPicker({
+  color,
+  onChange,
+}: {
+  color: string;
+  onChange: (color: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  return (
+    <div className="shrink-0">
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        title="צבע הקבוצה"
+        className="flex h-5 w-5 items-center justify-center rounded-full ring-1 ring-inset ring-black/10 hover:ring-black/20"
+        style={{ backgroundColor: color }}
+      />
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <FloatingPanel
+            anchorRef={buttonRef}
+            align="end"
+            className="z-50 grid grid-cols-4 gap-1.5 rounded-lg border border-slate-200 bg-white p-2 shadow-lg"
+          >
+            {GROUP_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => {
+                  onChange(c);
+                  setOpen(false);
+                }}
+                title={c}
+                className={cn(
+                  "flex h-6 w-6 items-center justify-center rounded-full ring-1 ring-inset ring-black/10 transition hover:scale-110",
+                  c === color && "ring-2 ring-offset-1 ring-slate-500"
+                )}
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </FloatingPanel>
+        </>
       )}
     </div>
   );

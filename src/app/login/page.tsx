@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -36,9 +37,14 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-brand-50 to-white px-4">
       <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-panel">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-brand-600 text-2xl font-bold text-white">
-            דא
-          </div>
+          <Image
+            src="/web-app-manifest-512x512.png"
+            alt="סטודיו דב אברמסון"
+            width={56}
+            height={56}
+            className="mx-auto mb-4 h-14 w-14 rounded-xl object-contain"
+            priority
+          />
           <h1 className="text-xl font-bold text-slate-900">סטודיו דב אברמסון</h1>
           <p className="mt-1 text-sm text-slate-500">מערכת ניהול פרויקטים פנימית</p>
         </div>

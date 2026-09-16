@@ -9,7 +9,7 @@ import BoardTable from "./BoardTable";
 import BoardGantt from "./BoardGantt";
 import BoardCalendar from "./BoardCalendar";
 import type { DisplayGroup } from "./GroupSection";
-import { STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
+import { GROUP_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
 import type { ActiveTimeLog, Board, Group, Item, Profile } from "@/lib/supabase/types";
 
 export default function BoardWorkspace({
@@ -174,9 +174,10 @@ export default function BoardWorkspace({
   }
 
   async function addGroup(name: string) {
+    const color = GROUP_COLORS[groups.length % GROUP_COLORS.length];
     const { data } = await supabase
       .from("groups")
-      .insert({ board_id: board.id, name, position: groups.length })
+      .insert({ board_id: board.id, name, position: groups.length, color })
       .select()
       .single();
     if (data) setGroups((prev) => [...prev, data]);
@@ -185,6 +186,31 @@ export default function BoardWorkspace({
   function renameGroup(groupId: string, name: string) {
     setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, name } : g)));
     supabase.from("groups").update({ name }).eq("id", groupId).then();
+  }
+
+  function changeGroupColor(groupId: string, color: string) {
+    setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, color } : g)));
+    supabase.from("groups").update({ color }).eq("id", groupId).then();
+  }
+
+  // Drag-and-drop reorder: reads the CURRENT sorted order out of the state
+  // updater (not from the `groups` closure, which could be a render behind
+  // by the time a fast drag-drop lands) so a quick drag-then-drop sequence
+  // always reorders relative to what's actually on screen.
+  function reorderGroup(draggedId: string, targetId: string) {
+    if (draggedId === targetId) return;
+    setGroups((prev) => {
+      const ordered = [...prev].sort((a, b) => a.position - b.position);
+      const fromIndex = ordered.findIndex((g) => g.id === draggedId);
+      const toIndex = ordered.findIndex((g) => g.id === targetId);
+      if (fromIndex === -1 || toIndex === -1) return prev;
+      const [moved] = ordered.splice(fromIndex, 1);
+      ordered.splice(toIndex, 0, moved);
+      ordered.forEach((g, i) => {
+        if (g.position !== i) supabase.from("groups").update({ position: i }).eq("id", g.id).then();
+      });
+      return ordered.map((g, i) => ({ ...g, position: i }));
+    });
   }
 
   async function deleteGroup(groupId: string) {
@@ -376,12 +402,15 @@ export default function BoardWorkspace({
             onAddGroup={addGroup}
             onRenameGroup={renameGroup}
             onDeleteGroup={deleteGroup}
+            onChangeGroupColor={changeGroupColor}
+            onReorderGroup={reorderGroup}
             currentUserId={currentUserId}
             trackedSecondsByItem={trackedSecondsByItem}
             activeSessionsByItem={activeSessionsByItem}
             onTimeLogChanged={refreshTrackedSeconds}
             readOnly={readOnly}
             canAddGroup={groupBy === "group"}
+            canReorderGroups={groupBy === "group"}
           />
         )}
         {view === "gantt" && (

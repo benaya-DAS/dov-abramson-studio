@@ -20,12 +20,15 @@ export default function BoardTable({
   onAddGroup,
   onRenameGroup,
   onDeleteGroup,
+  onChangeGroupColor,
+  onReorderGroup,
   currentUserId,
   trackedSecondsByItem,
   activeSessionsByItem,
   onTimeLogChanged,
   readOnly,
   canAddGroup,
+  canReorderGroups,
 }: {
   displayGroups: DisplayGroup[];
   profiles: Profile[];
@@ -40,15 +43,19 @@ export default function BoardTable({
   onAddGroup: (name: string) => void;
   onRenameGroup: (groupId: string, name: string) => void;
   onDeleteGroup: (groupId: string) => void;
+  onChangeGroupColor: (groupId: string, color: string) => void;
+  onReorderGroup: (draggedId: string, targetId: string) => void;
   currentUserId: string | null;
   trackedSecondsByItem: Record<string, number>;
   activeSessionsByItem: Record<string, ActiveTimeLog[]>;
   onTimeLogChanged: () => void;
   readOnly?: boolean;
   canAddGroup: boolean;
+  canReorderGroups: boolean;
 }) {
   const [addingGroup, setAddingGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   function submitNewGroup() {
     const trimmed = newGroupName.trim();
@@ -63,32 +70,53 @@ export default function BoardTable({
         <p className="py-10 text-center text-sm text-slate-400">אין משימות להצגה.</p>
       )}
 
-      {displayGroups.map((group) => (
-        <GroupSection
-          key={group.id}
-          group={group}
-          profiles={profiles}
-          selected={selected}
-          onToggleSelect={onToggleSelect}
-          onToggleCollapse={() => onToggleCollapse(group.id)}
-          onUpdateItem={onUpdateItem}
-          onDeleteItem={onDeleteItem}
-          onSerialBlur={onSerialBlur}
-          onNameBlur={onNameBlur}
-          onAddItem={() => onAddItem(group.id)}
-          onRenameGroup={
-            group.isRealGroup && !readOnly ? (name) => onRenameGroup(group.id, name) : undefined
-          }
-          onDeleteGroup={
-            group.isRealGroup && !readOnly ? () => onDeleteGroup(group.id) : undefined
-          }
-          currentUserId={currentUserId}
-          trackedSecondsByItem={trackedSecondsByItem}
-          activeSessionsByItem={activeSessionsByItem}
-          onTimeLogChanged={onTimeLogChanged}
-          readOnly={readOnly}
-        />
-      ))}
+      {displayGroups.map((group) => {
+        const canReorderThis = canReorderGroups && group.isRealGroup && !readOnly;
+        return (
+          <GroupSection
+            key={group.id}
+            group={group}
+            profiles={profiles}
+            selected={selected}
+            onToggleSelect={onToggleSelect}
+            onToggleCollapse={() => onToggleCollapse(group.id)}
+            onUpdateItem={onUpdateItem}
+            onDeleteItem={onDeleteItem}
+            onSerialBlur={onSerialBlur}
+            onNameBlur={onNameBlur}
+            onAddItem={() => onAddItem(group.id)}
+            onRenameGroup={
+              group.isRealGroup && !readOnly ? (name) => onRenameGroup(group.id, name) : undefined
+            }
+            onDeleteGroup={
+              group.isRealGroup && !readOnly ? () => onDeleteGroup(group.id) : undefined
+            }
+            onColorChange={
+              group.isRealGroup && !readOnly ? (color) => onChangeGroupColor(group.id, color) : undefined
+            }
+            canReorder={canReorderThis}
+            isDragging={draggingId === group.id}
+            onDragStart={canReorderThis ? () => setDraggingId(group.id) : undefined}
+            onDragEnd={canReorderThis ? () => setDraggingId(null) : undefined}
+            onDragOverGroup={
+              canReorderThis && draggingId ? (e) => e.preventDefault() : undefined
+            }
+            onDropOnGroup={
+              canReorderThis && draggingId
+                ? () => {
+                    if (draggingId) onReorderGroup(draggingId, group.id);
+                    setDraggingId(null);
+                  }
+                : undefined
+            }
+            currentUserId={currentUserId}
+            trackedSecondsByItem={trackedSecondsByItem}
+            activeSessionsByItem={activeSessionsByItem}
+            onTimeLogChanged={onTimeLogChanged}
+            readOnly={readOnly}
+          />
+        );
+      })}
 
       {!readOnly && canAddGroup && (
         <div className="mt-2">

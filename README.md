@@ -138,6 +138,20 @@ RLS is enabled on every table. The policy model:
   insert/delete policy exists for it, so a user cannot impersonate another
   profile.
 
+**No `workspace_members` table** — every studio member sees every
+workspace/board, gated by the `is_studio_member()` helper every policy
+above calls. That helper checks for a `public.profiles` row *or*, as a
+fallback, re-derives membership straight from the JWT's own email via
+`is_allowed_email()`. The fallback matters because rows visible in the
+Supabase Table Editor bypass RLS entirely (it runs as the service role) —
+if a signed-in user's `profiles` row is ever missing (e.g. it predates the
+`handle_auth_user_upsert()` trigger), every RLS-gated `select`, workspaces
+included, would otherwise silently return zero rows with no error, which
+looks from the app exactly like "there's no data" even though the tables
+plainly aren't empty. `schema.sql` also backfills any `auth.users` row
+missing a `profiles` row every time it's run, so re-running it repairs
+this if it ever happens.
+
 ## 3. Application structure
 
 ```

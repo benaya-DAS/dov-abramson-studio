@@ -147,6 +147,18 @@ create trigger on_auth_user_updated
   for each row execute function public.handle_auth_user_upsert();
 
 -- Small helper used throughout RLS policies below.
+--
+-- Access is gated purely on this — there is no separate workspace_members
+-- table in this schema; every studio member can see every workspace/board
+-- (see the RLS section's comment for why). Normally that just means "has a
+-- public.profiles row," but a profiles row is only created reactively by
+-- the handle_auth_user_upsert() trigger on auth.users, so a row that
+-- predates that trigger (or hit some other insert failure) would otherwise
+-- leave an authenticated, domain-valid user locked out of everything with
+-- RLS silently returning zero rows rather than an error — which looks
+-- identical to "there's no data" from the app. The is_allowed_email() OR
+-- branch below closes that gap: it re-derives membership straight from the
+-- JWT's own email/domain, independent of whether the profiles row exists.
 create or replace function public.is_studio_member()
 returns boolean
 language sql
@@ -154,10 +166,27 @@ stable
 security definer
 set search_path = public
 as $$
-  select exists (
-    select 1 from public.profiles where id = auth.uid()
-  );
+  select
+    auth.uid() is not null
+    and (
+      exists (select 1 from public.profiles where id = auth.uid())
+      or public.is_allowed_email(auth.jwt() ->> 'email')
+    );
 $$;
+
+-- One-time (and self-healing on every re-run) backfill: create a profiles
+-- row for any auth.users row that doesn't have one yet, covering exactly
+-- the drift scenario above. Safe to run repeatedly — on conflict is a
+-- no-op for users who already have a profile.
+insert into public.profiles (id, email, full_name, avatar_url)
+select
+  u.id,
+  u.email,
+  coalesce(u.raw_user_meta_data ->> 'full_name', u.raw_user_meta_data ->> 'name'),
+  coalesce(u.raw_user_meta_data ->> 'avatar_url', u.raw_user_meta_data ->> 'picture')
+from auth.users u
+where u.email is not null
+on conflict (id) do nothing;
 
 -- ============================================================================
 -- 3. WORKSPACES / DEPARTMENTS

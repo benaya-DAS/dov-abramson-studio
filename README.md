@@ -1,22 +1,23 @@
 # סטודיו דב אברמסון — מערכת ניהול פרויקטים
 
 Full-featured, RTL-native studio management app for Dov Abramson Studio — a
-Monday.com-style tool built with **Next.js 14 (App Router)**, **Tailwind
+Monday.com-style tool built with **Next.js 16 (App Router)**, **Tailwind
 CSS**, **Lucide Icons**, and **Supabase** (Postgres + Auth + Realtime).
 
-## ⚠️ Before you start: check your Supabase anon key
+## Supabase project
 
-The `NEXT_PUBLIC_SUPABASE_ANON_KEY` value supplied for this project **is not
-a valid JWT** — it contains an extra `.` splitting it into four segments
-instead of the three a real Supabase anon key always has, so no request will
-authenticate with it. Replace it with the real anon key from **Supabase
-Dashboard → Project Settings → API → Project API keys → `anon` `public`**
-before running the app. The URL (`https://fyiostdopgrivjggld4.supabase.co`)
-looks like a normal project ref — double check it against your dashboard too.
+`.env.local` (gitignored — not committed) is configured for project
+`fyiostdopgrivjgmzhxw`. Its anon key is a well-formed JWT (`role: anon`, and
+the `ref` claim matches the project URL), but that only confirms it's
+correctly *shaped* — it can't confirm it's still valid against your actual
+project (a rotated or revoked key would fail at request time). If sign-in or
+data loading fails, re-copy the key from **Supabase Dashboard → Project
+Settings → API → Project API keys → `anon` `public`** and confirm the URL
+matches the same project.
 
 ## Tech stack
 
-- **Next.js 14** (App Router, Server Components, Route Handlers, Middleware)
+- **Next.js 16** (App Router, Server Components, Route Handlers, Middleware)
 - **TypeScript**, **Tailwind CSS**, **Lucide Icons**
 - **Supabase**: Postgres, Row Level Security, Auth (Google OAuth), Realtime
 - **xlsx** (SheetJS) for Excel catalog import/export — runs client-side

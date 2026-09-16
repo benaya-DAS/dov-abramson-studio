@@ -1,3 +1,5 @@
+import CreateFirstWorkspaceForm from "@/components/CreateFirstWorkspaceForm";
+
 export default function OnboardingPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
@@ -7,11 +9,11 @@ export default function OnboardingPage() {
         </div>
         <h1 className="text-lg font-bold text-slate-900">ברוכים הבאים לסטודיו דב אברמסון</h1>
         <p className="mt-2 text-sm text-slate-600">
-          עדיין לא הוגדרו מחלקות ולוחות במערכת. הריצו את הקובץ{" "}
+          עדיין לא הוגדרה אף מחלקה במערכת. צרו את המחלקה הראשונה למטה, או הריצו את הקובץ{" "}
           <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">supabase/seed.sql</code> כדי
-          לטעון את מבנה המחלקות והלוחות לדוגמה, או צרו מחלקה ולוח ראשונים ישירות בטבלת{" "}
-          <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">workspaces</code> ב-Supabase.
+          לטעון את מבנה המחלקות והלוחות לדוגמה.
         </p>
+        <CreateFirstWorkspaceForm />
       </div>
     </main>
   );

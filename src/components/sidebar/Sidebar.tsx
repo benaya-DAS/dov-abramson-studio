@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { ChevronDown, ChevronLeft, Archive, LayoutGrid, Plus } from "lucide-react";
+import { ChevronDown, ChevronLeft, Archive, LayoutGrid } from "lucide-react";
 import type { WorkspaceWithBoards } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import CreateBoardButton from "./CreateBoardButton";
+import CreateWorkspaceButton from "./CreateWorkspaceButton";
 
 export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoards[] }) {
   return (
@@ -30,6 +31,7 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
       </nav>
 
       <div className="border-t border-slate-200 p-2">
+        <CreateWorkspaceButton nextPosition={workspaces.length} />
         <Link
           href="/archive"
           className={cn(
@@ -87,14 +89,5 @@ function WorkspaceItem({ workspace }: { workspace: WorkspaceWithBoards }) {
         </ul>
       )}
     </li>
-  );
-}
-
-export function AddWorkspaceHint() {
-  return (
-    <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-slate-400">
-      <Plus size={14} />
-      לוח חדש
-    </div>
   );
 }

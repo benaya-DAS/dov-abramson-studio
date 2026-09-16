@@ -152,6 +152,13 @@ plainly aren't empty. `schema.sql` also backfills any `auth.users` row
 missing a `profiles` row every time it's run, so re-running it repairs
 this if it ever happens.
 
+This is also why creating a workspace from the UI (`CreateWorkspaceButton`
+in the sidebar, or the form on `/onboarding` when there are none yet) needs
+no separate "assign ownership" step: the same `workspaces_write_studio`
+policy that grants every studio member read access already grants insert,
+so a new workspace is visible to its creator — and everyone else — the
+moment it's created.
+
 ## 3. Application structure
 
 ```

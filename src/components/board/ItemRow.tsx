@@ -162,6 +162,7 @@ export default function ItemRow({
         <TimeTracker
           itemId={item.id}
           userId={currentUserId}
+          profiles={profiles}
           baseSeconds={trackedSeconds}
           readOnly={readOnly}
         />

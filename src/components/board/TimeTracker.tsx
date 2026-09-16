@@ -5,15 +5,19 @@ import { Play, Square } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatDuration } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import TimeLogPopover from "./TimeLogPopover";
+import type { Profile } from "@/lib/supabase/types";
 
 export default function TimeTracker({
   itemId,
   userId,
+  profiles,
   baseSeconds,
   readOnly,
 }: {
   itemId: string;
   userId: string | null;
+  profiles: Profile[];
   baseSeconds: number;
   readOnly?: boolean;
 }) {
@@ -21,6 +25,7 @@ export default function TimeTracker({
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [logOpen, setLogOpen] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -30,15 +35,15 @@ export default function TimeTracker({
     // Fetch-on-mount to resume showing an in-progress timer after a reload.
     supabase
       .from("time_logs")
-      .select("id, started_at")
+      .select("id, start_time")
       .eq("item_id", itemId)
       .eq("user_id", userId)
-      .is("ended_at", null)
+      .is("end_time", null)
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled || !data) return;
         setActiveLogId(data.id);
-        setStartedAt(new Date(data.started_at).getTime());
+        setStartedAt(new Date(data.start_time).getTime());
       });
     return () => {
       cancelled = true;
@@ -74,18 +79,18 @@ export default function TimeTracker({
       const { data, error } = await supabase
         .from("time_logs")
         .insert({ item_id: itemId, user_id: userId })
-        .select("id, started_at")
+        .select("id, start_time")
         .single();
       if (!error && data) {
         setActiveLogId(data.id);
-        setStartedAt(new Date(data.started_at).getTime());
+        setStartedAt(new Date(data.start_time).getTime());
       }
     }
     setLoading(false);
   }
 
   return (
-    <div className="flex items-center justify-center gap-2">
+    <div className="relative flex items-center justify-center gap-2">
       <button
         onClick={toggle}
         disabled={readOnly || !userId || loading}
@@ -97,14 +102,27 @@ export default function TimeTracker({
       >
         {activeLogId ? <Square size={11} fill="white" /> : <Play size={11} fill="white" />}
       </button>
-      <span
+      <button
+        onClick={() => setLogOpen((o) => !o)}
         className={cn(
-          "min-w-[64px] text-center font-mono text-xs tabular-nums",
+          "min-w-[64px] rounded px-1 text-center font-mono text-xs tabular-nums hover:bg-slate-100",
           activeLogId ? "font-semibold text-rose-600" : "text-slate-500"
         )}
+        title="יומן מעקב זמן"
       >
         {formatDuration(totalSeconds)}
-      </span>
+      </button>
+
+      {logOpen && (
+        <TimeLogPopover
+          itemId={itemId}
+          currentUserId={userId}
+          profiles={profiles}
+          totalSeconds={totalSeconds}
+          readOnly={readOnly}
+          onClose={() => setLogOpen(false)}
+        />
+      )}
     </div>
   );
 }

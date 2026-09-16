@@ -310,16 +310,66 @@ create table if not exists public.time_logs (
   id uuid primary key default gen_random_uuid(),
   item_id uuid not null references public.items (id) on delete cascade,
   user_id uuid not null references public.profiles (id) on delete cascade,
-  started_at timestamptz not null default now(),
-  ended_at timestamptz,
-  duration_seconds integer
+  start_time timestamptz not null default now(),
+  end_time timestamptz,
+  duration_seconds integer,
+  created_at timestamptz not null default now()
 );
+
+-- Migrate a table created under this file's older column names
+-- (started_at/ended_at) without losing data. No-ops on a fresh install
+-- (the create table above already used the current names) and on a
+-- project that's already been migrated once.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'time_logs' and column_name = 'started_at'
+  ) then
+    alter table public.time_logs rename column started_at to start_time;
+  end if;
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'time_logs' and column_name = 'ended_at'
+  ) then
+    alter table public.time_logs rename column ended_at to end_time;
+  end if;
+end $$;
+
+alter table public.time_logs add column if not exists created_at timestamptz not null default now();
 
 create index if not exists time_logs_item_id_idx on public.time_logs (item_id);
 create index if not exists time_logs_user_id_idx on public.time_logs (user_id);
+drop index if exists time_logs_one_active_per_user;
 create unique index if not exists time_logs_one_active_per_user
   on public.time_logs (user_id)
-  where ended_at is null;
+  where end_time is null;
+
+-- duration_seconds is always server-derived from start_time/end_time, on
+-- both insert and update — this is what makes manually adding or editing a
+-- session (typing a new start/end time) "just work" without a separate
+-- code path: whatever duration the client sends is ignored and
+-- recalculated here, so it can never drift from the times actually stored.
+-- A null end_time (an in-progress play/stop timer) keeps duration_seconds
+-- null, same as before.
+create or replace function public.compute_time_log_duration()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.end_time is not null then
+    new.duration_seconds = greatest(0, extract(epoch from (new.end_time - new.start_time))::int);
+  else
+    new.duration_seconds = null;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists time_logs_compute_duration on public.time_logs;
+create trigger time_logs_compute_duration
+  before insert or update on public.time_logs
+  for each row execute function public.compute_time_log_duration();
 
 create or replace function public.stop_time_log(p_log_id uuid)
 returns public.time_logs
@@ -330,11 +380,10 @@ declare
   v_row public.time_logs;
 begin
   update public.time_logs
-    set ended_at = now(),
-        duration_seconds = extract(epoch from (now() - started_at))::int
+    set end_time = now()
     where id = p_log_id
       and user_id = auth.uid()
-      and ended_at is null
+      and end_time is null
     returning * into v_row;
 
   return v_row;
@@ -346,7 +395,7 @@ $$;
 -- ============================================================================
 
 -- Sum of *completed* time-tracking sessions per item. Any currently running
--- session (ended_at is null) is intentionally excluded here — the client
+-- session (end_time is null) is intentionally excluded here — the client
 -- adds its live-ticking elapsed time on top of this base total so the
 -- on-screen timer advances every second without refetching.
 create or replace view public.item_tracked_seconds as
@@ -354,7 +403,7 @@ select
   item_id,
   coalesce(sum(duration_seconds), 0) as tracked_seconds
 from public.time_logs
-where ended_at is not null
+where end_time is not null
 group by item_id;
 
 -- ============================================================================

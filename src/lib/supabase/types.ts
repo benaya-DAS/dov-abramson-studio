@@ -84,9 +84,10 @@ export type TimeLog = {
   id: string;
   item_id: string;
   user_id: string;
-  started_at: string;
-  ended_at: string | null;
+  start_time: string;
+  end_time: string | null;
   duration_seconds: number | null;
+  created_at: string;
 };
 
 type Relationships = never[];

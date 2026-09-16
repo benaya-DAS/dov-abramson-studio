@@ -180,7 +180,8 @@ src/
     topbar/      # user menu, avatar
     board/       # BoardWorkspace (state owner), BoardTable, BoardGantt,
                  # BoardCalendar, ItemRow, StatusBadge, PersonPicker,
-                 # TimeTracker, CatalogImporter, NewMonthButton, ExportButton
+                 # TimeTracker, TimeLogPopover, SessionEditView,
+                 # CatalogImporter, NewMonthButton, ExportButton
   lib/
     supabase/    # browser + server clients, middleware helper, DB types
     catalog/parse.ts   # Excel column parsing + serial-prefix cleaning
@@ -203,10 +204,23 @@ src/
   board in the same workspace for the following month with the same groups
   but zero items/time logs. Board name month/year suffix is auto-incremented
   in Hebrew (e.g. "ספטמבר 2026" → "אוקטובר 2026").
-- **Time tracking**: `time_logs` rows with `started_at`/`ended_at`; a
+- **Time tracking**: `time_logs` rows with `start_time`/`end_time`; a
   partial unique index guarantees one active (unstopped) timer per user at a
   time. The UI ticks live client-side and calls `stop_time_log()` to close
-  the session.
+  the session. `duration_seconds` is never trusted from the client — a
+  `BEFORE INSERT OR UPDATE` trigger (`compute_time_log_duration()`) always
+  recomputes it from `start_time`/`end_time`, so manually adding or editing
+  a session can't drift from what's actually stored.
+- **Time tracking log** (click the duration text next to the play/stop
+  button — `TimeLogPopover.tsx`): lists every session logged on that item
+  across the whole team (avatar, date, time range, duration), with "הוספת
+  רישום ידני" to log a session by hand and "ייצוא לאקסל" for the shown
+  list. Only your own, already-completed sessions are editable/deletable —
+  clicking one opens `SessionEditView.tsx` (mini calendar + start/end time
+  inputs with a live-recalculating total, matching the DB's own
+  server-side duration calculation) — a teammate's entries and any
+  in-progress ("פעיל כעת") session are shown read-only, since RLS only
+  ever grants write access to `user_id = auth.uid()`.
 - **Realtime**: `BoardWorkspace` subscribes to Postgres changes on `items`,
   `groups`, and `time_logs` scoped to the open board, so edits from other
   studio members appear live without a refresh.

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import GroupSection, { type DisplayGroup } from "./GroupSection";
 import { DELIVERABLE_OPTIONS } from "@/lib/constants";
-import type { Item, Profile } from "@/lib/supabase/types";
+import type { ActiveTimeLog, Item, Profile } from "@/lib/supabase/types";
 
 export default function BoardTable({
   displayGroups,
@@ -22,6 +22,7 @@ export default function BoardTable({
   onDeleteGroup,
   currentUserId,
   trackedSecondsByItem,
+  activeSessionsByItem,
   readOnly,
   canAddGroup,
 }: {
@@ -40,6 +41,7 @@ export default function BoardTable({
   onDeleteGroup: (groupId: string) => void;
   currentUserId: string | null;
   trackedSecondsByItem: Record<string, number>;
+  activeSessionsByItem: Record<string, ActiveTimeLog[]>;
   readOnly?: boolean;
   canAddGroup: boolean;
 }) {
@@ -80,6 +82,7 @@ export default function BoardTable({
           }
           currentUserId={currentUserId}
           trackedSecondsByItem={trackedSecondsByItem}
+          activeSessionsByItem={activeSessionsByItem}
           readOnly={readOnly}
         />
       ))}

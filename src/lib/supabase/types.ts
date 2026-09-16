@@ -90,6 +90,10 @@ export type TimeLog = {
   created_at: string;
 };
 
+// A currently-running (end_time null) session, as surfaced to the UI —
+// enough to identify it, attribute it, and live-tick its elapsed time.
+export type ActiveTimeLog = Pick<TimeLog, "id" | "user_id" | "start_time">;
+
 type Relationships = never[];
 
 export interface Database {

@@ -5,7 +5,7 @@ import { Trash2 } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import PersonPicker from "./PersonPicker";
 import TimeTracker from "./TimeTracker";
-import type { Item, ItemStatus, Profile } from "@/lib/supabase/types";
+import type { ActiveTimeLog, Item, ItemStatus, Profile } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
 export default function ItemRow({
@@ -19,6 +19,7 @@ export default function ItemRow({
   onNameBlur,
   currentUserId,
   trackedSeconds,
+  activeSessions,
   readOnly,
 }: {
   item: Item;
@@ -31,6 +32,7 @@ export default function ItemRow({
   onNameBlur: (name: string) => void;
   currentUserId: string | null;
   trackedSeconds: number;
+  activeSessions: ActiveTimeLog[];
   readOnly?: boolean;
 }) {
   const [name, setName] = useState(item.name);
@@ -164,6 +166,7 @@ export default function ItemRow({
           userId={currentUserId}
           profiles={profiles}
           baseSeconds={trackedSeconds}
+          activeSessions={activeSessions}
           readOnly={readOnly}
         />
       </td>

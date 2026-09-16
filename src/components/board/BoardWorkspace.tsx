@@ -10,7 +10,7 @@ import BoardGantt from "./BoardGantt";
 import BoardCalendar from "./BoardCalendar";
 import type { DisplayGroup } from "./GroupSection";
 import { STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
-import type { Board, Group, Item, Profile } from "@/lib/supabase/types";
+import type { ActiveTimeLog, Board, Group, Item, Profile } from "@/lib/supabase/types";
 
 export default function BoardWorkspace({
   board,
@@ -33,6 +33,9 @@ export default function BoardWorkspace({
   const [groups, setGroups] = useState<Group[]>(initialGroups);
   const [items, setItems] = useState<Item[]>(initialItems);
   const [trackedSecondsByItem, setTrackedSecondsByItem] = useState<Record<string, number>>({});
+  const [activeSessionsByItem, setActiveSessionsByItem] = useState<Record<string, ActiveTimeLog[]>>(
+    {}
+  );
 
   const [view, setView] = useState<BoardView>("table");
   const [search, setSearch] = useState("");
@@ -83,29 +86,44 @@ export default function BoardWorkspace({
     };
   }, [supabase, board.id]);
 
-  // ---- Tracked-time totals (closed sessions) --------------------------
+  // ---- Time tracking: completed-session totals + any currently-running
+  // session, for every item, from every studio member (not just the
+  // viewer's own) -----------------------------------------------------
   const itemIdsKey = useMemo(() => items.map((i) => i.id).join(","), [items]);
 
   const refreshTrackedSeconds = useCallback(async () => {
     if (items.length === 0) return;
-    const { data } = await supabase
-      .from("item_tracked_seconds")
-      .select("item_id, tracked_seconds")
-      .in(
-        "item_id",
-        items.map((i) => i.id)
-      );
-    if (data) {
+    const itemIds = items.map((i) => i.id);
+    const [{ data: totals }, { data: active }] = await Promise.all([
+      supabase.from("item_tracked_seconds").select("item_id, tracked_seconds").in("item_id", itemIds),
+      supabase
+        .from("time_logs")
+        .select("id, item_id, user_id, start_time")
+        .in("item_id", itemIds)
+        .is("end_time", null),
+    ]);
+    if (totals) {
       setTrackedSecondsByItem(
-        Object.fromEntries(data.map((r) => [r.item_id, r.tracked_seconds]))
+        Object.fromEntries(totals.map((r) => [r.item_id, r.tracked_seconds]))
       );
+    }
+    if (active) {
+      const grouped: Record<string, ActiveTimeLog[]> = {};
+      for (const row of active) {
+        (grouped[row.item_id] ??= []).push({
+          id: row.id,
+          user_id: row.user_id,
+          start_time: row.start_time,
+        });
+      }
+      setActiveSessionsByItem(grouped);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase, itemIdsKey]);
 
   useEffect(() => {
     // Fetch-on-mount / on-item-set-change to (re)hydrate the group SUM
-    // footers with tracked-time totals.
+    // footers and each item's play/pause state with tracked-time totals.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshTrackedSeconds();
   }, [refreshTrackedSeconds]);
@@ -360,6 +378,7 @@ export default function BoardWorkspace({
             onDeleteGroup={deleteGroup}
             currentUserId={currentUserId}
             trackedSecondsByItem={trackedSecondsByItem}
+            activeSessionsByItem={activeSessionsByItem}
             readOnly={readOnly}
             canAddGroup={groupBy === "group"}
           />

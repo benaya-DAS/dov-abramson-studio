@@ -223,11 +223,27 @@ src/
   in Hebrew (e.g. "ספטמבר 2026" → "אוקטובר 2026").
 - **Time tracking**: `time_logs` rows with `start_time`/`end_time`; a
   partial unique index guarantees one active (unstopped) timer per user at a
-  time. The UI ticks live client-side and calls `stop_time_log()` to close
-  the session. `duration_seconds` is never trusted from the client — a
+  time. `duration_seconds` is never trusted from the client — a
   `BEFORE INSERT OR UPDATE` trigger (`compute_time_log_duration()`) always
   recomputes it from `start_time`/`end_time`, so manually adding or editing
-  a session can't drift from what's actually stored.
+  a session can't drift from what's actually stored. The duration shown in
+  the table cell is `baseSeconds` (every *completed* session on that item,
+  any studio member — `item_tracked_seconds`, fetched once centrally in
+  `BoardWorkspace` and kept live via its realtime subscription on
+  `time_logs`) plus a live tick over every *currently running* session on
+  that item, again from any studio member, not just the viewer — a
+  teammate's still-running timer visibly ticks into the total even though
+  the viewer's own play/pause button (which only ever starts/stops their
+  own session — `user_id = auth.uid()` is what RLS actually allows) stays
+  showing play. That live component is real `useState`, updated once a
+  second inside an effect, never computed straight from `Date.now()` during
+  render — the latter is non-deterministic between the server render and
+  the client's hydration pass and produces a hydration mismatch, since this
+  component isn't opted out of SSR. The viewer's own play/pause click is
+  additionally optimistic (flips instantly, reconciled against the
+  realtime-driven state once it catches up) so it doesn't wait on a
+  round-trip. The active button is blue (`#579bfc`) rather than red, to
+  read as "in progress" rather than "stop/alert."
 - **Time tracking log** (click the duration text next to the play/stop
   button — `TimeLogPopover.tsx`): lists every session logged on that item
   across the whole team (avatar, date, time range, duration), with "הוספת

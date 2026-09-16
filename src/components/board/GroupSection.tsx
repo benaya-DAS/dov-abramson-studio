@@ -3,7 +3,11 @@
 import { ChevronDown, ChevronLeft, Plus } from "lucide-react";
 import ItemRow from "./ItemRow";
 import { formatDuration, formatHours } from "@/lib/utils";
-import type { Item, Profile } from "@/lib/supabase/types";
+import type { ActiveTimeLog, Item, Profile } from "@/lib/supabase/types";
+
+// Stable reference so items with no active session don't hand TimeTracker
+// a freshly-allocated empty array on every render.
+const NO_ACTIVE_SESSIONS: ActiveTimeLog[] = [];
 
 export interface DisplayGroup {
   id: string;
@@ -29,6 +33,7 @@ export default function GroupSection({
   onDeleteGroup,
   currentUserId,
   trackedSecondsByItem,
+  activeSessionsByItem,
   readOnly,
 }: {
   group: DisplayGroup;
@@ -45,6 +50,7 @@ export default function GroupSection({
   onDeleteGroup?: () => void;
   currentUserId: string | null;
   trackedSecondsByItem: Record<string, number>;
+  activeSessionsByItem: Record<string, ActiveTimeLog[]>;
   readOnly?: boolean;
 }) {
   const totalHours = group.items.reduce((sum, i) => sum + Number(i.hours || 0), 0);
@@ -124,6 +130,7 @@ export default function GroupSection({
                   onNameBlur={(name) => onNameBlur(item.id, name)}
                   currentUserId={currentUserId}
                   trackedSeconds={trackedSecondsByItem[item.id] ?? 0}
+                  activeSessions={activeSessionsByItem[item.id] ?? NO_ACTIVE_SESSIONS}
                   readOnly={readOnly}
                 />
               ))}

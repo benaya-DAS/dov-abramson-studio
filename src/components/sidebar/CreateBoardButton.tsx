@@ -47,7 +47,7 @@ export default function CreateBoardButton({ workspaceId }: { workspaceId: string
           if (e.key === "Escape") setEditing(false);
         }}
         placeholder="שם הלוח החדש"
-        className="w-full rounded-md border border-brand-300 px-2 py-1 text-sm outline-none"
+        className="w-full rounded-md border border-brand-300 bg-white px-2 py-1 text-sm text-slate-900 outline-none dark:border-brand-700 dark:bg-slate-800 dark:text-slate-100"
       />
     );
   }
@@ -56,7 +56,7 @@ export default function CreateBoardButton({ workspaceId }: { workspaceId: string
     <button
       onClick={() => setEditing(true)}
       disabled={pending}
-      className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-400 hover:bg-slate-100 hover:text-brand-600"
+      className="flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-400 hover:bg-slate-100 hover:text-brand-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-brand-400"
     >
       <Plus size={14} />
       לוח חדש

@@ -39,7 +39,7 @@ export default function CreateFirstWorkspaceForm() {
 
   return (
     <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-2 text-right">
-      <label htmlFor="workspace-name" className="text-xs font-medium text-slate-500">
+      <label htmlFor="workspace-name" className="text-xs font-medium text-slate-500 dark:text-slate-400">
         שם המחלקה הראשונה
       </label>
       <input
@@ -48,9 +48,9 @@ export default function CreateFirstWorkspaceForm() {
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder='למשל: "מחלקת דיזיין - הסלון"'
-        className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-400"
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
       />
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="text-xs text-red-500 dark:text-red-400">{error}</p>}
       <button
         type="submit"
         disabled={loading || !name.trim()}

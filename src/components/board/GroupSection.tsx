@@ -169,7 +169,7 @@ export default function GroupSection({
             }}
             onDragEnd={onDragEnd}
             title="גרירה לשינוי סדר הקבוצות"
-            className="shrink-0 cursor-grab text-slate-300 hover:text-slate-500 active:cursor-grabbing"
+            className="shrink-0 cursor-grab text-slate-300 hover:text-slate-500 active:cursor-grabbing dark:text-slate-600 dark:hover:text-slate-400"
           >
             <GripVertical size={15} />
           </button>
@@ -178,7 +178,7 @@ export default function GroupSection({
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="shrink-0 text-slate-400 hover:text-slate-600"
+          className="shrink-0 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
           title={group.collapsed ? "הרחבת קבוצה" : "כיווץ קבוצה"}
         >
           {group.collapsed ? (
@@ -188,19 +188,23 @@ export default function GroupSection({
           )}
         </button>
 
+        {/* Text stays a fixed neutral rather than group.color: some palette
+         * entries (e.g. #333333, #808080) would read fine on light-mode
+         * white but go nearly illegible on a dark background - the swatch
+         * and chevron already carry the color accent, so the name text
+         * doesn't need to gamble on every custom color being legible in
+         * both themes. */}
         {onRenameGroup ? (
           <input
             defaultValue={group.name}
             onBlur={(e) => e.target.value.trim() && onRenameGroup(e.target.value.trim())}
-            className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none"
-            style={{ color: group.color }}
+            className="min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-800 outline-none dark:text-slate-100"
           />
         ) : (
           <button
             type="button"
             onClick={onToggleCollapse}
-            className="min-w-0 flex-1 truncate text-right text-sm font-bold"
-            style={{ color: group.color }}
+            className="min-w-0 flex-1 truncate text-right text-sm font-bold text-slate-800 dark:text-slate-100"
           >
             {group.name}
           </button>
@@ -209,7 +213,7 @@ export default function GroupSection({
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="shrink-0 text-xs font-medium text-slate-400"
+          className="shrink-0 text-xs font-medium text-slate-400 dark:text-slate-500"
         >
           {group.items.length} משימות
         </button>
@@ -219,7 +223,7 @@ export default function GroupSection({
         {onDeleteGroup && group.items.length === 0 && (
           <button
             onClick={onDeleteGroup}
-            className="shrink-0 text-xs text-slate-400 hover:text-red-500"
+            className="shrink-0 text-xs text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400"
           >
             מחיקת קבוצה
           </button>
@@ -227,10 +231,10 @@ export default function GroupSection({
       </div>
 
       {!group.collapsed && (
-        <div className="overflow-x-auto rounded-b-lg border border-t-0 border-slate-300">
+        <div className="overflow-x-auto rounded-b-lg border border-t-0 border-slate-300 dark:border-slate-700">
           <table className="w-full border-collapse text-right">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-400">
+              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-400 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-500">
                 {canReorderItems && <th className="w-6 px-1 py-2"></th>}
                 <th className="w-10 px-3 py-2"></th>
                 <th className="min-w-[220px] px-2 py-2 text-right">פריט</th>
@@ -291,7 +295,7 @@ export default function GroupSection({
                   <td colSpan={canReorderItems ? 12 : 11} className="px-3 py-1.5">
                     <button
                       onClick={onAddItem}
-                      className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-slate-400 hover:bg-slate-50 hover:text-brand-600"
+                      className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-slate-400 hover:bg-slate-50 hover:text-brand-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-brand-400"
                     >
                       <Plus size={14} />
                       הוספת פריט
@@ -301,7 +305,7 @@ export default function GroupSection({
               )}
             </tbody>
             <tfoot>
-              <tr className="border-t border-slate-300 bg-slate-50 text-xs font-bold text-slate-600">
+              <tr className="border-t border-slate-300 bg-slate-50 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
                 <td colSpan={canReorderItems ? 9 : 8} className="px-3 py-2 text-left">
                   סה&quot;כ
                 </td>
@@ -334,7 +338,7 @@ function GroupColorPicker({
         type="button"
         onClick={() => setOpen((o) => !o)}
         title="צבע הקבוצה"
-        className="flex h-5 w-5 items-center justify-center rounded ring-1 ring-inset ring-black/10 hover:ring-black/20"
+        className="flex h-5 w-5 items-center justify-center rounded ring-1 ring-inset ring-black/10 hover:ring-black/20 dark:ring-white/10 dark:hover:ring-white/20"
         style={{ backgroundColor: color }}
       />
 
@@ -344,7 +348,7 @@ function GroupColorPicker({
           <FloatingPanel
             anchorRef={buttonRef}
             align="end"
-            className="z-50 grid grid-cols-4 gap-1.5 rounded-lg border border-slate-200 bg-white p-2 shadow-lg"
+            className="z-50 grid grid-cols-4 gap-1.5 rounded-lg border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-800"
           >
             {GROUP_COLORS.map((c) => (
               <button
@@ -356,8 +360,8 @@ function GroupColorPicker({
                 }}
                 title={c}
                 className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded ring-1 ring-inset ring-black/10 transition hover:scale-110",
-                  c === color && "ring-2 ring-offset-1 ring-slate-500"
+                  "flex h-6 w-6 items-center justify-center rounded ring-1 ring-inset ring-black/10 transition hover:scale-110 dark:ring-white/10",
+                  c === color && "ring-2 ring-offset-1 ring-slate-500 dark:ring-offset-slate-800"
                 )}
                 style={{ backgroundColor: c }}
               />

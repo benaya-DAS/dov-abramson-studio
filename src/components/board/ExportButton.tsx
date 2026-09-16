@@ -70,7 +70,7 @@ export default function ExportButton({
   return (
     <button
       onClick={exportReport}
-      className="flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+      className="flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
       title="ייצוא דוח חודשי ל-Excel"
     >
       <Download size={14} />

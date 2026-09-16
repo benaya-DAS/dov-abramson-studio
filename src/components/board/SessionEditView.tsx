@@ -100,11 +100,11 @@ export default function SessionEditView({
 
   return (
     <div>
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-        <h3 className="text-sm font-bold text-slate-800">עדכון רישום</h3>
+      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-700">
+        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">עדכון רישום</h3>
         <button
           onClick={onBack}
-          className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700"
+          className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
         >
           <ArrowRight size={14} />
           חזרה
@@ -115,16 +115,16 @@ export default function SessionEditView({
         <div className="mb-3 flex items-center justify-between">
           <button
             onClick={() => setCursor((c) => subMonths(c, 1))}
-            className="rounded-md p-1 hover:bg-slate-100"
+            className="rounded-md p-1 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             <ChevronRight size={14} />
           </button>
-          <span className="text-sm font-semibold text-slate-700">
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
             {format(cursor, "LLLL yyyy", { locale: he })}
           </span>
           <button
             onClick={() => setCursor((c) => addMonths(c, 1))}
-            className="rounded-md p-1 hover:bg-slate-100"
+            className="rounded-md p-1 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
           >
             <ChevronLeft size={14} />
           </button>
@@ -132,7 +132,7 @@ export default function SessionEditView({
 
         <div className="grid grid-cols-7 gap-0.5 text-center">
           {WEEKDAYS.map((d) => (
-            <div key={d} className="py-1 text-[11px] font-semibold text-slate-400">
+            <div key={d} className="py-1 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
               {d}
             </div>
           ))}
@@ -149,10 +149,10 @@ export default function SessionEditView({
                   selected
                     ? "bg-brand-600 font-semibold text-white"
                     : today
-                      ? "font-semibold text-brand-700"
+                      ? "font-semibold text-brand-700 dark:text-brand-400"
                       : inMonth
-                        ? "text-slate-700 hover:bg-slate-100"
-                        : "text-slate-300 hover:bg-slate-50"
+                        ? "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+                        : "text-slate-300 hover:bg-slate-50 dark:text-slate-600 dark:hover:bg-slate-800"
                 }`}
               >
                 {format(day, "d")}
@@ -163,29 +163,29 @@ export default function SessionEditView({
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-slate-500">שעת התחלה</span>
+            <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">שעת התחלה</span>
             <input
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm outline-none focus:border-brand-400"
+              className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-brand-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:[color-scheme:dark]"
             />
           </label>
           <label className="block">
-            <span className="mb-1 block text-xs font-medium text-slate-500">שעת סיום</span>
+            <span className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400">שעת סיום</span>
             <input
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm outline-none focus:border-brand-400"
+              className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-brand-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:[color-scheme:dark]"
             />
           </label>
         </div>
 
-        {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
+        {error && <p className="mt-3 text-xs text-red-500 dark:text-red-400">{error}</p>}
 
         <div className="mt-4 flex items-center justify-between">
-          <span className="font-mono text-sm font-semibold text-slate-700">
+          <span className="font-mono text-sm font-semibold text-slate-700 dark:text-slate-200">
             {formatDurationPadded(durationSeconds)}
           </span>
           <button

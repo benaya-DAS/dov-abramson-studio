@@ -1,6 +1,12 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  // "class" (not "media"): the toggle in TopBar/ThemeToggle.tsx sets/clears
+  // a `dark` class on <html> itself and persists the choice to
+  // localStorage - an explicit user choice, not just mirroring the OS
+  // theme, so it has to be driven by a class Tailwind can key off of
+  // rather than a prefers-color-scheme media query.
+  darkMode: "class",
   content: [
     "./src/app/**/*.{ts,tsx}",
     "./src/components/**/*.{ts,tsx}",

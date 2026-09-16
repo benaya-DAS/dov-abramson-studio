@@ -12,12 +12,12 @@ import CreateWorkspaceButton from "./CreateWorkspaceButton";
 
 export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoards[] }) {
   return (
-    <aside className="flex h-screen w-72 shrink-0 flex-col border-l border-slate-200 bg-white">
+    <aside className="flex h-screen w-72 shrink-0 flex-col border-l border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
       {/* h-16 matches TopBar.tsx's own h-16 exactly, so this header's
        * border-b lands on the same Y as the top bar's border-b instead of
        * sitting a few px lower (py-4 here vs. a fixed height there) - the
        * two rules read as one continuous line across the top of the app. */}
-      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-4">
+      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-4 dark:border-slate-700">
         <Image
           src="/web-app-manifest-512x512.png"
           alt="סטודיו דוב אברמסון"
@@ -26,8 +26,8 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
           className="h-9 w-9 shrink-0 rounded-lg object-contain"
         />
         <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-slate-900">סטודיו דוב אברמסון</p>
-          <p className="text-xs text-slate-400">ניהול פרויקטים</p>
+          <p className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">סטודיו דוב אברמסון</p>
+          <p className="text-xs text-slate-400 dark:text-slate-500">ניהול פרויקטים</p>
         </div>
       </div>
 
@@ -39,12 +39,12 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
         </ul>
       </nav>
 
-      <div className="border-t border-slate-200 p-2">
+      <div className="border-t border-slate-200 p-2 dark:border-slate-700">
         <CreateWorkspaceButton nextPosition={workspaces.length} />
         <Link
           href="/archive"
           className={cn(
-            "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+            "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           )}
         >
           <Archive size={16} />
@@ -65,8 +65,8 @@ function WorkspaceItem({ workspace }: { workspace: WorkspaceWithBoards }) {
       <button
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-sm font-semibold text-slate-700 hover:bg-slate-100",
-          hasActiveBoard && "text-brand-700"
+          "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800",
+          hasActiveBoard && "text-brand-700 dark:text-brand-400"
         )}
       >
         {open ? <ChevronDown size={16} /> : <ChevronLeft size={16} />}
@@ -74,7 +74,7 @@ function WorkspaceItem({ workspace }: { workspace: WorkspaceWithBoards }) {
       </button>
 
       {open && (
-        <ul className="mr-4 mt-1 space-y-0.5 border-r border-slate-100 pr-2">
+        <ul className="mr-4 mt-1 space-y-0.5 border-r border-slate-100 pr-2 dark:border-slate-800">
           {workspace.boards.map((board) => {
             const active = pathname === `/board/${board.id}`;
             return (
@@ -82,11 +82,11 @@ function WorkspaceItem({ workspace }: { workspace: WorkspaceWithBoards }) {
                 <Link
                   href={`/board/${board.id}`}
                   className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100",
-                    active && "bg-brand-50 font-semibold text-brand-700"
+                    "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800",
+                    active && "bg-brand-50 font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"
                   )}
                 >
-                  <LayoutGrid size={14} className="shrink-0 text-slate-400" />
+                  <LayoutGrid size={14} className="shrink-0 text-slate-400 dark:text-slate-500" />
                   <span className="truncate">{board.name}</span>
                 </Link>
               </li>

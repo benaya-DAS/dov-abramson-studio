@@ -34,8 +34,8 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-brand-50 to-white px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-panel">
+    <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-brand-50 to-white px-4 dark:from-slate-900 dark:to-slate-950">
+      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 shadow-panel dark:border-slate-700 dark:bg-slate-800">
         <div className="mb-8 text-center">
           <Image
             src="/web-app-manifest-512x512.png"
@@ -45,24 +45,24 @@ export default function LoginPage() {
             className="mx-auto mb-4 h-14 w-14 rounded-xl object-contain"
             priority
           />
-          <h1 className="text-xl font-bold text-slate-900">סטודיו דוב אברמסון</h1>
-          <p className="mt-1 text-sm text-slate-500">מערכת ניהול פרויקטים פנימית</p>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">סטודיו דוב אברמסון</h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">מערכת ניהול פרויקטים פנימית</p>
         </div>
 
         <button
           onClick={signInWithGoogle}
           disabled={loading}
-          className="flex w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           <GoogleIcon />
           {loading ? "מתחבר..." : "התחברות עם Google"}
         </button>
 
         {error && (
-          <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
+          <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400">{error}</p>
         )}
 
-        <p className="mt-6 text-center text-xs text-slate-400">
+        <p className="mt-6 text-center text-xs text-slate-400 dark:text-slate-500">
           הגישה מוגבלת לחשבונות Google של דוא&quot;ל הסטודיו בלבד.
         </p>
       </div>

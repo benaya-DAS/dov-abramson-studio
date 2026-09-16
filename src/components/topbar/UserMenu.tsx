@@ -28,10 +28,10 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
       <button
         ref={buttonRef}
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-full border border-slate-200 py-1 pl-3 pr-1 hover:bg-slate-50"
+        className="flex items-center gap-2 rounded-full border border-slate-200 py-1 pl-3 pr-1 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
       >
         <Avatar profile={profile} size={28} />
-        <span className="hidden text-sm font-medium text-slate-700 sm:inline">
+        <span className="hidden text-sm font-medium text-slate-700 dark:text-slate-200 sm:inline">
           {profile.full_name || profile.email}
         </span>
       </button>
@@ -42,17 +42,17 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
           <FloatingPanel
             anchorRef={buttonRef}
             align="end"
-            className="z-50 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+            className="z-50 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg dark:border-slate-700 dark:bg-slate-800"
           >
             <div className="px-3 py-2">
-              <p className="truncate text-sm font-semibold text-slate-900">
+              <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
                 {profile.full_name}
               </p>
-              <p className="truncate text-xs text-slate-500">{profile.email}</p>
+              <p className="truncate text-xs text-slate-500 dark:text-slate-400">{profile.email}</p>
             </div>
             <button
               onClick={signOut}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
             >
               <LogOut size={16} />
               התנתקות
@@ -75,7 +75,7 @@ export function Avatar({
     return (
       <span
         style={{ width: size, height: size }}
-        className="inline-flex items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-500"
+        className="inline-flex items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-500 dark:bg-slate-700 dark:text-slate-400"
       >
         ?
       </span>
@@ -98,7 +98,7 @@ export function Avatar({
   return (
     <span
       style={{ width: size, height: size }}
-      className="inline-flex items-center justify-center rounded-full bg-brand-100 text-[10px] font-semibold text-brand-700"
+      className="inline-flex items-center justify-center rounded-full bg-brand-100 text-[10px] font-semibold text-brand-700 dark:bg-brand-900/50 dark:text-brand-300"
       title={profile.full_name || profile.email}
     >
       {initials(profile.full_name, profile.email)}

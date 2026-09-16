@@ -108,7 +108,7 @@ export default function TimeLogPopover({
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <FloatingPanel
         anchorRef={anchorRef}
-        className="z-50 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white text-right shadow-xl"
+        className="z-50 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white text-right shadow-xl dark:border-slate-700 dark:bg-slate-800"
       >
         {editingSession !== null ? (
           <SessionEditView
@@ -124,13 +124,13 @@ export default function TimeLogPopover({
           />
         ) : (
           <>
-            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-              <h3 className="text-sm font-bold text-slate-800">יומן מעקב זמן</h3>
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-700">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">יומן מעקב זמן</h3>
               <div className="flex items-center gap-3">
                 {sessions.length > 0 && !readOnly && currentUserId && (
                   <button
                     onClick={handleClear}
-                    className="text-xs font-medium text-slate-400 hover:text-red-500"
+                    className="text-xs font-medium text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400"
                   >
                     ניקוי
                   </button>
@@ -138,21 +138,21 @@ export default function TimeLogPopover({
                 <button
                   onClick={handleExport}
                   disabled={sessions.length === 0}
-                  className="text-xs font-medium text-slate-400 hover:text-brand-600 disabled:opacity-40"
+                  className="text-xs font-medium text-slate-400 hover:text-brand-600 disabled:opacity-40 dark:text-slate-500 dark:hover:text-brand-400"
                 >
                   ייצוא לאקסל
                 </button>
-                <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+                <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300">
                   <X size={14} />
                 </button>
               </div>
             </div>
 
             {!readOnly && currentUserId && (
-              <div className="border-b border-slate-100 p-2">
+              <div className="border-b border-slate-100 p-2 dark:border-slate-700">
                 <button
                   onClick={() => setEditingSession("new")}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
                 >
                   <Plus size={14} />
                   הוספת רישום ידני
@@ -162,9 +162,9 @@ export default function TimeLogPopover({
 
             <div className="max-h-64 overflow-y-auto">
               {loading ? (
-                <p className="px-4 py-6 text-center text-xs text-slate-400">טוען...</p>
+                <p className="px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500">טוען...</p>
               ) : sessions.length === 0 ? (
-                <p className="px-4 py-6 text-center text-xs text-slate-400">
+                <p className="px-4 py-6 text-center text-xs text-slate-400 dark:text-slate-500">
                   עדיין לא נרשם זמן על פריט זה.
                 </p>
               ) : (
@@ -184,7 +184,7 @@ export default function TimeLogPopover({
                     return (
                       <li
                         key={s.id}
-                        className="flex items-center gap-2 border-b border-slate-50 px-4 py-2 last:border-0 hover:bg-slate-50"
+                        className="flex items-center gap-2 border-b border-slate-50 px-4 py-2 last:border-0 hover:bg-slate-50 dark:border-slate-700/60 dark:hover:bg-slate-700/40"
                       >
                         <Avatar profile={person ?? null} size={22} />
                         <button
@@ -192,23 +192,23 @@ export default function TimeLogPopover({
                           disabled={!editable}
                           className="flex flex-1 items-center justify-between gap-2 text-right disabled:cursor-default"
                         >
-                          <span className="text-xs text-slate-500">{formatSessionDate(s.start_time)}</span>
-                          <span className="text-xs text-slate-700">
+                          <span className="text-xs text-slate-500 dark:text-slate-400">{formatSessionDate(s.start_time)}</span>
+                          <span className="text-xs text-slate-700 dark:text-slate-300">
                             {formatSessionTime(s.start_time)} -{" "}
                             {isActive ? (
-                              <span className="font-semibold text-rose-600">פעיל כעת</span>
+                              <span className="font-semibold text-rose-600 dark:text-rose-400">פעיל כעת</span>
                             ) : (
                               formatSessionTime(s.end_time!)
                             )}
                           </span>
-                          <span className="font-mono text-xs font-semibold text-slate-700">
+                          <span className="font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">
                             {s.duration_seconds != null ? formatDuration(s.duration_seconds) : "—"}
                           </span>
                         </button>
                         {editable && (
                           <button
                             onClick={() => handleDelete(s.id)}
-                            className="text-slate-300 hover:text-red-500"
+                            className="text-slate-300 hover:text-red-500 dark:text-slate-600 dark:hover:text-red-400"
                             title="מחיקת רישום"
                           >
                             <Trash2 size={13} />
@@ -221,8 +221,8 @@ export default function TimeLogPopover({
               )}
             </div>
 
-            <div className="flex items-center justify-center border-t border-slate-100 bg-slate-50 py-3">
-              <span className="font-mono text-sm font-bold text-slate-700">
+            <div className="flex items-center justify-center border-t border-slate-100 bg-slate-50 py-3 dark:border-slate-700 dark:bg-slate-900/40">
+              <span className="font-mono text-sm font-bold text-slate-700 dark:text-slate-200">
                 סה&quot;כ {formatDurationCompact(totalSeconds)}
               </span>
             </div>

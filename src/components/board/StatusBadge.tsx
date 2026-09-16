@@ -80,7 +80,7 @@ export default function StatusBadge({
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <FloatingPanel
             anchorRef={buttonRef}
-            className="z-50 w-48 rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg"
+            className="z-50 w-48 rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-700 dark:bg-slate-800"
           >
             <div className="mb-1 space-y-1">
               {STATUS_ORDER.map((s) => {
@@ -96,7 +96,7 @@ export default function StatusBadge({
                       "flex w-full items-center justify-center gap-1.5 rounded px-2 py-1.5 text-xs font-semibold outline-none transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-offset-1",
                       STATUS_COLORS[s].bg,
                       STATUS_COLORS[s].text,
-                      selected && "ring-2 ring-slate-400 ring-offset-1"
+                      selected && "ring-2 ring-slate-400 ring-offset-1 dark:ring-slate-500 dark:ring-offset-slate-800"
                     )}
                   >
                     {selected && <Check size={12} strokeWidth={3} />}
@@ -106,8 +106,8 @@ export default function StatusBadge({
               })}
             </div>
 
-            <div className="border-t border-slate-100 pt-1.5">
-              <label className="mb-1 block px-1 text-[11px] font-medium text-slate-400">
+            <div className="border-t border-slate-100 pt-1.5 dark:border-slate-700">
+              <label className="mb-1 block px-1 text-[11px] font-medium text-slate-400 dark:text-slate-500">
                 טקסט מותאם אישית
               </label>
               <div className="flex items-center gap-1">
@@ -126,7 +126,7 @@ export default function StatusBadge({
                     }
                   }}
                   placeholder={STATUS_LABELS[status]}
-                  className="w-full rounded-md border border-slate-200 px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-brand-400"
+                  className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-brand-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
                 />
                 {customLabel && (
                   <button
@@ -135,7 +135,7 @@ export default function StatusBadge({
                       onCustomLabelChange?.(null);
                     }}
                     title="איפוס לטקסט ברירת המחדל"
-                    className="shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-500"
+                    className="shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-500 dark:text-slate-500 dark:hover:bg-slate-700 dark:hover:text-red-400"
                   >
                     <X size={13} />
                   </button>

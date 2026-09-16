@@ -56,36 +56,36 @@ export default function BoardCalendar({
   return (
     <div className="p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-bold text-slate-800">
+        <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">
           {format(cursor, "LLLL yyyy", { locale: he })}
         </h2>
         <div className="flex items-center gap-1">
           <button
             onClick={() => setCursor((c) => subMonths(c, 1))}
-            className="rounded-md p-1.5 hover:bg-slate-100"
+            className="rounded-md p-1.5 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <ChevronRight size={16} />
           </button>
           <button
             onClick={() => setCursor(new Date())}
-            className="rounded-md px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100"
+            className="rounded-md px-2 py-1 text-xs font-medium text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
           >
             היום
           </button>
           <button
             onClick={() => setCursor((c) => addMonths(c, 1))}
-            className="rounded-md p-1.5 hover:bg-slate-100"
+            className="rounded-md p-1.5 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <ChevronLeft size={16} />
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 overflow-hidden rounded-lg border border-slate-200">
+      <div className="grid grid-cols-7 overflow-hidden rounded-lg border border-slate-200 dark:border-slate-700">
         {WEEKDAYS.map((d) => (
           <div
             key={d}
-            className="border-b border-slate-200 bg-slate-50 py-2 text-center text-xs font-semibold text-slate-500"
+            className="border-b border-slate-200 bg-slate-50 py-2 text-center text-xs font-semibold text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-400"
           >
             {d}
           </div>
@@ -100,14 +100,18 @@ export default function BoardCalendar({
             <div
               key={key}
               className={cn(
-                "min-h-[110px] border-b border-l border-slate-100 p-1.5",
-                !inMonth && "bg-slate-50/60"
+                "min-h-[110px] border-b border-l border-slate-100 p-1.5 dark:border-slate-800",
+                !inMonth && "bg-slate-50/60 dark:bg-slate-900/40"
               )}
             >
               <div
                 className={cn(
                   "mb-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold",
-                  isToday(day) ? "bg-brand-600 text-white" : inMonth ? "text-slate-600" : "text-slate-300"
+                  isToday(day)
+                    ? "bg-brand-600 text-white"
+                    : inMonth
+                      ? "text-slate-600 dark:text-slate-300"
+                      : "text-slate-300 dark:text-slate-600"
                 )}
               >
                 {format(day, "d")}
@@ -132,7 +136,7 @@ export default function BoardCalendar({
                   );
                 })}
                 {dayItems.length > 4 && (
-                  <div className="text-[10px] text-slate-400">+{dayItems.length - 4} נוספות</div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500">+{dayItems.length - 4} נוספות</div>
                 )}
               </div>
             </div>

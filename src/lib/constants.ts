@@ -14,11 +14,31 @@ export const STATUS_LABELS: Record<ItemStatus, string> = {
 // none of these pairings are sitting anywhere near the threshold (all
 // verified against actual relative luminance, not eyeballed):
 // not_started ~6.9:1, working ~6.4:1, stuck ~5.2:1, done ~6.8:1.
+// Dark mode mirrors the same idea inverted - a low-opacity tint of the
+// hue over the dark page background, with light, same-hue text - rather
+// than reusing the light pastel bg, which would look like a washed-out
+// paper swatch dropped onto a dark page.
 export const STATUS_COLORS: Record<ItemStatus, { bg: string; text: string; dot: string }> = {
-  not_started: { bg: "bg-slate-100", text: "text-slate-600", dot: "#94a3b8" },
-  working: { bg: "bg-amber-100", text: "text-amber-800", dot: "#f59e0b" },
-  stuck: { bg: "bg-rose-100", text: "text-rose-700", dot: "#e2445c" },
-  done: { bg: "bg-emerald-100", text: "text-emerald-800", dot: "#00c875" },
+  not_started: {
+    bg: "bg-slate-100 dark:bg-slate-700/50",
+    text: "text-slate-600 dark:text-slate-300",
+    dot: "#94a3b8",
+  },
+  working: {
+    bg: "bg-amber-100 dark:bg-amber-900/40",
+    text: "text-amber-800 dark:text-amber-300",
+    dot: "#f59e0b",
+  },
+  stuck: {
+    bg: "bg-rose-100 dark:bg-rose-900/40",
+    text: "text-rose-700 dark:text-rose-300",
+    dot: "#e2445c",
+  },
+  done: {
+    bg: "bg-emerald-100 dark:bg-emerald-900/40",
+    text: "text-emerald-800 dark:text-emerald-300",
+    dot: "#00c875",
+  },
 };
 
 export const STATUS_ORDER: ItemStatus[] = ["not_started", "working", "stuck", "done"];

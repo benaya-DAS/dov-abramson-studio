@@ -83,7 +83,7 @@ export default function BoardTable({
   return (
     <div className="p-5">
       {displayGroups.length === 0 && (
-        <p className="py-10 text-center text-sm text-slate-400">אין משימות להצגה.</p>
+        <p className="py-10 text-center text-sm text-slate-400 dark:text-slate-500">אין משימות להצגה.</p>
       )}
 
       {displayGroups.map((group) => {
@@ -172,12 +172,12 @@ export default function BoardTable({
                 if (e.key === "Escape") setAddingGroup(false);
               }}
               placeholder="שם הקבוצה החדשה"
-              className="w-56 rounded-md border border-brand-300 px-3 py-1.5 text-sm outline-none"
+              className="w-56 rounded-md border border-brand-300 bg-white px-3 py-1.5 text-sm text-slate-900 outline-none dark:border-brand-700 dark:bg-slate-800 dark:text-slate-100"
             />
           ) : (
             <button
               onClick={() => setAddingGroup(true)}
-              className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-slate-400 hover:bg-slate-100 hover:text-brand-600"
+              className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-slate-400 hover:bg-slate-100 hover:text-brand-600 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-brand-400"
             >
               <Plus size={15} />
               הוספת קבוצה

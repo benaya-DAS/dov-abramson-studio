@@ -37,7 +37,7 @@ export default function BoardHeader({
   return (
     <div className="flex flex-wrap items-center gap-3 px-5 pt-4">
       <div className="min-w-0 flex-1">
-        {workspaceName && <p className="text-xs text-slate-400">{workspaceName}</p>}
+        {workspaceName && <p className="text-xs text-slate-400 dark:text-slate-500">{workspaceName}</p>}
         <div className="flex items-center gap-2">
           {onRenameBoard ? (
             <input
@@ -46,13 +46,13 @@ export default function BoardHeader({
                 const trimmed = e.target.value.trim();
                 if (trimmed && trimmed !== boardName) onRenameBoard(trimmed);
               }}
-              className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1 -mx-1 text-lg font-bold text-slate-900 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white"
+              className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1 -mx-1 text-lg font-bold text-slate-900 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-100 dark:hover:border-slate-700 dark:focus:bg-slate-800"
             />
           ) : (
-            <h1 className="truncate text-lg font-bold text-slate-900">{boardName}</h1>
+            <h1 className="truncate text-lg font-bold text-slate-900 dark:text-slate-100">{boardName}</h1>
           )}
           {isArchived && (
-            <span className="flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">
               <Lock size={11} />
               ארכיון - לקריאה בלבד
             </span>
@@ -63,7 +63,7 @@ export default function BoardHeader({
       {selectedCount > 0 && !isArchived && (
         <button
           onClick={onDeleteSelected}
-          className="flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100"
+          className="flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100 dark:border-red-900 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-950/70"
         >
           <Trash2 size={14} />
           מחיקת {selectedCount} נבחרים
@@ -82,7 +82,7 @@ export default function BoardHeader({
         <>
           <button
             onClick={() => setShowImporter(true)}
-            className="flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            className="flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <FileSpreadsheet size={14} />
             ייבוא קטלוג

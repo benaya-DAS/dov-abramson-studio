@@ -22,7 +22,7 @@ export default function BoardGantt({
 
   if (dated.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center text-sm text-slate-400">
+      <div className="flex h-64 items-center justify-center text-sm text-slate-400 dark:text-slate-500">
         אין משימות עם תאריכים כדי להציג בציר הזמן. הוסיפו תאריך התחלה / יעד למשימות בטבלה.
       </div>
     );
@@ -49,22 +49,22 @@ export default function BoardGantt({
     <div className="overflow-auto p-5">
       <div style={{ minWidth: days.length * DAY_WIDTH + 260 }}>
         {/* Header row: day scale */}
-        <div className="sticky top-0 z-10 flex bg-white">
-          <div className="w-64 shrink-0 border-b border-slate-200" />
+        <div className="sticky top-0 z-10 flex bg-white dark:bg-slate-900">
+          <div className="w-64 shrink-0 border-b border-slate-200 dark:border-slate-700" />
           <div className="flex">
             {days.map((d) => (
               <div
                 key={d.toISOString()}
                 style={{ width: DAY_WIDTH }}
                 className={cn(
-                  "shrink-0 border-b border-l border-slate-100 py-1 text-center text-[10px] font-medium",
-                  isWeekend(d) ? "bg-slate-50 text-slate-400" : "text-slate-500",
+                  "shrink-0 border-b border-l border-slate-100 py-1 text-center text-[10px] font-medium dark:border-slate-800",
+                  isWeekend(d) ? "bg-slate-50 text-slate-400 dark:bg-slate-800/60 dark:text-slate-500" : "text-slate-500 dark:text-slate-400",
                   format(d, "yyyy-MM-dd") === format(today, "yyyy-MM-dd") &&
-                    "bg-brand-50 text-brand-700"
+                    "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
                 )}
               >
                 <div>{format(d, "d")}</div>
-                <div className="text-[9px] text-slate-400">{format(d, "EEEEEE", { locale: he })}</div>
+                <div className="text-[9px] text-slate-400 dark:text-slate-500">{format(d, "EEEEEE", { locale: he })}</div>
               </div>
             ))}
           </div>
@@ -72,7 +72,7 @@ export default function BoardGantt({
 
         {Object.entries(byGroup).map(([groupId, groupItems]) => (
           <div key={groupId} className="mb-2">
-            <div className="w-64 py-1.5 text-xs font-bold text-slate-500">
+            <div className="w-64 py-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
               {groupNameByGroupId[groupId] ?? "ללא קבוצה"}
             </div>
             {groupItems.map((item) => {
@@ -85,7 +85,7 @@ export default function BoardGantt({
 
               return (
                 <div key={item.id} className="flex items-center" style={{ height: 34 }}>
-                  <div className="flex w-64 shrink-0 items-center gap-2 pl-2 text-xs text-slate-700">
+                  <div className="flex w-64 shrink-0 items-center gap-2 pl-2 text-xs text-slate-700 dark:text-slate-300">
                     <Avatar profile={person} size={20} />
                     <span className="truncate">{item.name || "(ללא שם)"}</span>
                   </div>

@@ -21,17 +21,17 @@ export default async function HomePage() {
 
   return (
     <div className="flex h-full items-center justify-center p-8">
-      <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-panel">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-2xl">
-          <LayoutGrid className="text-brand-600" size={22} />
+      <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-panel dark:border-slate-700 dark:bg-slate-800">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-2xl dark:bg-brand-900/40">
+          <LayoutGrid className="text-brand-600 dark:text-brand-400" size={22} />
         </div>
-        <h1 className="text-lg font-bold text-slate-900">
+        <h1 className="text-lg font-bold text-slate-900 dark:text-slate-100">
           יש {workspaces.length} מחלקות אך עדיין אין לוחות
         </h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
           המחלקות שלכם מוצגות בתפריט הצד מימין. לחצו על &quot;לוח חדש&quot; מתחת לשם אחת מהן
           כדי ליצור את הלוח הראשון, או הריצו את{" "}
-          <code className="rounded bg-slate-100 px-1 py-0.5 text-xs">supabase/seed.sql</code> לטעינת
+          <code className="rounded bg-slate-100 px-1 py-0.5 text-xs dark:bg-slate-700">supabase/seed.sql</code> לטעינת
           לוחות לדוגמה.
         </p>
       </div>

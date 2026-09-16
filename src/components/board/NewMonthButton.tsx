@@ -39,22 +39,22 @@ export default function NewMonthButton({ boardId, boardName }: { boardId: string
 
       {confirming && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-800">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="text-sm font-bold text-slate-800">פתיחת חודש חדש</h2>
-              <button onClick={() => setConfirming(false)} className="rounded-md p-1 hover:bg-slate-100">
+              <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">פתיחת חודש חדש</h2>
+              <button onClick={() => setConfirming(false)} className="rounded-md p-1 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700">
                 <X size={16} />
               </button>
             </div>
-            <p className="mb-4 text-sm text-slate-600">
+            <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">
               הפעולה תארכב את הלוח &quot;{boardName}&quot; במצב לקריאה בלבד, ותיצור לוח חדש לחודש
               הבא עם אותן קבוצות ועמודות — ללא המשימות והשעות שנרשמו החודש. לא ניתן לבטל פעולה זו.
             </p>
-            {error && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{error}</p>}
+            {error && <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600 dark:bg-red-950/40 dark:text-red-400">{error}</p>}
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setConfirming(false)}
-                className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
+                className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
               >
                 ביטול
               </button>

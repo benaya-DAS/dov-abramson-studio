@@ -74,10 +74,10 @@ export default function ItemRow({
     <tr
       ref={rowRef}
       className={cn(
-        "group border-b border-slate-200 hover:bg-slate-100",
-        selected && "bg-brand-50/60",
+        "group border-b border-slate-200 hover:bg-slate-100 dark:border-slate-800 dark:hover:bg-slate-800/60",
+        selected && "bg-brand-50/60 dark:bg-brand-900/20",
         isDragging && "opacity-40",
-        isDropTarget && "bg-brand-50 outline outline-2 -outline-offset-2 outline-brand-400"
+        isDropTarget && "bg-brand-50 outline outline-2 -outline-offset-2 outline-brand-400 dark:bg-brand-900/30"
       )}
       onDragOver={onDragOverRow}
       onDrop={(e) => {
@@ -104,7 +104,7 @@ export default function ItemRow({
             }}
             onDragEnd={onDragEnd}
             title="גרירה לשינוי סדר המשימות"
-            className="cursor-grab text-slate-300 opacity-0 hover:text-slate-500 group-hover:opacity-100 active:cursor-grabbing"
+            className="cursor-grab text-slate-300 opacity-0 hover:text-slate-500 group-hover:opacity-100 active:cursor-grabbing dark:text-slate-600 dark:hover:text-slate-400"
           >
             <GripVertical size={13} />
           </button>
@@ -115,7 +115,7 @@ export default function ItemRow({
           type="checkbox"
           checked={selected}
           onChange={onToggleSelect}
-          className="h-4 w-4 rounded border-slate-300 text-brand-600"
+          className="h-4 w-4 rounded border-slate-300 text-brand-600 dark:border-slate-600 dark:bg-slate-800"
         />
       </td>
 
@@ -131,7 +131,7 @@ export default function ItemRow({
             }
           }}
           placeholder="שם המשימה..."
-          className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm font-medium text-slate-800 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white disabled:hover:border-transparent"
+          className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm font-medium text-slate-800 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white disabled:hover:border-transparent dark:text-slate-100 dark:hover:border-slate-700 dark:focus:bg-slate-800"
         />
       </td>
 
@@ -152,7 +152,7 @@ export default function ItemRow({
           onChange={(e) => setDeliverable(e.target.value)}
           onBlur={() => deliverable !== (item.deliverable ?? "") && onUpdate({ deliverable: deliverable || null })}
           placeholder="תוצר עיצובי"
-          className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white"
+          className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-slate-700 dark:focus:bg-slate-800"
         />
       </td>
 
@@ -179,7 +179,7 @@ export default function ItemRow({
           }}
           placeholder='מס"ד'
           dir="ltr"
-          className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-center text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white"
+          className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-center text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-slate-700 dark:focus:bg-slate-800"
         />
       </td>
 
@@ -189,7 +189,7 @@ export default function ItemRow({
           value={item.start_date ?? ""}
           disabled={readOnly}
           onChange={(e) => onUpdate({ start_date: e.target.value || null })}
-          className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white"
+          className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-slate-700 dark:focus:bg-slate-800 dark:[color-scheme:dark]"
         />
       </td>
 
@@ -199,7 +199,7 @@ export default function ItemRow({
           value={item.due_date ?? ""}
           disabled={readOnly}
           onChange={(e) => onUpdate({ due_date: e.target.value || null })}
-          className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white"
+          className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-slate-700 dark:focus:bg-slate-800 dark:[color-scheme:dark]"
         />
       </td>
 
@@ -208,7 +208,7 @@ export default function ItemRow({
          * estimate - decimal hours (1h30m -> "1.5"), derived the same way
          * as the time-tracking button's total, just formatted differently. */}
         <span
-          className="font-mono text-xs text-slate-600"
+          className="font-mono text-xs text-slate-600 dark:text-slate-300"
           title="שעות בפועל (ממעקב זמן)"
         >
           {formatHours(trackedSeconds / 3600)}
@@ -231,7 +231,7 @@ export default function ItemRow({
         {!readOnly && (
           <button
             onClick={onDelete}
-            className="hidden rounded p-1 text-slate-300 hover:bg-red-50 hover:text-red-500 group-hover:block"
+            className="hidden rounded p-1 text-slate-300 hover:bg-red-50 hover:text-red-500 group-hover:block dark:text-slate-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
             title="מחיקת משימה"
           >
             <Trash2 size={14} />

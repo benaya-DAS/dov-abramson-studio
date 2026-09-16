@@ -8,7 +8,7 @@ body {
 }
 
 body {
-  @apply bg-slate-50 text-slate-800;
+  @apply bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100;
   /* Matches tailwind.config.ts's `sans` stack (also applied via the
      `font-sans` class on <body> in layout.tsx) — kept explicit here too so
      the intent reads directly from this file. Assistant (self-hosted,
@@ -35,6 +35,12 @@ body {
 *::-webkit-scrollbar-thumb {
   background-color: #cbd5e1;
   border-radius: 9999px;
+}
+.dark *::-webkit-scrollbar-thumb {
+  background-color: #475569;
+}
+.dark * {
+  scrollbar-color: #475569 transparent;
 }
 
 /* Inputs should keep numbers/dates LTR even inside an RTL document */

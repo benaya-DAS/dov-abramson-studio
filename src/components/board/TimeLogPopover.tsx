@@ -91,13 +91,30 @@ export default function TimeLogPopover({
         תאריך: formatSessionDate(s.start_time),
         התחלה: formatSessionTime(s.start_time),
         סיום: s.end_time ? formatSessionTime(s.end_time) : "פעיל כעת",
+        "משך (HH:MM:SS)": s.duration_seconds != null ? formatDuration(s.duration_seconds) : "",
         "משך (שעות)": s.duration_seconds != null ? (s.duration_seconds / 3600).toFixed(2) : "",
       };
     });
-    const worksheet = XLSX.utils.json_to_sheet(rows, {
-      header: ["איש צוות", "תאריך", "התחלה", "סיום", "משך (שעות)"],
+
+    // Only completed sessions have a duration_seconds to sum (an active
+    // one is still null - the trigger that fills it in only runs once
+    // end_time is set) - so this total is "accumulated so far", the same
+    // as what every row above it actually shows, not counting whatever's
+    // still ticking on a currently-running session.
+    const totalSecondsFromSessions = sessions.reduce((sum, s) => sum + (s.duration_seconds ?? 0), 0);
+    rows.push({
+      "איש צוות": "",
+      תאריך: "",
+      התחלה: "",
+      סיום: 'סה"כ',
+      "משך (HH:MM:SS)": formatDuration(totalSecondsFromSessions),
+      "משך (שעות)": (totalSecondsFromSessions / 3600).toFixed(2),
     });
-    worksheet["!cols"] = [{ wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 14 }];
+
+    const worksheet = XLSX.utils.json_to_sheet(rows, {
+      header: ["איש צוות", "תאריך", "התחלה", "סיום", "משך (HH:MM:SS)", "משך (שעות)"],
+    });
+    worksheet["!cols"] = [{ wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 12 }];
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "יומן זמן");
     XLSX.writeFile(workbook, "יומן-מעקב-זמן.xlsx");

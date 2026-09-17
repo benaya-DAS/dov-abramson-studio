@@ -162,16 +162,6 @@ export default function BoardWorkspace({
     if (data) setItems((prev) => [...prev, data]);
   }
 
-  async function deleteItem(id: string) {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
-    await supabase.from("items").delete().eq("id", id);
-  }
-
   async function deleteSelected() {
     const ids = Array.from(selected);
     setItems((prev) => prev.filter((i) => !ids.includes(i.id)));
@@ -185,8 +175,14 @@ export default function BoardWorkspace({
   // target group (to make room) and the source group (to close the gap it
   // left behind) - not just a single position swap. targetItemId === null
   // means "drop at the end of targetGroupId" (dropped on the group header,
-  // or into a currently-empty group).
-  function moveItem(draggedId: string, targetGroupId: string, targetItemId: string | null) {
+  // or into a currently-empty group); position is which side of
+  // targetItemId to land on, and is ignored when targetItemId is null.
+  function moveItem(
+    draggedId: string,
+    targetGroupId: string,
+    targetItemId: string | null,
+    position: "before" | "after" = "before"
+  ) {
     if (draggedId === targetItemId) return;
     setItems((prev) => {
       const dragged = prev.find((i) => i.id === draggedId);
@@ -196,9 +192,10 @@ export default function BoardWorkspace({
       const targetList = prev
         .filter((i) => i.group_id === targetGroupId && i.id !== draggedId)
         .sort((a, b) => a.position - b.position);
-      const insertIndex = targetItemId
+      let insertIndex = targetItemId
         ? Math.max(0, targetList.findIndex((i) => i.id === targetItemId))
         : targetList.length;
+      if (targetItemId && position === "after") insertIndex += 1;
       targetList.splice(insertIndex, 0, dragged);
 
       const patches = new Map<string, { position: number; group_id?: string }>();
@@ -250,16 +247,22 @@ export default function BoardWorkspace({
   // Drag-and-drop reorder: reads the CURRENT sorted order out of the state
   // updater (not from the `groups` closure, which could be a render behind
   // by the time a fast drag-drop lands) so a quick drag-then-drop sequence
-  // always reorders relative to what's actually on screen.
-  function reorderGroup(draggedId: string, targetId: string) {
+  // always reorders relative to what's actually on screen. position is
+  // which side of targetId the dragged group lands on.
+  function reorderGroup(draggedId: string, targetId: string, position: "before" | "after" = "before") {
     if (draggedId === targetId) return;
     setGroups((prev) => {
       const ordered = [...prev].sort((a, b) => a.position - b.position);
       const fromIndex = ordered.findIndex((g) => g.id === draggedId);
-      const toIndex = ordered.findIndex((g) => g.id === targetId);
-      if (fromIndex === -1 || toIndex === -1) return prev;
+      if (fromIndex === -1) return prev;
       const [moved] = ordered.splice(fromIndex, 1);
-      ordered.splice(toIndex, 0, moved);
+      // Recompute the target's index after removing the dragged group -
+      // if the drag moved something from earlier in the list, everything
+      // after it shifted back by one.
+      const toIndex = ordered.findIndex((g) => g.id === targetId);
+      if (toIndex === -1) return prev;
+      const insertIndex = position === "after" ? toIndex + 1 : toIndex;
+      ordered.splice(insertIndex, 0, moved);
       ordered.forEach((g, i) => {
         if (g.position !== i) supabase.from("groups").update({ position: i }).eq("id", g.id).then();
       });
@@ -450,7 +453,6 @@ export default function BoardWorkspace({
             onToggleSelect={toggleSelect}
             onToggleCollapse={toggleCollapse}
             onUpdateItem={updateItem}
-            onDeleteItem={deleteItem}
             onSerialBlur={handleSerialBlur}
             onNameBlur={handleNameBlur}
             onAddItem={addItem}

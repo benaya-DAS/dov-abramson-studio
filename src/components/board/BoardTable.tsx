@@ -13,7 +13,6 @@ export default function BoardTable({
   onToggleSelect,
   onToggleCollapse,
   onUpdateItem,
-  onDeleteItem,
   onSerialBlur,
   onNameBlur,
   onAddItem,
@@ -38,7 +37,6 @@ export default function BoardTable({
   onToggleSelect: (id: string) => void;
   onToggleCollapse: (groupId: string) => void;
   onUpdateItem: (id: string, patch: Partial<Item>) => void;
-  onDeleteItem: (id: string) => void;
   onSerialBlur: (id: string, serial: string) => void;
   onNameBlur: (id: string, name: string) => void;
   onAddItem: (groupId: string) => void;
@@ -46,10 +44,16 @@ export default function BoardTable({
   onRenameGroup: (groupId: string, name: string) => void;
   onDeleteGroup: (groupId: string) => void;
   onChangeGroupColor: (groupId: string, color: string) => void;
-  onReorderGroup: (draggedId: string, targetId: string) => void;
+  onReorderGroup: (draggedId: string, targetId: string, position: "before" | "after") => void;
   /** targetItemId null means "append at the end of targetGroupId" (dropped
-   * on the group header, or into a currently-empty group). */
-  onMoveItem: (draggedId: string, targetGroupId: string, targetItemId: string | null) => void;
+   * on the group header, or into a currently-empty group); position is
+   * ignored in that case. */
+  onMoveItem: (
+    draggedId: string,
+    targetGroupId: string,
+    targetItemId: string | null,
+    position: "before" | "after"
+  ) => void;
   currentUserId: string | null;
   trackedSecondsByItem: Record<string, number>;
   activeSessionsByItem: Record<string, ActiveTimeLog[]>;
@@ -63,6 +67,9 @@ export default function BoardTable({
   const [newGroupName, setNewGroupName] = useState("");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverGroupId, setDragOverGroupId] = useState<string | null>(null);
+  // Which edge of dragOverGroupId the dragged group would land on - drives
+  // the top/bottom insertion-line indicator instead of a box highlight.
+  const [dragOverGroupPosition, setDragOverGroupPosition] = useState<"before" | "after">("before");
 
   // Lifted above per-group state (rather than living inside each
   // GroupSection) so a row in one group can recognize an item drag that
@@ -72,6 +79,10 @@ export default function BoardTable({
   // Either an item id (hovering a row) or `group:<id>` (hovering a group's
   // header/empty body, for appending at the end of that group).
   const [dragOverItemKey, setDragOverItemKey] = useState<string | null>(null);
+  // Which edge of the hovered row the dragged item would land on - only
+  // meaningful when dragOverItemKey is an item id, not a `group:<id>`
+  // header key (appending always lands at the very end, no ambiguity).
+  const [dragOverItemPosition, setDragOverItemPosition] = useState<"before" | "after">("before");
 
   function submitNewGroup() {
     const trimmed = newGroupName.trim();
@@ -98,7 +109,6 @@ export default function BoardTable({
             onToggleSelect={onToggleSelect}
             onToggleCollapse={() => onToggleCollapse(group.id)}
             onUpdateItem={onUpdateItem}
-            onDeleteItem={onDeleteItem}
             onSerialBlur={onSerialBlur}
             onNameBlur={onNameBlur}
             onAddItem={() => onAddItem(group.id)}
@@ -114,6 +124,7 @@ export default function BoardTable({
             canReorder={canReorderThis}
             isDragging={draggingId === group.id}
             isDropTarget={dragOverGroupId === group.id && draggingId !== group.id}
+            dragOverGroupPosition={dragOverGroupPosition}
             onDragStart={canReorderThis ? () => setDraggingId(group.id) : undefined}
             onDragEnd={
               canReorderThis
@@ -125,16 +136,16 @@ export default function BoardTable({
             }
             onDragOverGroup={
               canReorderThis && draggingId
-                ? (e) => {
-                    e.preventDefault();
+                ? (position) => {
                     setDragOverGroupId(group.id);
+                    setDragOverGroupPosition(position);
                   }
                 : undefined
             }
             onDropOnGroup={
               canReorderThis && draggingId
-                ? () => {
-                    onReorderGroup(draggingId, group.id);
+                ? (position) => {
+                    onReorderGroup(draggingId, group.id, position);
                     setDraggingId(null);
                     setDragOverGroupId(null);
                   }
@@ -143,13 +154,19 @@ export default function BoardTable({
             canReorderItems={canReorderItemsHere}
             draggingItemId={draggingItemId}
             dragOverItemKey={dragOverItemKey}
+            dragOverItemPosition={dragOverItemPosition}
             onItemDragStart={(itemId) => setDraggingItemId(itemId)}
             onItemDragEnd={() => {
               setDraggingItemId(null);
               setDragOverItemKey(null);
             }}
-            onItemDragOver={(key) => setDragOverItemKey(key)}
-            onMoveItemHere={(draggedId, targetItemId) => onMoveItem(draggedId, group.id, targetItemId)}
+            onItemDragOver={(key, position) => {
+              setDragOverItemKey(key);
+              setDragOverItemPosition(position);
+            }}
+            onMoveItemHere={(draggedId, targetItemId, position) =>
+              onMoveItem(draggedId, group.id, targetItemId, position)
+            }
             currentUserId={currentUserId}
             trackedSecondsByItem={trackedSecondsByItem}
             activeSessionsByItem={activeSessionsByItem}

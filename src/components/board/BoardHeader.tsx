@@ -5,6 +5,7 @@ import { FileSpreadsheet, Lock, Trash2 } from "lucide-react";
 import NewMonthButton from "./NewMonthButton";
 import CatalogImporter from "./CatalogImporter";
 import ExportButton from "./ExportButton";
+import DeleteBoardButton from "./DeleteBoardButton";
 import type { Item, Profile } from "@/lib/supabase/types";
 
 export default function BoardHeader({
@@ -88,6 +89,7 @@ export default function BoardHeader({
             ייבוא קטלוג
           </button>
           <NewMonthButton boardId={boardId} boardName={boardName} />
+          <DeleteBoardButton boardId={boardId} boardName={boardName} />
         </>
       )}
 

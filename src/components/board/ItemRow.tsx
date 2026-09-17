@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { GripVertical, Trash2 } from "lucide-react";
+import { GripVertical } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import PersonPicker from "./PersonPicker";
 import TimeTracker from "./TimeTracker";
@@ -14,7 +14,6 @@ export default function ItemRow({
   selected,
   onToggleSelect,
   onUpdate,
-  onDelete,
   onSerialBlur,
   onNameBlur,
   currentUserId,
@@ -25,6 +24,7 @@ export default function ItemRow({
   canReorder,
   isDragging,
   isDropTarget,
+  dropPosition,
   onDragStart,
   onDragEnd,
   onDragOverRow,
@@ -35,7 +35,6 @@ export default function ItemRow({
   selected: boolean;
   onToggleSelect: () => void;
   onUpdate: (patch: Partial<Item>) => void;
-  onDelete: () => void;
   onSerialBlur: (serial: string) => void;
   onNameBlur: (name: string) => void;
   currentUserId: string | null;
@@ -50,10 +49,13 @@ export default function ItemRow({
   canReorder?: boolean;
   isDragging?: boolean;
   isDropTarget?: boolean;
+  /** Which edge of this row the dragged item would land on, when
+   * isDropTarget is true - drives the top/bottom insertion-line indicator. */
+  dropPosition?: "before" | "after";
   onDragStart?: () => void;
   onDragEnd?: () => void;
-  onDragOverRow?: (e: React.DragEvent) => void;
-  onDropOnRow?: () => void;
+  onDragOverRow?: (position: "before" | "after") => void;
+  onDropOnRow?: (position: "before" | "after") => void;
 }) {
   const [name, setName] = useState(item.name);
   const [serial, setSerial] = useState(item.serial_id ?? "");
@@ -70,6 +72,11 @@ export default function ItemRow({
   useEffect(() => setDeliverable(item.deliverable ?? ""), [item.deliverable]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  function edgeFromCursor(clientY: number): "before" | "after" {
+    const rect = rowRef.current?.getBoundingClientRect();
+    return rect && clientY > rect.top + rect.height / 2 ? "after" : "before";
+  }
+
   return (
     <tr
       ref={rowRef}
@@ -77,13 +84,29 @@ export default function ItemRow({
         "group border-b border-slate-200 hover:bg-slate-100 dark:border-night-800 dark:hover:bg-night-800/60",
         selected && "bg-brand-50/60 dark:bg-brand-900/20",
         isDragging && "opacity-40",
-        isDropTarget && "bg-brand-50 outline outline-2 -outline-offset-2 outline-brand-400 dark:bg-brand-900/30"
+        // A thin inset line on the edge the row would land on, rather than
+        // a box outline/highlight around the whole row - box-shadow (not
+        // border) so it doesn't fight the row's own border-b or shift
+        // layout by changing border-width.
+        isDropTarget &&
+          dropPosition === "after" &&
+          "shadow-[inset_0_-2px_0_0_#6366f1] dark:shadow-[inset_0_-2px_0_0_#818cf8]",
+        isDropTarget &&
+          dropPosition !== "after" &&
+          "shadow-[inset_0_2px_0_0_#6366f1] dark:shadow-[inset_0_2px_0_0_#818cf8]"
       )}
-      onDragOver={onDragOverRow}
+      onDragOver={
+        onDragOverRow
+          ? (e) => {
+              e.preventDefault();
+              onDragOverRow(edgeFromCursor(e.clientY));
+            }
+          : undefined
+      }
       onDrop={(e) => {
         if (onDropOnRow) {
           e.preventDefault();
-          onDropOnRow();
+          onDropOnRow(edgeFromCursor(e.clientY));
         }
       }}
     >
@@ -225,18 +248,6 @@ export default function ItemRow({
           onTimeLogChanged={onTimeLogChanged}
           readOnly={readOnly}
         />
-      </td>
-
-      <td className="w-9 px-1 py-1.5 text-center">
-        {!readOnly && (
-          <button
-            onClick={onDelete}
-            className="hidden rounded p-1 text-slate-300 hover:bg-red-50 hover:text-red-500 group-hover:block dark:text-slate-600 dark:hover:bg-red-950/40 dark:hover:text-red-400"
-            title="מחיקת משימה"
-          >
-            <Trash2 size={14} />
-          </button>
-        )}
       </td>
     </tr>
   );

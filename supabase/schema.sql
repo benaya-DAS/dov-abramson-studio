@@ -378,19 +378,38 @@ create trigger time_logs_compute_duration
   before insert or update on public.time_logs
   for each row execute function public.compute_time_log_duration();
 
+-- security definer (not invoker): any studio member may stop a RUNNING
+-- timer on an item, not just whoever started it - e.g. a teammate who
+-- forgot to stop theirs before leaving for the day. This is the one
+-- narrowly-scoped exception to time_logs' normal owner-only RLS
+-- (time_logs_write_own_unarchived below): starting your own session, and
+-- editing/deleting a manual entry, still go through ordinary RLS-gated
+-- queries and remain owner-only. The function itself stays tightly scoped
+-- (a single row, matched by id, only while still running, only on an
+-- unarchived board) so the elevated privilege can't be used for anything
+-- beyond that one UPDATE.
 create or replace function public.stop_time_log(p_log_id uuid)
 returns public.time_logs
 language plpgsql
-security invoker
+security definer
+set search_path = public
 as $$
 declare
   v_row public.time_logs;
 begin
-  update public.time_logs
+  if not public.is_studio_member() then
+    return null;
+  end if;
+
+  update public.time_logs tl
     set end_time = now()
-    where id = p_log_id
-      and user_id = auth.uid()
-      and end_time is null
+    where tl.id = p_log_id
+      and tl.end_time is null
+      and exists (
+        select 1 from public.items i
+        join public.boards b on b.id = i.board_id
+        where i.id = tl.item_id and b.is_archived = false
+      )
     returning * into v_row;
 
   return v_row;

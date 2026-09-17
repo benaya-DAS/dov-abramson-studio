@@ -28,7 +28,6 @@ export default function GroupSection({
   onToggleSelect,
   onToggleCollapse,
   onUpdateItem,
-  onDeleteItem,
   onSerialBlur,
   onNameBlur,
   onAddItem,
@@ -38,6 +37,7 @@ export default function GroupSection({
   canReorder,
   isDragging,
   isDropTarget,
+  dragOverGroupPosition,
   onDragStart,
   onDragEnd,
   onDragOverGroup,
@@ -45,6 +45,7 @@ export default function GroupSection({
   canReorderItems,
   draggingItemId,
   dragOverItemKey,
+  dragOverItemPosition,
   onItemDragStart,
   onItemDragEnd,
   onItemDragOver,
@@ -61,7 +62,6 @@ export default function GroupSection({
   onToggleSelect: (id: string) => void;
   onToggleCollapse: () => void;
   onUpdateItem: (id: string, patch: Partial<Item>) => void;
-  onDeleteItem: (id: string) => void;
   onSerialBlur: (id: string, serial: string) => void;
   onNameBlur: (id: string, name: string) => void;
   onAddItem: () => void;
@@ -75,10 +75,13 @@ export default function GroupSection({
   canReorder?: boolean;
   isDragging?: boolean;
   isDropTarget?: boolean;
+  /** Which edge of this group's header the dragged group would land on,
+   * when isDropTarget is true - drives the top/bottom insertion line. */
+  dragOverGroupPosition?: "before" | "after";
   onDragStart?: () => void;
   onDragEnd?: () => void;
-  onDragOverGroup?: (e: React.DragEvent) => void;
-  onDropOnGroup?: () => void;
+  onDragOverGroup?: (position: "before" | "after") => void;
+  onDropOnGroup?: (position: "before" | "after") => void;
   /** Same gating as canReorder, plus: only meaningful while items are
    * actually displayed in position order (sortBy === "none") - dragging to
    * "reorder" while a different sort is active would just get overridden
@@ -91,10 +94,14 @@ export default function GroupSection({
   /** Either an item id (hovering a row) or `group:<id>` (hovering this
    * group's header/empty body, meaning "append at the end here"). */
   dragOverItemKey: string | null;
+  /** Which edge of the hovered row the dragged item would land on - only
+   * meaningful when dragOverItemKey is an item id, not a `group:<id>`
+   * header key (appending always lands at the very end). */
+  dragOverItemPosition?: "before" | "after";
   onItemDragStart: (itemId: string) => void;
   onItemDragEnd: () => void;
-  onItemDragOver: (key: string) => void;
-  onMoveItemHere: (draggedId: string, targetItemId: string | null) => void;
+  onItemDragOver: (key: string, position: "before" | "after") => void;
+  onMoveItemHere: (draggedId: string, targetItemId: string | null, position: "before" | "after") => void;
   currentUserId: string | null;
   trackedSecondsByItem: Record<string, number>;
   activeSessionsByItem: Record<string, ActiveTimeLog[]>;
@@ -111,27 +118,36 @@ export default function GroupSection({
   const headerDropKey = `group:${group.id}`;
   const isHeaderItemDropTarget = canReorderItems && dragOverItemKey === headerDropKey;
 
+  function groupEdgeFromCursor(clientY: number): "before" | "after" {
+    const rect = headerRef.current?.getBoundingClientRect();
+    return rect && clientY > rect.top + rect.height / 2 ? "after" : "before";
+  }
+
   // The group header doubles as a drop target for two different drags -
   // reordering the group itself, and appending a dragged item to this
   // group (its header is the only drop target an empty group has). Only
   // one kind of drag is ever active at a time, so dispatch on which.
+  // Appending an item always lands at the end of the group regardless of
+  // where on the header it's dropped, so that case has no "position" to
+  // compute - "after" is passed purely to satisfy the callback signature.
   function handleHeaderDragOver(e: React.DragEvent) {
     if (draggingItemId && canReorderItems) {
       e.preventDefault();
-      onItemDragOver(headerDropKey);
+      onItemDragOver(headerDropKey, "after");
     } else if (onDragOverGroup) {
-      onDragOverGroup(e);
+      e.preventDefault();
+      onDragOverGroup(groupEdgeFromCursor(e.clientY));
     }
   }
 
   function handleHeaderDrop(e: React.DragEvent) {
     if (draggingItemId && canReorderItems) {
       e.preventDefault();
-      onMoveItemHere(draggingItemId, null);
+      onMoveItemHere(draggingItemId, null, "after");
       onItemDragEnd();
     } else if (onDropOnGroup) {
       e.preventDefault();
-      onDropOnGroup();
+      onDropOnGroup(groupEdgeFromCursor(e.clientY));
     }
   }
 
@@ -147,7 +163,17 @@ export default function GroupSection({
         ref={headerRef}
         className={cn(
           "flex w-full items-center gap-2 rounded-t-lg px-3 py-2 transition",
-          (isDropTarget || isHeaderItemDropTarget) && "ring-2 ring-inset ring-brand-400"
+          // A thin inset line on the edge the dragged group would land on
+          // (or a bottom line while an item is about to be appended into
+          // this group) rather than a box/ring overlay around the header.
+          isDropTarget &&
+            dragOverGroupPosition === "after" &&
+            "shadow-[inset_0_-2px_0_0_#6366f1] dark:shadow-[inset_0_-2px_0_0_#818cf8]",
+          isDropTarget &&
+            dragOverGroupPosition !== "after" &&
+            "shadow-[inset_0_2px_0_0_#6366f1] dark:shadow-[inset_0_2px_0_0_#818cf8]",
+          isHeaderItemDropTarget &&
+            "shadow-[inset_0_-2px_0_0_#6366f1] dark:shadow-[inset_0_-2px_0_0_#818cf8]"
         )}
         style={{ backgroundColor: `${group.color}1a` }}
       >
@@ -246,7 +272,6 @@ export default function GroupSection({
                 <th className="w-32 px-2 py-2">תאריך יעד</th>
                 <th className="w-20 px-2 py-2">שעות</th>
                 <th className="w-32 px-2 py-2">מעקב זמן</th>
-                <th className="w-9 px-1 py-2"></th>
               </tr>
             </thead>
             <tbody>
@@ -258,7 +283,6 @@ export default function GroupSection({
                   selected={selected.has(item.id)}
                   onToggleSelect={() => onToggleSelect(item.id)}
                   onUpdate={(patch) => onUpdateItem(item.id, patch)}
-                  onDelete={() => onDeleteItem(item.id)}
                   onSerialBlur={(serial) => onSerialBlur(item.id, serial)}
                   onNameBlur={(name) => onNameBlur(item.id, name)}
                   currentUserId={currentUserId}
@@ -269,20 +293,18 @@ export default function GroupSection({
                   canReorder={canReorderItems}
                   isDragging={draggingItemId === item.id}
                   isDropTarget={canReorderItems && dragOverItemKey === item.id && draggingItemId !== item.id}
+                  dropPosition={dragOverItemPosition}
                   onDragStart={() => onItemDragStart(item.id)}
                   onDragEnd={onItemDragEnd}
                   onDragOverRow={
                     draggingItemId && canReorderItems
-                      ? (e) => {
-                          e.preventDefault();
-                          onItemDragOver(item.id);
-                        }
+                      ? (position) => onItemDragOver(item.id, position)
                       : undefined
                   }
                   onDropOnRow={
                     draggingItemId && canReorderItems
-                      ? () => {
-                          onMoveItemHere(draggingItemId, item.id);
+                      ? (position) => {
+                          onMoveItemHere(draggingItemId, item.id, position);
                           onItemDragEnd();
                         }
                       : undefined
@@ -292,7 +314,7 @@ export default function GroupSection({
 
               {!readOnly && group.isRealGroup && (
                 <tr>
-                  <td colSpan={canReorderItems ? 12 : 11} className="px-3 py-1.5">
+                  <td colSpan={canReorderItems ? 11 : 10} className="px-3 py-1.5">
                     <button
                       onClick={onAddItem}
                       className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-slate-400 hover:bg-slate-50 hover:text-brand-600 dark:text-slate-500 dark:hover:bg-night-800 dark:hover:text-brand-400"
@@ -311,7 +333,6 @@ export default function GroupSection({
                 </td>
                 <td className="px-2 py-2 text-center">{formatHours(totalTracked / 3600)}</td>
                 <td className="px-2 py-2 text-center font-mono">{formatDuration(totalTracked)}</td>
-                <td></td>
               </tr>
             </tfoot>
           </table>

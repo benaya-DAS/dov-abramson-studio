@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pause, Play } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatDuration } from "@/lib/utils";
@@ -57,31 +57,60 @@ export default function TimeTracker({
     };
   }, [errorMsg]);
 
-  const myActiveFromProps = activeSessions.find((s) => s.user_id === userId) ?? null;
-  const propsActiveId = myActiveFromProps?.id ?? null;
-
-  // Optimistic override for the viewer's OWN play/pause click, so the
-  // button and total flip instantly instead of waiting on a realtime
-  // round-trip. `undefined` means "no override, trust activeSessions".
+  // Any team member can stop a running timer on an item, not just whoever
+  // started it (stop_time_log is security definer server-side for exactly
+  // this) - so the button's target session is MY OWN active session if I
+  // have one on this item, and otherwise whichever teammate's session is
+  // running, not just "mine or nothing". Starting a NEW session still
+  // always starts one for the current viewer, regardless of whose is
+  // showing.
+  //
+  // stoppingOverrideId / startingOverride optimistically hide a
+  // just-stopped session / show a just-started one before the realtime
+  // round-trip confirms it, keyed by session id (not "mine") so this works
+  // the same whether the stopped session was mine or a teammate's.
   // Reconciled during render (React's documented pattern for "adjusting
   // state when a prop changes") rather than in an effect: once
-  // activeSessions itself reflects what we optimistically set, the
-  // override is cleared immediately, in the same commit, instead of one
-  // tick later.
-  const [myActiveOverride, setMyActiveOverride] = useState<ActiveTimeLog | null | undefined>(
-    undefined
-  );
-  const [reconciledPropsId, setReconciledPropsId] = useState(propsActiveId);
-  if (propsActiveId !== reconciledPropsId) {
-    setReconciledPropsId(propsActiveId);
-    if (myActiveOverride !== undefined && (myActiveOverride?.id ?? null) === propsActiveId) {
-      setMyActiveOverride(undefined);
-    }
+  // activeSessions itself reflects the change, the override clears
+  // immediately, in the same commit, instead of one tick later.
+  const [stoppingOverrideId, setStoppingOverrideId] = useState<string | null>(null);
+  const [startingOverride, setStartingOverride] = useState<ActiveTimeLog | null>(null);
+
+  const stoppedSessionGone = stoppingOverrideId
+    ? !activeSessions.some((s) => s.id === stoppingOverrideId)
+    : false;
+  const [wasStoppedSessionGone, setWasStoppedSessionGone] = useState(stoppedSessionGone);
+  if (stoppedSessionGone !== wasStoppedSessionGone) {
+    setWasStoppedSessionGone(stoppedSessionGone);
+    if (stoppedSessionGone) setStoppingOverrideId(null);
   }
 
-  const myActive = myActiveOverride !== undefined ? myActiveOverride : myActiveFromProps;
-  const otherActiveSessions = activeSessions.filter((s) => s.user_id !== userId);
-  const allActiveSessions = myActive ? [myActive, ...otherActiveSessions] : otherActiveSessions;
+  const startedSessionConfirmed = startingOverride
+    ? activeSessions.some((s) => s.id === startingOverride.id)
+    : false;
+  const [wasStartedSessionConfirmed, setWasStartedSessionConfirmed] = useState(
+    startedSessionConfirmed
+  );
+  if (startedSessionConfirmed !== wasStartedSessionConfirmed) {
+    setWasStartedSessionConfirmed(startedSessionConfirmed);
+    if (startedSessionConfirmed) setStartingOverride(null);
+  }
+
+  const allActiveSessions = useMemo(() => {
+    let list = activeSessions.filter((s) => s.id !== stoppingOverrideId);
+    if (startingOverride && !list.some((s) => s.id === startingOverride.id)) {
+      list = [startingOverride, ...list];
+    }
+    return list;
+  }, [activeSessions, stoppingOverrideId, startingOverride]);
+
+  // Mine takes priority as the button's target if I have one running;
+  // otherwise the first other active session (realistically there's at
+  // most one, since a user can only ever have one running timer anywhere
+  // in the app - see time_logs_one_active_per_user).
+  const targetSession =
+    allActiveSessions.find((s) => s.user_id === userId) ?? allActiveSessions[0] ?? null;
+  const targetIsMine = !!targetSession && targetSession.user_id === userId;
   const activeKey = allActiveSessions.map((s) => s.id).join(",");
 
   // liveSeconds is real state, recomputed only inside the effect below —
@@ -134,22 +163,23 @@ export default function TimeTracker({
     // setLoading(false) entirely and leave the button permanently disabled
     // - which looks exactly like "clicking does nothing" with zero clue why.
     try {
-      if (myActive) {
-        const stoppingId = myActive.id;
-        setMyActiveOverride(null);
+      if (targetSession) {
+        const stoppingId = targetSession.id;
+        setStoppingOverrideId(stoppingId);
         const { data, error } = await supabase.rpc("stop_time_log", { p_log_id: stoppingId });
         if (error) {
           console.error("Failed to stop time session:", error);
           setErrorMsg(error.message);
-          setMyActiveOverride(undefined);
+          setStoppingOverrideId(null);
         } else if (!data) {
           // No SQL error, but stop_time_log's UPDATE matched zero rows (the
-          // session was already stopped elsewhere, or p_log_id/user_id no
-          // longer line up) - treat that as a failure too instead of
-          // silently trusting an optimistic update that didn't actually land.
+          // session was already stopped elsewhere, or the board got
+          // archived out from under it) - treat that as a failure too
+          // instead of silently trusting an optimistic update that didn't
+          // actually land.
           console.error("Failed to stop time session: no matching active session on the server");
           setErrorMsg("לא ניתן היה לעצור את המדידה (יתכן שכבר נעצרה)");
-          setMyActiveOverride(undefined);
+          setStoppingOverrideId(null);
           onTimeLogChanged();
         } else {
           onTimeLogChanged();
@@ -164,18 +194,25 @@ export default function TimeTracker({
           console.error("Failed to start time session:", error);
           setErrorMsg(error.message);
         } else if (data) {
-          setMyActiveOverride(data);
+          setStartingOverride(data);
           onTimeLogChanged();
         }
       }
     } catch (err) {
       console.error("Time tracking request failed:", err);
       setErrorMsg(err instanceof Error ? err.message : "שגיאת רשת");
-      setMyActiveOverride(undefined);
+      setStoppingOverrideId(null);
     } finally {
       setLoading(false);
     }
   }
+
+  const otherRunnerName = targetSession && !targetIsMine
+    ? profiles.find((p) => p.id === targetSession.user_id)?.full_name ||
+      profiles.find((p) => p.id === targetSession.user_id)?.email ||
+      "עמית/ה לצוות"
+    : null;
+  const stopTitle = otherRunnerName ? `עצירת המדידה של ${otherRunnerName}` : "עצירת מדידת זמן";
 
   return (
     <div className="flex items-center justify-center gap-2">
@@ -184,18 +221,18 @@ export default function TimeTracker({
         disabled={readOnly || !userId || loading}
         className={cn(
           "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white transition hover:brightness-90 disabled:opacity-40",
-          errorMsg ? "bg-red-500 ring-2 ring-red-300" : myActive ? "bg-[#579bfc]" : "bg-emerald-500"
+          errorMsg ? "bg-red-500 ring-2 ring-red-300" : targetSession ? "bg-[#579bfc]" : "bg-emerald-500"
         )}
-        title={errorMsg ?? (myActive ? "עצירת מדידת זמן" : "התחלת מדידת זמן")}
+        title={errorMsg ?? (targetSession ? stopTitle : "התחלת מדידת זמן")}
       >
-        {myActive ? <Pause size={11} fill="white" /> : <Play size={11} fill="white" />}
+        {targetSession ? <Pause size={11} fill="white" /> : <Play size={11} fill="white" />}
       </button>
       <button
         ref={durationButtonRef}
         onClick={() => setLogOpen((o) => !o)}
         className={cn(
           "min-w-[64px] rounded px-1 text-center font-mono text-xs tabular-nums hover:bg-slate-100 dark:hover:bg-night-700",
-          myActive ? "font-semibold text-[#579bfc]" : "text-slate-500 dark:text-slate-400"
+          targetSession ? "font-semibold text-[#579bfc]" : "text-slate-500 dark:text-slate-400"
         )}
         title="יומן מעקב זמן"
       >

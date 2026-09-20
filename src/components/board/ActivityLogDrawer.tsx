@@ -5,7 +5,8 @@ import { History, Pencil, Plus, Trash2, Undo2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Avatar } from "@/components/topbar/UserMenu";
 import { ACTIVITY_FIELD_LABELS, STATUS_LABELS } from "@/lib/constants";
-import { cn, formatDateHe, formatSessionDate, formatSessionTime } from "@/lib/utils";
+import { blurActiveElement, cn, formatDateHe, formatSessionDate, formatSessionTime } from "@/lib/utils";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import type { ActivityEntityType, ActivityLog, ItemStatus, Profile } from "@/lib/supabase/types";
 
 const ENTITY_LABELS: Record<ActivityEntityType, string> = {
@@ -73,6 +74,13 @@ export default function ActivityLogDrawer({
   const [undoingId, setUndoingId] = useState<string | null>(null);
   const [errorById, setErrorById] = useState<Record<string, string>>({});
 
+  function close() {
+    blurActiveElement();
+    onClose();
+  }
+
+  useEscapeKey(close);
+
   const fetchLogs = useCallback(async () => {
     const supabase = createClient();
     const { data } = await supabase
@@ -121,15 +129,18 @@ export default function ActivityLogDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl dark:bg-night-800">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={close}>
+      <div
+        className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl dark:bg-night-800"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-night-700">
           <h2 className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-100">
             <History size={18} className="text-brand-600 dark:text-brand-400" />
             היסטוריית פעילות
           </h2>
           <button
-            onClick={onClose}
+            onClick={close}
             className="rounded-md p-1 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-700"
           >
             <X size={18} />

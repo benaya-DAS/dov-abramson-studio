@@ -5,7 +5,8 @@ import Image from "next/image";
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { initials } from "@/lib/utils";
+import { blurActiveElement, initials } from "@/lib/utils";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import type { Profile } from "@/lib/supabase/types";
 import FloatingPanel from "@/components/ui/FloatingPanel";
 
@@ -13,6 +14,13 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
+
+  function close() {
+    blurActiveElement();
+    setOpen(false);
+  }
+
+  useEscapeKey(close, open);
 
   async function signOut() {
     const supabase = createClient();
@@ -38,7 +46,7 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-40" onClick={close} />
           <FloatingPanel
             anchorRef={buttonRef}
             align="end"

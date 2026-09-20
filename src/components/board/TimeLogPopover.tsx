@@ -5,7 +5,8 @@ import * as XLSX from "xlsx";
 import { Plus, Trash2, X } from "lucide-react";
 import { Avatar } from "@/components/topbar/UserMenu";
 import { createClient } from "@/lib/supabase/client";
-import { formatDuration, formatDurationCompact, formatSessionDate, formatSessionTime } from "@/lib/utils";
+import { blurActiveElement, formatDuration, formatDurationCompact, formatSessionDate, formatSessionTime } from "@/lib/utils";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import SessionEditView from "./SessionEditView";
 import FloatingPanel from "@/components/ui/FloatingPanel";
 import type { Profile, TimeLog } from "@/lib/supabase/types";
@@ -34,6 +35,13 @@ export default function TimeLogPopover({
   const [sessions, setSessions] = useState<TimeLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingSession, setEditingSession] = useState<TimeLog | "new" | null>(null);
+
+  function close() {
+    blurActiveElement();
+    onClose();
+  }
+
+  useEscapeKey(close);
 
   const fetchSessions = useCallback(async () => {
     const supabase = createClient();
@@ -122,7 +130,7 @@ export default function TimeLogPopover({
 
   return (
     <>
-      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="fixed inset-0 z-40" onClick={close} />
       <FloatingPanel
         anchorRef={anchorRef}
         className="z-50 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white text-right shadow-xl dark:border-night-700 dark:bg-night-800"
@@ -159,7 +167,7 @@ export default function TimeLogPopover({
                 >
                   ייצוא לאקסל
                 </button>
-                <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300">
+                <button onClick={close} className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300">
                   <X size={14} />
                 </button>
               </div>

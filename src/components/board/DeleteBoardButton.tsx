@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trash2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { blurActiveElement } from "@/lib/utils";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 
 export default function DeleteBoardButton({
   boardId,
@@ -16,6 +18,13 @@ export default function DeleteBoardButton({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  function close() {
+    blurActiveElement();
+    setConfirming(false);
+  }
+
+  useEscapeKey(close, confirming);
 
   async function handleDelete() {
     setLoading(true);
@@ -49,12 +58,15 @@ export default function DeleteBoardButton({
       </button>
 
       {confirming && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-night-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={close}>
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-night-800"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mb-2 flex items-center justify-between">
               <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">מחיקת לוח</h2>
               <button
-                onClick={() => setConfirming(false)}
+                onClick={close}
                 className="rounded-md p-1 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-700"
               >
                 <X size={16} />
@@ -71,7 +83,7 @@ export default function DeleteBoardButton({
             )}
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => setConfirming(false)}
+                onClick={close}
                 className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-700"
               >
                 ביטול

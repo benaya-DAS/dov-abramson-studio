@@ -4,7 +4,8 @@ import { useRef, useState } from "react";
 import { Check, X } from "lucide-react";
 import { STATUS_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
 import type { ItemStatus } from "@/lib/supabase/types";
-import { cn } from "@/lib/utils";
+import { blurActiveElement, cn } from "@/lib/utils";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import FloatingPanel from "@/components/ui/FloatingPanel";
 
 export default function StatusBadge({
@@ -26,6 +27,15 @@ export default function StatusBadge({
   const [open, setOpen] = useState(false);
   const [labelDraft, setLabelDraft] = useState(customLabel ?? "");
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const labelInputRef = useRef<HTMLInputElement>(null);
+  // Escape needs to CANCEL an in-progress custom-label edit rather than
+  // commit it - but closing the popover blurs the input, which would
+  // otherwise trigger the normal onBlur={commitLabel} save. This flag lets
+  // the Escape path suppress exactly that one resulting commit, without
+  // touching the outside-click/other-close paths where blurring an
+  // in-progress edit SHOULD still save it (the same blur-to-save
+  // convention used everywhere else in the app).
+  const cancelingLabelRef = useRef(false);
   const colors = STATUS_COLORS[status];
   const displayLabel = customLabel?.trim() || STATUS_LABELS[status];
 
@@ -40,11 +50,33 @@ export default function StatusBadge({
   }
 
   function commitLabel() {
+    if (cancelingLabelRef.current) {
+      cancelingLabelRef.current = false;
+      return;
+    }
     const trimmed = labelDraft.trim();
     if (trimmed !== (customLabel ?? "").trim()) {
       onCustomLabelChange?.(trimmed || null);
     }
   }
+
+  function close() {
+    blurActiveElement();
+    setOpen(false);
+  }
+
+  // Backstops Escape for every focus state inside the popover (a status
+  // button, the toggle button itself, or nothing), and additionally
+  // cancels an in-progress custom-label edit - reverting the draft and
+  // arming cancelingLabelRef so the blur this triggers doesn't save it -
+  // when the label input specifically is what's focused.
+  useEscapeKey(() => {
+    if (document.activeElement === labelInputRef.current) {
+      cancelingLabelRef.current = true;
+      setLabelDraft(customLabel ?? "");
+    }
+    close();
+  }, open);
 
   if (readOnly || !onChange) {
     return (
@@ -77,7 +109,7 @@ export default function StatusBadge({
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-40" onClick={close} />
           <FloatingPanel
             anchorRef={buttonRef}
             className="z-50 w-48 rounded-lg border border-slate-200 bg-white p-1.5 shadow-lg dark:border-night-700 dark:bg-night-800"
@@ -112,18 +144,23 @@ export default function StatusBadge({
               </label>
               <div className="flex items-center gap-1">
                 <input
+                  ref={labelInputRef}
                   value={labelDraft}
                   onChange={(e) => setLabelDraft(e.target.value)}
                   onBlur={commitLabel}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      commitLabel();
-                      setOpen(false);
-                    }
-                    if (e.key === "Escape") {
-                      setLabelDraft(customLabel ?? "");
-                      setOpen(false);
-                    }
+                    // Just blur on Enter, rather than also calling
+                    // commitLabel() here directly - the onBlur={commitLabel}
+                    // above fires exactly once from that blur, so this can't
+                    // double-commit the same value (calling commitLabel()
+                    // twice synchronously, once here and once from the
+                    // resulting blur, would send the same update twice
+                    // before either write's response updates the
+                    // customLabel prop this closure reads). Escape is
+                    // handled globally by the useEscapeKey() above, which
+                    // also needs to cancel rather than commit - see
+                    // cancelingLabelRef.
+                    if (e.key === "Enter") close();
                   }}
                   placeholder={STATUS_LABELS[status]}
                   className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 outline-none focus:border-brand-400 dark:border-night-600 dark:bg-night-900 dark:text-slate-200"

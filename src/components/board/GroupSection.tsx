@@ -3,7 +3,8 @@
 import { useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, GripVertical, Plus } from "lucide-react";
 import ItemRow from "./ItemRow";
-import { formatDuration, formatHours, cn } from "@/lib/utils";
+import { blurActiveElement, formatDuration, formatHours, cn } from "@/lib/utils";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import { GROUP_COLORS } from "@/lib/constants";
 import type { ActiveTimeLog, Item, Profile } from "@/lib/supabase/types";
 import FloatingPanel from "@/components/ui/FloatingPanel";
@@ -223,7 +224,21 @@ export default function GroupSection({
         {onRenameGroup ? (
           <input
             defaultValue={group.name}
-            onBlur={(e) => e.target.value.trim() && onRenameGroup(e.target.value.trim())}
+            onBlur={(e) => {
+              const trimmed = e.target.value.trim();
+              if (trimmed && trimmed !== group.name) onRenameGroup(trimmed);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.currentTarget.blur();
+              } else if (e.key === "Escape") {
+                // Reset the DOM value directly (this input is uncontrolled)
+                // before blurring, so the onBlur above sees it unchanged
+                // and no-ops instead of committing the in-progress edit.
+                e.currentTarget.value = group.name;
+                e.currentTarget.blur();
+              }
+            }}
             className="min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-800 outline-none dark:text-slate-100"
           />
         ) : (
@@ -352,6 +367,13 @@ function GroupColorPicker({
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
+  function close() {
+    blurActiveElement();
+    setOpen(false);
+  }
+
+  useEscapeKey(close, open);
+
   return (
     <div className="shrink-0">
       <button
@@ -365,7 +387,7 @@ function GroupColorPicker({
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-40" onClick={close} />
           <FloatingPanel
             anchorRef={buttonRef}
             align="end"

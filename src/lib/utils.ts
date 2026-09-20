@@ -4,6 +4,15 @@ export function cn(...inputs: ClassValue[]) {
   return clsx(inputs);
 }
 
+// Removes focus from whatever currently has it - used whenever a
+// popover/dropdown/modal closes via Escape or an outside click, so the
+// trigger button (or an input inside the panel) doesn't keep showing a
+// focus ring after the UI it was focused for has disappeared.
+export function blurActiveElement() {
+  const active = document.activeElement;
+  if (active instanceof HTMLElement) active.blur();
+}
+
 export function initials(name?: string | null, email?: string | null) {
   const source = name?.trim() || email?.split("@")[0] || "?";
   const parts = source.split(/\s+/).filter(Boolean);

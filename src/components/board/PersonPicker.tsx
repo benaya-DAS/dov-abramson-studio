@@ -3,7 +3,8 @@
 import { useRef, useState } from "react";
 import { Avatar } from "@/components/topbar/UserMenu";
 import type { Profile } from "@/lib/supabase/types";
-import { cn } from "@/lib/utils";
+import { blurActiveElement, cn } from "@/lib/utils";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 import FloatingPanel from "@/components/ui/FloatingPanel";
 
 export default function PersonPicker({
@@ -21,6 +22,13 @@ export default function PersonPicker({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const person = profiles.find((p) => p.id === personId) ?? null;
 
+  function close() {
+    blurActiveElement();
+    setOpen(false);
+  }
+
+  useEscapeKey(close, open);
+
   return (
     <div className="flex w-full justify-center">
       <button
@@ -37,7 +45,7 @@ export default function PersonPicker({
 
       {open && !readOnly && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-40" onClick={close} />
           <FloatingPanel
             anchorRef={buttonRef}
             className="z-50 max-h-64 w-52 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-night-700 dark:bg-night-800"

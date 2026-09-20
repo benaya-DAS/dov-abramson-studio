@@ -61,6 +61,23 @@ export default function ItemRow({
   const [serial, setSerial] = useState(item.serial_id ?? "");
   const [deliverable, setDeliverable] = useState(item.deliverable ?? "");
   const rowRef = useRef<HTMLTableRowElement>(null);
+  // Escape reverts a field's draft state and blurs it, but blurring
+  // synchronously fires onBlur before React has processed the revert (state
+  // updates from the same event are batched) - so the commit-on-blur
+  // handler below would otherwise read the OLD, not-yet-reverted draft and
+  // save it anyway. This ref (checked and cleared by each field's onBlur)
+  // is what lets Escape actually cancel instead of accidentally committing.
+  const cancelingFieldRef = useRef(false);
+
+  function handleEditableKeyDown(e: React.KeyboardEvent<HTMLInputElement>, revert: () => void) {
+    if (e.key === "Enter") {
+      e.currentTarget.blur();
+    } else if (e.key === "Escape") {
+      cancelingFieldRef.current = true;
+      revert();
+      e.currentTarget.blur();
+    }
+  }
 
   // Keep local editable state in sync when the item changes from outside
   // this row (catalog auto-fill, realtime updates from other users, etc).
@@ -148,11 +165,16 @@ export default function ItemRow({
           disabled={readOnly}
           onChange={(e) => setName(e.target.value)}
           onBlur={() => {
+            if (cancelingFieldRef.current) {
+              cancelingFieldRef.current = false;
+              return;
+            }
             if (name !== item.name) {
               onUpdate({ name });
               onNameBlur(name);
             }
           }}
+          onKeyDown={(e) => handleEditableKeyDown(e, () => setName(item.name))}
           placeholder="שם המשימה..."
           className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm font-medium text-slate-800 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white disabled:hover:border-transparent dark:text-slate-100 dark:hover:border-night-700 dark:focus:bg-night-800"
         />
@@ -173,7 +195,14 @@ export default function ItemRow({
           value={deliverable}
           disabled={readOnly}
           onChange={(e) => setDeliverable(e.target.value)}
-          onBlur={() => deliverable !== (item.deliverable ?? "") && onUpdate({ deliverable: deliverable || null })}
+          onBlur={() => {
+            if (cancelingFieldRef.current) {
+              cancelingFieldRef.current = false;
+              return;
+            }
+            if (deliverable !== (item.deliverable ?? "")) onUpdate({ deliverable: deliverable || null });
+          }}
+          onKeyDown={(e) => handleEditableKeyDown(e, () => setDeliverable(item.deliverable ?? ""))}
           placeholder="תוצר עיצובי"
           className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800"
         />
@@ -195,11 +224,16 @@ export default function ItemRow({
           disabled={readOnly}
           onChange={(e) => setSerial(e.target.value)}
           onBlur={() => {
+            if (cancelingFieldRef.current) {
+              cancelingFieldRef.current = false;
+              return;
+            }
             if (serial !== (item.serial_id ?? "")) {
               onUpdate({ serial_id: serial || null });
               onSerialBlur(serial);
             }
           }}
+          onKeyDown={(e) => handleEditableKeyDown(e, () => setSerial(item.serial_id ?? ""))}
           placeholder='מס"ד'
           dir="ltr"
           className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-center text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800"
@@ -212,6 +246,7 @@ export default function ItemRow({
           value={item.start_date ?? ""}
           disabled={readOnly}
           onChange={(e) => onUpdate({ start_date: e.target.value || null })}
+          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
           className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800 dark:[color-scheme:dark]"
         />
       </td>
@@ -222,6 +257,7 @@ export default function ItemRow({
           value={item.due_date ?? ""}
           disabled={readOnly}
           onChange={(e) => onUpdate({ due_date: e.target.value || null })}
+          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
           className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800 dark:[color-scheme:dark]"
         />
       </td>

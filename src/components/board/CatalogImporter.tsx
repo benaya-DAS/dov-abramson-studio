@@ -5,6 +5,8 @@ import { FileSpreadsheet, Upload, X } from "lucide-react";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase/client";
 import { extractCatalogRows, type CatalogRow } from "@/lib/catalog/parse";
+import { blurActiveElement } from "@/lib/utils";
+import { useEscapeKey } from "@/lib/useEscapeKey";
 
 export default function CatalogImporter({ onClose }: { onClose: () => void }) {
   const [rows, setRows] = useState<CatalogRow[]>([]);
@@ -14,6 +16,13 @@ export default function CatalogImporter({ onClose }: { onClose: () => void }) {
   );
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  function close() {
+    blurActiveElement();
+    onClose();
+  }
+
+  useEscapeKey(close);
 
   async function handleFile(file: File) {
     setStatus("parsing");
@@ -62,14 +71,17 @@ export default function CatalogImporter({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl dark:bg-night-800">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={close}>
+      <div
+        className="max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl dark:bg-night-800"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 dark:border-night-700">
           <h2 className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-100">
             <FileSpreadsheet size={18} className="text-brand-600 dark:text-brand-400" />
             ייבוא קטלוג פרויקטים מקובץ Excel
           </h2>
-          <button onClick={onClose} className="rounded-md p-1 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-700">
+          <button onClick={close} className="rounded-md p-1 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-700">
             <X size={18} />
           </button>
         </div>
@@ -132,7 +144,7 @@ export default function CatalogImporter({ onClose }: { onClose: () => void }) {
 
         <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-3 dark:border-night-700">
           <button
-            onClick={onClose}
+            onClick={close}
             className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-700"
           >
             {status === "done" ? "סגירה" : "ביטול"}

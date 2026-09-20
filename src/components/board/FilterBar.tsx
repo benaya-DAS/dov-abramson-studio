@@ -38,6 +38,9 @@ export default function FilterBar({
         <input
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur();
+          }}
           placeholder="חיפוש משימה..."
           className="w-48 rounded-md border border-slate-200 bg-white py-1.5 pr-8 pl-2 text-sm text-slate-900 outline-none focus:border-brand-400 dark:border-night-700 dark:bg-night-800 dark:text-slate-100 dark:placeholder:text-slate-500"
         />

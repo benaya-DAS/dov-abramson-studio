@@ -49,6 +49,17 @@ export default function BoardHeader({
                 const trimmed = e.target.value.trim();
                 if (trimmed && trimmed !== boardName) onRenameBoard(trimmed);
               }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.currentTarget.blur();
+                } else if (e.key === "Escape") {
+                  // Reset the DOM value directly (this input is
+                  // uncontrolled) before blurring, so the onBlur above
+                  // sees it unchanged and no-ops instead of committing.
+                  e.currentTarget.value = boardName;
+                  e.currentTarget.blur();
+                }
+              }}
               className="min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-1 -mx-1 text-lg font-bold text-slate-900 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-100 dark:hover:border-night-700 dark:focus:bg-night-800"
             />
           ) : (

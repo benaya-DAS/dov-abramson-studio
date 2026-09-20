@@ -77,7 +77,7 @@ export const GROUP_COLORS = [
 // render a readable "field: old ← new" diff line for update entries.
 export const ACTIVITY_FIELD_LABELS: Record<string, string> = {
   name: "שם",
-  person_id: "איש צוות",
+  person_ids: "אנשי צוות",
   deliverable: "תוצר עיצובי",
   status: "סטטוס",
   status_label: "תווית סטטוס",

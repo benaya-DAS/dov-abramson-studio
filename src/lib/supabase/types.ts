@@ -57,7 +57,7 @@ export type Item = {
   board_id: string;
   group_id: string;
   name: string;
-  person_id: string | null;
+  person_ids: string[];
   deliverable: string | null;
   status: ItemStatus;
   status_label: string | null;

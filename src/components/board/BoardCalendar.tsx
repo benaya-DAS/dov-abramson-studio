@@ -119,7 +119,7 @@ export default function BoardCalendar({
               <div className="space-y-1">
                 {dayItems.slice(0, 4).map((item) => {
                   const colors = STATUS_COLORS[item.status];
-                  const person = profiles.find((p) => p.id === item.person_id) ?? null;
+                  const person = profiles.find((p) => p.id === item.person_ids[0]) ?? null;
                   return (
                     <div
                       key={item.id}

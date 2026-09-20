@@ -328,7 +328,7 @@ export default function BoardWorkspace({
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
-      if (filterPersonId && item.person_id !== filterPersonId) return false;
+      if (filterPersonId && !item.person_ids.includes(filterPersonId)) return false;
       if (search.trim()) {
         const q = search.trim().toLowerCase();
         const haystack = `${item.name} ${item.serial_id ?? ""} ${item.deliverable ?? ""}`.toLowerCase();
@@ -340,13 +340,20 @@ export default function BoardWorkspace({
 
   const sortedItems = useMemo(() => {
     if (sortBy === "none") return filteredItems;
-    const personName = (id: string | null) =>
-      profiles.find((p) => p.id === id)?.full_name ?? "￿";
+    // Sorts by the joined names of everyone assigned (alphabetical,
+    // comma-separated) - an item with no one assigned sorts last.
+    const personNames = (ids: string[]) => {
+      if (ids.length === 0) return "￿";
+      return ids
+        .map((id) => profiles.find((p) => p.id === id)?.full_name ?? "")
+        .sort((a, b) => a.localeCompare(b, "he"))
+        .join(", ");
+    };
     const copy = [...filteredItems];
     copy.sort((a, b) => {
       switch (sortBy) {
         case "person":
-          return personName(a.person_id).localeCompare(personName(b.person_id), "he");
+          return personNames(a.person_ids).localeCompare(personNames(b.person_ids), "he");
         case "status":
           return STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
         case "due_date":
@@ -378,11 +385,17 @@ export default function BoardWorkspace({
     }
 
     if (groupBy === "person") {
+      // An item assigned to several people shows up under each of their
+      // buckets (a real duplication, not just a display quirk) - there's
+      // no single "owning" group to pick when grouping by an inherently
+      // multi-valued field.
       const buckets = new Map<string, Item[]>();
       for (const item of sortedItems) {
-        const key = item.person_id ?? "__unassigned";
-        if (!buckets.has(key)) buckets.set(key, []);
-        buckets.get(key)!.push(item);
+        const keys = item.person_ids.length > 0 ? item.person_ids : ["__unassigned"];
+        for (const key of keys) {
+          if (!buckets.has(key)) buckets.set(key, []);
+          buckets.get(key)!.push(item);
+        }
       }
       return Array.from(buckets.entries()).map(([key, its]) => ({
         id: key,

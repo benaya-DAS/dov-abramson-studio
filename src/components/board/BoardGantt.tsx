@@ -80,13 +80,22 @@ export default function BoardGantt({
               const end = item.due_date ? new Date(item.due_date + "T00:00:00") : start;
               const offset = differenceInCalendarDays(start, rangeStart);
               const span = Math.max(1, differenceInCalendarDays(end, start) + 1);
-              const person = profiles.find((p) => p.id === item.person_id) ?? null;
+              const assignees = item.person_ids
+                .map((id) => profiles.find((p) => p.id === id))
+                .filter((p): p is Profile => !!p);
               const colors = STATUS_COLORS[item.status];
 
               return (
                 <div key={item.id} className="flex items-center" style={{ height: 34 }}>
                   <div className="flex w-64 shrink-0 items-center gap-2 pl-2 text-xs text-slate-700 dark:text-slate-300">
-                    <Avatar profile={person} size={20} />
+                    <span className="relative shrink-0">
+                      <Avatar profile={assignees[0] ?? null} size={20} />
+                      {assignees.length > 1 && (
+                        <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-slate-500 text-[8px] font-bold text-white dark:bg-slate-400 dark:text-night-900">
+                          +{assignees.length - 1}
+                        </span>
+                      )}
+                    </span>
                     <span className="truncate">{item.name || "(ללא שם)"}</span>
                   </div>
                   <div className="relative flex" style={{ width: days.length * DAY_WIDTH, height: 26 }}>

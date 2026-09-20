@@ -21,12 +21,16 @@ export default function ExportButton({
 }) {
   function exportReport() {
     const rows = items.map((item) => {
-      const person = profiles.find((p) => p.id === item.person_id);
+      const assignees = item.person_ids
+        .map((id) => profiles.find((p) => p.id === id))
+        .filter((p): p is Profile => !!p)
+        .map((p) => p.full_name || p.email)
+        .join(", ");
       const seconds = trackedSecondsByItem[item.id] ?? 0;
       return {
         קבוצה: groupNameByGroupId[item.group_id] ?? "",
         פריט: item.name,
-        "איש צוות": person?.full_name || person?.email || "",
+        "איש צוות": assignees,
         'תוצר עיצובי': item.deliverable ?? "",
         סטטוס: item.status_label?.trim() || STATUS_LABELS[item.status],
         'מס"ד': item.serial_id ?? "",

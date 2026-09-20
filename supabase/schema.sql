@@ -248,7 +248,6 @@ create table if not exists public.items (
   board_id uuid not null references public.boards (id) on delete cascade,
   group_id uuid not null references public.groups (id) on delete cascade,
   name text not null default '',
-  person_id uuid references public.profiles (id) on delete set null,
   deliverable text,
   status public.item_status not null default 'not_started',
   -- Optional free-text override shown instead of the fixed status label
@@ -268,9 +267,50 @@ create table if not exists public.items (
 -- Idempotent: adds status_label to a project whose items table predates it.
 alter table public.items add column if not exists status_label text;
 
+-- Multiple assignees per item, replacing the older single person_id
+-- column. A plain uuid[] rather than a join table - much less machinery
+-- (no separate table/RLS/realtime wiring) for what's still a small
+-- internal app, at the cost of no FK enforcement on each array element;
+-- the cleanup trigger below (profiles_remove_from_item_assignees)
+-- compensates for that by scrubbing a deleted profile's id out of every
+-- item that had it assigned.
+alter table public.items add column if not exists person_ids uuid[] not null default '{}';
+
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'items' and column_name = 'person_id'
+  ) then
+    update public.items
+      set person_ids = array[person_id]
+      where person_id is not null and person_ids = '{}';
+    alter table public.items drop column person_id;
+  end if;
+end $$;
+
+create or replace function public.remove_profile_from_item_assignees()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.items
+    set person_ids = array_remove(person_ids, old.id)
+    where old.id = any(person_ids);
+  return old;
+end;
+$$;
+
+drop trigger if exists profiles_remove_from_item_assignees on public.profiles;
+create trigger profiles_remove_from_item_assignees
+  after delete on public.profiles
+  for each row execute function public.remove_profile_from_item_assignees();
+
 create index if not exists items_board_id_idx on public.items (board_id);
 create index if not exists items_group_id_idx on public.items (group_id);
-create index if not exists items_person_id_idx on public.items (person_id);
+create index if not exists items_person_ids_idx on public.items using gin (person_ids);
 create index if not exists items_serial_id_idx on public.items (serial_id);
 
 create or replace function public.set_updated_at()
@@ -658,7 +698,10 @@ begin
         board_id = (v_log.previous_state ->> 'board_id')::uuid,
         group_id = (v_log.previous_state ->> 'group_id')::uuid,
         name = v_log.previous_state ->> 'name',
-        person_id = (v_log.previous_state ->> 'person_id')::uuid,
+        person_ids = coalesce(
+          (select array_agg(elem::uuid) from jsonb_array_elements_text(v_log.previous_state -> 'person_ids') as elem),
+          '{}'::uuid[]
+        ),
         deliverable = v_log.previous_state ->> 'deliverable',
         status = (v_log.previous_state ->> 'status')::public.item_status,
         status_label = v_log.previous_state ->> 'status_label',

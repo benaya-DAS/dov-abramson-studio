@@ -196,8 +196,8 @@ export default function ItemRow({
       <td className="w-16 px-1 py-1.5">
         <PersonPicker
           profiles={profiles}
-          personId={item.person_id}
-          onChange={readOnly ? undefined : (personId) => onUpdate({ person_id: personId })}
+          personIds={item.person_ids}
+          onChange={readOnly ? undefined : (personIds) => onUpdate({ person_ids: personIds })}
           readOnly={readOnly}
         />
       </td>

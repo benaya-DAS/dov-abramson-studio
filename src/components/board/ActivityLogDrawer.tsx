@@ -43,9 +43,15 @@ function formatFieldValue(
 ) {
   if (value === null || value === undefined || value === "") return "—";
   if (key === "status") return STATUS_LABELS[value as ItemStatus] ?? String(value);
-  if (key === "person_id") {
-    const person = profiles.find((p) => p.id === value);
-    return person?.full_name || person?.email || "—";
+  if (key === "person_ids") {
+    const ids = Array.isArray(value) ? (value as string[]) : [];
+    if (ids.length === 0) return "—";
+    return ids
+      .map((id) => {
+        const person = profiles.find((p) => p.id === id);
+        return person?.full_name || person?.email || "—";
+      })
+      .join(", ");
   }
   if (key === "group_id") return groupNameByGroupId[value as string] ?? "—";
   if (key === "start_date" || key === "due_date") return formatDateHe(value as string);

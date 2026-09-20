@@ -508,7 +508,172 @@ end;
 $$;
 
 -- ============================================================================
--- 11. ROW LEVEL SECURITY
+-- 11. ACTIVITY LOG & UNDO
+--
+-- Every insert/update/delete on items or groups is captured automatically
+-- via AFTER triggers on the tables themselves, not from application code —
+-- so the log is complete regardless of which UI action, importer, or
+-- future code path performed the write. previous_state/new_state hold the
+-- entire row as JSONB; undoing a log entry simply replays the opposite of
+-- whatever the trigger recorded (re-delete an insert, re-insert a delete
+-- from its captured previous_state, or write an update's old column
+-- values back).
+-- ============================================================================
+
+create table if not exists public.activity_logs (
+  id uuid primary key default gen_random_uuid(),
+  board_id uuid not null references public.boards (id) on delete cascade,
+  entity_type text not null check (entity_type in ('item', 'group')),
+  entity_id uuid not null,
+  action_type text not null check (action_type in ('insert', 'update', 'delete')),
+  previous_state jsonb,
+  new_state jsonb,
+  changed_by uuid references public.profiles (id) on delete set null,
+  -- Set once a log entry has been reverted via undo_activity_log(), so the
+  -- UI can hide/disable its Undo button rather than allowing a double-undo
+  -- (the undo itself is a normal write, so it generates its own new log
+  -- entry - this flag is only about not replaying THIS entry twice).
+  undone_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists activity_logs_board_id_idx on public.activity_logs (board_id, created_at desc);
+
+create or replace function public.log_activity()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_board_id uuid;
+  v_entity_id uuid;
+  v_entity_type text;
+  v_prev jsonb;
+  v_new jsonb;
+begin
+  v_entity_type := case tg_table_name
+    when 'items' then 'item'
+    when 'groups' then 'group'
+    else tg_table_name
+  end;
+
+  -- Branched in plain plpgsql (not a single SQL CASE expression) so that
+  -- OLD/NEW are only ever referenced on the operation where Postgres
+  -- actually assigns them - OLD doesn't exist on INSERT, NEW doesn't exist
+  -- on DELETE, and referencing the unassigned one raises at runtime even
+  -- inside a branch that "shouldn't" run, because plpgsql resolves the
+  -- record's fields when binding the query, not when the branch executes.
+  if tg_op = 'DELETE' then
+    v_board_id := old.board_id;
+    v_entity_id := old.id;
+    v_prev := to_jsonb(old);
+    v_new := null;
+  elsif tg_op = 'INSERT' then
+    v_board_id := new.board_id;
+    v_entity_id := new.id;
+    v_prev := null;
+    v_new := to_jsonb(new);
+  else
+    v_board_id := new.board_id;
+    v_entity_id := new.id;
+    v_prev := to_jsonb(old);
+    v_new := to_jsonb(new);
+  end if;
+
+  insert into public.activity_logs (board_id, entity_type, entity_id, action_type, previous_state, new_state, changed_by)
+  values (v_board_id, v_entity_type, v_entity_id, lower(tg_op), v_prev, v_new, auth.uid());
+
+  if tg_op = 'DELETE' then
+    return old;
+  else
+    return new;
+  end if;
+end;
+$$;
+
+drop trigger if exists items_log_activity on public.items;
+create trigger items_log_activity
+  after insert or update or delete on public.items
+  for each row execute function public.log_activity();
+
+drop trigger if exists groups_log_activity on public.groups;
+create trigger groups_log_activity
+  after insert or update or delete on public.groups
+  for each row execute function public.log_activity();
+
+create or replace function public.undo_activity_log(p_log_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_log public.activity_logs;
+begin
+  if not public.is_studio_member() then
+    raise exception 'Not authorized';
+  end if;
+
+  select * into v_log from public.activity_logs where id = p_log_id;
+  if not found then
+    raise exception 'Activity log entry not found';
+  end if;
+  if v_log.undone_at is not null then
+    raise exception 'This action was already undone';
+  end if;
+  -- This function is security definer, so it bypasses the
+  -- items_write_unarchived/groups_write_unarchived RLS policies that
+  -- normally make an archived board read-only - re-check the same
+  -- condition explicitly here so undo can't be used as a backdoor around
+  -- that protection.
+  if exists (select 1 from public.boards b where b.id = v_log.board_id and b.is_archived = true) then
+    raise exception 'Cannot undo changes on an archived board';
+  end if;
+
+  if v_log.entity_type = 'item' then
+    if v_log.action_type = 'insert' then
+      delete from public.items where id = v_log.entity_id;
+    elsif v_log.action_type = 'delete' then
+      insert into public.items select * from jsonb_populate_record(null::public.items, v_log.previous_state);
+    elsif v_log.action_type = 'update' then
+      update public.items set
+        board_id = (v_log.previous_state ->> 'board_id')::uuid,
+        group_id = (v_log.previous_state ->> 'group_id')::uuid,
+        name = v_log.previous_state ->> 'name',
+        person_id = (v_log.previous_state ->> 'person_id')::uuid,
+        deliverable = v_log.previous_state ->> 'deliverable',
+        status = (v_log.previous_state ->> 'status')::public.item_status,
+        status_label = v_log.previous_state ->> 'status_label',
+        serial_id = v_log.previous_state ->> 'serial_id',
+        start_date = (v_log.previous_state ->> 'start_date')::date,
+        due_date = (v_log.previous_state ->> 'due_date')::date,
+        hours = (v_log.previous_state ->> 'hours')::numeric,
+        position = (v_log.previous_state ->> 'position')::integer
+      where id = v_log.entity_id;
+    end if;
+  elsif v_log.entity_type = 'group' then
+    if v_log.action_type = 'insert' then
+      delete from public.groups where id = v_log.entity_id;
+    elsif v_log.action_type = 'delete' then
+      insert into public.groups select * from jsonb_populate_record(null::public.groups, v_log.previous_state);
+    elsif v_log.action_type = 'update' then
+      update public.groups set
+        board_id = (v_log.previous_state ->> 'board_id')::uuid,
+        name = v_log.previous_state ->> 'name',
+        color = v_log.previous_state ->> 'color',
+        position = (v_log.previous_state ->> 'position')::integer,
+        is_collapsed = (v_log.previous_state ->> 'is_collapsed')::boolean
+      where id = v_log.entity_id;
+    end if;
+  end if;
+
+  update public.activity_logs set undone_at = now() where id = p_log_id;
+end;
+$$;
+
+-- ============================================================================
+-- 12. ROW LEVEL SECURITY
 --
 -- Blanket rule: any authenticated row in public.profiles (i.e. any signed-in
 -- studio member — enforced at signup by the domain trigger above) may read
@@ -525,6 +690,7 @@ alter table public.groups enable row level security;
 alter table public.items enable row level security;
 alter table public.project_catalog enable row level security;
 alter table public.time_logs enable row level security;
+alter table public.activity_logs enable row level security;
 
 -- ---- profiles ---------------------------------------------------------
 drop policy if exists "profiles_select_studio" on public.profiles;
@@ -637,8 +803,14 @@ create policy "time_logs_write_own_unarchived" on public.time_logs
     )
   );
 
+-- ---- activity_logs (read-only to clients; only the triggers/RPC above,
+-- both security definer, ever write a row) ------------------------------
+drop policy if exists "activity_logs_select_studio" on public.activity_logs;
+create policy "activity_logs_select_studio" on public.activity_logs
+  for select using (public.is_studio_member());
+
 -- ============================================================================
--- 12. GRANTS
+-- 13. GRANTS
 -- Supabase's `authenticated` role needs explicit table privileges; RLS
 -- policies above still gate every row.
 -- ============================================================================
@@ -654,13 +826,17 @@ grant select, insert, update, delete on
   public.project_catalog,
   public.time_logs
 to authenticated;
+-- activity_logs is select-only for clients: no insert/update/delete grant,
+-- since every row is written by the security definer trigger/RPC above.
+grant select on public.activity_logs to authenticated;
 grant select on public.item_tracked_seconds to authenticated;
 grant execute on function public.rollover_board_month(uuid) to authenticated;
 grant execute on function public.stop_time_log(uuid) to authenticated;
+grant execute on function public.undo_activity_log(uuid) to authenticated;
 grant execute on function public.is_allowed_email(text) to authenticated, anon;
 
 -- ============================================================================
--- 13. REALTIME
+-- 14. REALTIME
 --
 -- Supabase's Realtime service only streams postgres_changes for tables
 -- explicitly added to the `supabase_realtime` publication — a table isn't
@@ -696,6 +872,12 @@ begin
     where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'time_logs'
   ) then
     alter publication supabase_realtime add table public.time_logs;
+  end if;
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'activity_logs'
+  ) then
+    alter publication supabase_realtime add table public.activity_logs;
   end if;
 end $$;
 

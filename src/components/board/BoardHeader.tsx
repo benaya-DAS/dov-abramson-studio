@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { FileSpreadsheet, Lock, Trash2 } from "lucide-react";
+import { FileSpreadsheet, History, Lock, Trash2 } from "lucide-react";
 import NewMonthButton from "./NewMonthButton";
 import CatalogImporter from "./CatalogImporter";
 import ExportButton from "./ExportButton";
 import DeleteBoardButton from "./DeleteBoardButton";
+import ActivityLogDrawer from "./ActivityLogDrawer";
 import type { Item, Profile } from "@/lib/supabase/types";
 
 export default function BoardHeader({
@@ -34,6 +35,7 @@ export default function BoardHeader({
   trackedSecondsByItem: Record<string, number>;
 }) {
   const [showImporter, setShowImporter] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   return (
     <div className="flex flex-wrap items-center gap-3 px-5 pt-4">
@@ -79,6 +81,15 @@ export default function BoardHeader({
         trackedSecondsByItem={trackedSecondsByItem}
       />
 
+      <button
+        onClick={() => setShowHistory(true)}
+        className="flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-night-700 dark:text-slate-300 dark:hover:bg-night-800"
+        title="היסטוריית פעילות"
+      >
+        <History size={14} />
+        היסטוריה
+      </button>
+
       {!isArchived && (
         <>
           <button
@@ -97,6 +108,15 @@ export default function BoardHeader({
       )}
 
       {showImporter && <CatalogImporter onClose={() => setShowImporter(false)} />}
+      {showHistory && (
+        <ActivityLogDrawer
+          boardId={boardId}
+          profiles={profiles}
+          groupNameByGroupId={groupNameByGroupId}
+          readOnly={isArchived}
+          onClose={() => setShowHistory(false)}
+        />
+      )}
     </div>
   );
 }

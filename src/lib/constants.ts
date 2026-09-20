@@ -73,6 +73,24 @@ export const GROUP_COLORS = [
   "#bb3354",
 ];
 
+// Hebrew labels for item/group columns, used by the Activity Log drawer to
+// render a readable "field: old ← new" diff line for update entries.
+export const ACTIVITY_FIELD_LABELS: Record<string, string> = {
+  name: "שם",
+  person_id: "איש צוות",
+  deliverable: "תוצר עיצובי",
+  status: "סטטוס",
+  status_label: "תווית סטטוס",
+  serial_id: 'מס"ד',
+  start_date: "תאריך התחלה",
+  due_date: "תאריך יעד",
+  hours: "שעות",
+  position: "מיקום",
+  group_id: "קבוצה",
+  color: "צבע",
+  is_collapsed: "מכווץ",
+};
+
 export const HEBREW_MONTHS = [
   "ינואר",
   "פברואר",

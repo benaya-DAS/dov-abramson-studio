@@ -95,6 +95,26 @@ export type TimeLog = {
 // enough to identify it, attribute it, and live-tick its elapsed time.
 export type ActiveTimeLog = Pick<TimeLog, "id" | "user_id" | "start_time">;
 
+export type ActivityEntityType = "item" | "group";
+export type ActivityActionType = "insert" | "update" | "delete";
+
+export type ActivityLog = {
+  id: string;
+  board_id: string;
+  entity_type: ActivityEntityType;
+  entity_id: string;
+  action_type: ActivityActionType;
+  // Full row snapshot from the trigger (to_jsonb(OLD)/to_jsonb(NEW)) - keys
+  // match the entity's own column names, so this is intentionally loose
+  // rather than typed as Item/Group (an update only ever changes a few
+  // columns, but the snapshot always carries every column as it stood).
+  previous_state: Record<string, unknown> | null;
+  new_state: Record<string, unknown> | null;
+  changed_by: string | null;
+  undone_at: string | null;
+  created_at: string;
+};
+
 type Relationships = never[];
 
 export interface Database {
@@ -145,6 +165,12 @@ export interface Database {
         Update: Partial<TimeLog>;
         Relationships: Relationships;
       };
+      activity_logs: {
+        Row: ActivityLog;
+        Insert: Partial<ActivityLog>;
+        Update: Partial<ActivityLog>;
+        Relationships: Relationships;
+      };
     };
     Views: {
       item_tracked_seconds: {
@@ -158,6 +184,7 @@ export interface Database {
       // the session was already stopped elsewhere, or p_log_id/user_id no
       // longer line up - so callers must check for that explicitly.
       stop_time_log: { Args: { p_log_id: string }; Returns: TimeLog | null };
+      undo_activity_log: { Args: { p_log_id: string }; Returns: undefined };
       is_allowed_email: { Args: { p_email: string }; Returns: boolean };
     };
     Enums: Record<string, never>;

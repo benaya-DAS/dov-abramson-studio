@@ -70,7 +70,7 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
 
     if (uploadErr) {
       console.error("Failed to upload avatar:", uploadErr);
-      setUploadError("העלאת התמונה נכשלה. נסו שוב.");
+      setUploadError(`העלאת התמונה נכשלה: ${uploadErr.message}`);
       setUploading(false);
       return;
     }
@@ -83,7 +83,7 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
 
     if (updateErr) {
       console.error("Failed to save avatar URL:", updateErr);
-      setUploadError("שמירת התמונה נכשלה. נסו שוב.");
+      setUploadError(`שמירת התמונה נכשלה: ${updateErr.message}`);
       setUploading(false);
       return;
     }

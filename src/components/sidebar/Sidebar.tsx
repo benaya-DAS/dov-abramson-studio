@@ -3,9 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { ChevronDown, ChevronLeft, Archive, LayoutGrid } from "lucide-react";
+import { useRef, useState } from "react";
+import { ChevronDown, ChevronLeft, Archive, GripVertical, LayoutGrid } from "lucide-react";
 import type { WorkspaceWithBoards } from "@/lib/data";
+import type { Board } from "@/lib/supabase/types";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import CreateBoardButton from "./CreateBoardButton";
 import CreateWorkspaceButton from "./CreateWorkspaceButton";
@@ -58,7 +60,46 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
 function WorkspaceItem({ workspace }: { workspace: WorkspaceWithBoards }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(true);
-  const hasActiveBoard = workspace.boards.some((b) => pathname === `/board/${b.id}`);
+  const [boards, setBoards] = useState(workspace.boards);
+  // Resync from the server-provided list whenever it changes (a board
+  // created/renamed/archived elsewhere, a fresh router.refresh()) -
+  // reference inequality is enough here since the parent always hands
+  // down a freshly-fetched array. React's documented "adjusting state
+  // when a prop changes" pattern (compared against state, not a ref -
+  // refs can't be read/written during render).
+  const [prevWorkspaceBoards, setPrevWorkspaceBoards] = useState(workspace.boards);
+  if (prevWorkspaceBoards !== workspace.boards) {
+    setPrevWorkspaceBoards(workspace.boards);
+    setBoards(workspace.boards);
+  }
+
+  const [draggingBoardId, setDraggingBoardId] = useState<string | null>(null);
+  const [dragOverBoardId, setDragOverBoardId] = useState<string | null>(null);
+  const [dragOverPosition, setDragOverPosition] = useState<"before" | "after">("before");
+
+  function reorderBoards(draggedId: string, targetId: string, position: "before" | "after") {
+    if (draggedId === targetId) return;
+    setBoards((prev) => {
+      const ordered = [...prev].sort((a, b) => a.position - b.position);
+      const fromIndex = ordered.findIndex((b) => b.id === draggedId);
+      if (fromIndex === -1) return prev;
+      const [moved] = ordered.splice(fromIndex, 1);
+      // Recompute the target's index after removing the dragged board -
+      // if it moved from earlier in the list, everything after it shifted
+      // back by one.
+      const toIndex = ordered.findIndex((b) => b.id === targetId);
+      if (toIndex === -1) return prev;
+      const insertIndex = position === "after" ? toIndex + 1 : toIndex;
+      ordered.splice(insertIndex, 0, moved);
+      const supabase = createClient();
+      ordered.forEach((b, i) => {
+        if (b.position !== i) supabase.from("boards").update({ position: i }).eq("id", b.id).then();
+      });
+      return ordered.map((b, i) => ({ ...b, position: i }));
+    });
+  }
+
+  const hasActiveBoard = boards.some((b) => pathname === `/board/${b.id}`);
 
   return (
     <li>
@@ -75,28 +116,121 @@ function WorkspaceItem({ workspace }: { workspace: WorkspaceWithBoards }) {
 
       {open && (
         <ul className="mr-4 mt-1 space-y-0.5 border-r border-slate-100 pr-2 dark:border-night-800">
-          {workspace.boards.map((board) => {
-            const active = pathname === `/board/${board.id}`;
-            return (
-              <li key={board.id}>
-                <Link
-                  href={`/board/${board.id}`}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-800",
-                    active && "bg-brand-50 font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"
-                  )}
-                >
-                  <LayoutGrid size={14} className="shrink-0 text-slate-400 dark:text-slate-500" />
-                  <span className="truncate">{board.name}</span>
-                </Link>
-              </li>
-            );
-          })}
+          {boards.map((board) => (
+            <BoardListItem
+              key={board.id}
+              board={board}
+              active={pathname === `/board/${board.id}`}
+              isDragging={draggingBoardId === board.id}
+              isDropTarget={dragOverBoardId === board.id && draggingBoardId !== board.id}
+              dropPosition={dragOverPosition}
+              onDragStart={() => setDraggingBoardId(board.id)}
+              onDragEnd={() => {
+                setDraggingBoardId(null);
+                setDragOverBoardId(null);
+              }}
+              onDragOverRow={(position) => {
+                setDragOverBoardId(board.id);
+                setDragOverPosition(position);
+              }}
+              onDropOnRow={(position) => {
+                if (draggingBoardId) reorderBoards(draggingBoardId, board.id, position);
+                setDraggingBoardId(null);
+                setDragOverBoardId(null);
+              }}
+            />
+          ))}
           <li>
             <CreateBoardButton workspaceId={workspace.id} />
           </li>
         </ul>
       )}
+    </li>
+  );
+}
+
+function BoardListItem({
+  board,
+  active,
+  isDragging,
+  isDropTarget,
+  dropPosition,
+  onDragStart,
+  onDragEnd,
+  onDragOverRow,
+  onDropOnRow,
+}: {
+  board: Board;
+  active: boolean;
+  isDragging: boolean;
+  isDropTarget: boolean;
+  dropPosition: "before" | "after";
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDragOverRow: (position: "before" | "after") => void;
+  onDropOnRow: (position: "before" | "after") => void;
+}) {
+  const rowRef = useRef<HTMLLIElement>(null);
+
+  function edgeFromCursor(clientY: number): "before" | "after" {
+    const rect = rowRef.current?.getBoundingClientRect();
+    return rect && clientY > rect.top + rect.height / 2 ? "after" : "before";
+  }
+
+  return (
+    <li
+      ref={rowRef}
+      className={cn(
+        "group flex items-center gap-0.5 rounded-lg",
+        isDragging && "opacity-40",
+        isDropTarget &&
+          dropPosition === "after" &&
+          "shadow-[inset_0_-2px_0_0_#6366f1] dark:shadow-[inset_0_-2px_0_0_#818cf8]",
+        isDropTarget &&
+          dropPosition !== "after" &&
+          "shadow-[inset_0_2px_0_0_#6366f1] dark:shadow-[inset_0_2px_0_0_#818cf8]"
+      )}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDragOverRow(edgeFromCursor(e.clientY));
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDropOnRow(edgeFromCursor(e.clientY));
+      }}
+    >
+      <button
+        type="button"
+        draggable
+        onDragStart={(e) => {
+          // Show the whole row as the drag preview, anchored to wherever
+          // the cursor actually is on it (not its center) - see the
+          // matching comment in ItemRow.tsx/GroupSection.tsx.
+          if (rowRef.current) {
+            const rect = rowRef.current.getBoundingClientRect();
+            e.dataTransfer.setDragImage(rowRef.current, e.clientX - rect.left, e.clientY - rect.top);
+          }
+          e.dataTransfer.effectAllowed = "move";
+          onDragStart();
+        }}
+        onDragEnd={onDragEnd}
+        title="גרירה לשינוי סדר הלוחות"
+        className="shrink-0 cursor-grab px-0.5 text-slate-300 opacity-0 hover:text-slate-500 group-hover:opacity-100 active:cursor-grabbing dark:text-slate-600 dark:hover:text-slate-400"
+      >
+        <GripVertical size={13} />
+      </button>
+      <Link
+        href={`/board/${board.id}`}
+        className={cn(
+          "flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-800",
+          active && "bg-brand-50 font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"
+        )}
+      >
+        <LayoutGrid size={14} className="shrink-0 text-slate-400 dark:text-slate-500" />
+        <span className="truncate">{board.name}</span>
+      </Link>
     </li>
   );
 }

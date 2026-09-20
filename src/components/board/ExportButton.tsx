@@ -3,7 +3,7 @@
 import { Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { STATUS_LABELS } from "@/lib/constants";
-import { formatDateHe, formatHours } from "@/lib/utils";
+import { formatDateHe, formatDuration, formatHours } from "@/lib/utils";
 import type { Item, Profile } from "@/lib/supabase/types";
 
 export default function ExportButton({
@@ -22,6 +22,7 @@ export default function ExportButton({
   function exportReport() {
     const rows = items.map((item) => {
       const person = profiles.find((p) => p.id === item.person_id);
+      const seconds = trackedSecondsByItem[item.id] ?? 0;
       return {
         קבוצה: groupNameByGroupId[item.group_id] ?? "",
         פריט: item.name,
@@ -33,8 +34,23 @@ export default function ExportButton({
         "תאריך יעד": formatDateHe(item.due_date),
         // Decimal hours from time tracking (e.g. 1h30m -> "1.5") - the same
         // value the Hours column shows on screen, not a manual estimate.
-        שעות: formatHours((trackedSecondsByItem[item.id] ?? 0) / 3600),
+        שעות: formatHours(seconds / 3600),
+        "משך (HH:MM:SS)": formatDuration(seconds),
       };
+    });
+
+    const totalSeconds = items.reduce((sum, item) => sum + (trackedSecondsByItem[item.id] ?? 0), 0);
+    rows.push({
+      קבוצה: "",
+      פריט: "",
+      "איש צוות": "",
+      'תוצר עיצובי': "",
+      סטטוס: "",
+      'מס"ד': "",
+      "תאריך התחלה": "",
+      "תאריך יעד": 'סה"כ',
+      שעות: formatHours(totalSeconds / 3600),
+      "משך (HH:MM:SS)": formatDuration(totalSeconds),
     });
 
     const worksheet = XLSX.utils.json_to_sheet(rows, {
@@ -48,6 +64,7 @@ export default function ExportButton({
         "תאריך התחלה",
         "תאריך יעד",
         "שעות",
+        "משך (HH:MM:SS)",
       ],
     });
     worksheet["!cols"] = [
@@ -60,6 +77,7 @@ export default function ExportButton({
       { wch: 14 },
       { wch: 14 },
       { wch: 8 },
+      { wch: 14 },
     ];
 
     const workbook = XLSX.utils.book_new();

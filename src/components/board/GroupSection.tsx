@@ -186,10 +186,14 @@ export default function GroupSection({
               // Without this, the browser's default drag preview is just
               // the tiny grip icon itself (the only element marked
               // draggable) - dragging the whole visible header instead
-              // makes it obvious what's actually being moved.
+              // makes it obvious what's actually being moved. The offset
+              // is the cursor's own position within the header (not its
+              // center), so the preview stays "held" from the grip's side
+              // under the cursor instead of visually snapping to be
+              // grabbed from the middle of the header.
               if (headerRef.current) {
                 const rect = headerRef.current.getBoundingClientRect();
-                e.dataTransfer.setDragImage(headerRef.current, rect.width / 2, rect.height / 2);
+                e.dataTransfer.setDragImage(headerRef.current, e.clientX - rect.left, e.clientY - rect.top);
               }
               e.dataTransfer.effectAllowed = "move";
               onDragStart?.();

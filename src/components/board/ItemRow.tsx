@@ -143,10 +143,14 @@ export default function ItemRow({
             draggable
             onDragStart={(e) => {
               // Show the whole row as the drag preview, not just this tiny
-              // handle - see the matching comment in GroupSection.tsx.
+              // handle - see the matching comment in GroupSection.tsx. The
+              // offset is the cursor's own position within the row (not
+              // the row's center), so the preview stays "held" from the
+              // grip's side under the cursor instead of visually snapping
+              // to be grabbed from the middle of the row.
               if (rowRef.current) {
                 const rect = rowRef.current.getBoundingClientRect();
-                e.dataTransfer.setDragImage(rowRef.current, rect.width / 2, rect.height / 2);
+                e.dataTransfer.setDragImage(rowRef.current, e.clientX - rect.left, e.clientY - rect.top);
               }
               e.dataTransfer.effectAllowed = "move";
               onDragStart?.();

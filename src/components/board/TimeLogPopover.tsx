@@ -34,15 +34,21 @@ export default function TimeLogPopover({
   const [sessions, setSessions] = useState<TimeLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingSession, setEditingSession] = useState<TimeLog | "new" | null>(null);
-  // The most recently deleted session, kept around just long enough to
-  // offer an undo instead of a native confirm() dialog before deleting.
-  const [pendingUndo, setPendingUndo] = useState<TimeLog | null>(null);
+  // The most recently deleted session's id. The row itself stays in
+  // `sessions` (and in its same position in the list) until the timeout
+  // below actually drops it - rendered as an undo placeholder in the
+  // meantime, rather than a banner elsewhere in the popover, so "undo"
+  // reads as "put this exact row back" instead of a generic notice.
+  const [deletedId, setDeletedId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!pendingUndo) return;
-    const timer = setTimeout(() => setPendingUndo(null), 6000);
+    if (!deletedId) return;
+    const timer = setTimeout(() => {
+      setSessions((prev) => prev.filter((s) => s.id !== deletedId));
+      setDeletedId(null);
+    }, 6000);
     return () => clearTimeout(timer);
-  }, [pendingUndo]);
+  }, [deletedId]);
 
   function close() {
     blurActiveElement();
@@ -69,25 +75,25 @@ export default function TimeLogPopover({
   }, [fetchSessions]);
 
   async function handleDelete(session: TimeLog) {
-    // Deletes immediately - no native confirm() dialog - and offers undo
-    // instead (a fresh delete replaces whatever undo was already pending,
-    // matching a standard single-slot toast).
-    setSessions((prev) => prev.filter((s) => s.id !== session.id));
+    // Deletes immediately - no native confirm() dialog. The row stays put
+    // (see deletedId) rendered as an undo placeholder for 6 seconds
+    // instead of disappearing right away. Only one row can be "pending
+    // removal" at a time, so finalize whichever one already was first.
+    if (deletedId) setSessions((prev) => prev.filter((s) => s.id !== deletedId));
+    setDeletedId(session.id);
     const supabase = createClient();
     const { error } = await supabase.from("time_logs").delete().eq("id", session.id);
     if (error) {
       console.error("Failed to delete time session:", error);
+      setDeletedId(null);
       fetchSessions();
       return;
     }
-    setPendingUndo(session);
     onChanged();
   }
 
-  async function handleUndoDelete() {
-    if (!pendingUndo) return;
-    const session = pendingUndo;
-    setPendingUndo(null);
+  async function handleUndoDelete(session: TimeLog) {
+    setDeletedId(null);
     const supabase = createClient();
     // A fresh row (new id) with the same item/user/start/end - end_time
     // null vs. set decides whether it comes back as active or completed,
@@ -134,18 +140,6 @@ export default function TimeLogPopover({
               </button>
             </div>
 
-            {pendingUndo && (
-              <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-2 dark:border-night-700 dark:bg-night-900/40">
-                <span className="text-xs text-slate-500 dark:text-slate-400">הרישום נמחק</span>
-                <button
-                  onClick={handleUndoDelete}
-                  className="text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
-                >
-                  ביטול
-                </button>
-              </div>
-            )}
-
             {!readOnly && currentUserId && (
               <div className="border-b border-slate-100 p-2 dark:border-night-700">
                 <button
@@ -168,6 +162,23 @@ export default function TimeLogPopover({
               ) : (
                 <ul>
                   {sessions.map((s) => {
+                    if (s.id === deletedId) {
+                      return (
+                        <li
+                          key={s.id}
+                          className="flex items-center justify-between gap-2 border-b border-slate-50 bg-slate-50 px-4 py-2 last:border-0 dark:border-night-700/60 dark:bg-night-900/40"
+                        >
+                          <span className="text-xs text-slate-500 dark:text-slate-400">הרישום נמחק</span>
+                          <button
+                            onClick={() => handleUndoDelete(s)}
+                            className="text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+                          >
+                            ביטול
+                          </button>
+                        </li>
+                      );
+                    }
+
                     const person = profiles.find((p) => p.id === s.user_id);
                     const isOwn = s.user_id === currentUserId;
                     // Any row with a null end_time is a currently-running

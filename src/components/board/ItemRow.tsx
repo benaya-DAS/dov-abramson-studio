@@ -116,6 +116,14 @@ export default function ItemRow({
         onDragOverRow
           ? (e) => {
               e.preventDefault();
+              // Without this, the event bubbles up to the group wrapper's
+              // own onDragOver (GroupSection's handleHeaderDragOver), which
+              // would immediately overwrite this row's precise
+              // above/below position with "append at the end of the
+              // group" on every single row hover - the row itself is
+              // always the more specific target once it's the one
+              // handling the event.
+              e.stopPropagation();
               onDragOverRow(edgeFromCursor(e.clientY));
             }
           : undefined
@@ -123,6 +131,7 @@ export default function ItemRow({
       onDrop={(e) => {
         if (onDropOnRow) {
           e.preventDefault();
+          e.stopPropagation();
           onDropOnRow(edgeFromCursor(e.clientY));
         }
       }}

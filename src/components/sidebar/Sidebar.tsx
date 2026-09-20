@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, Archive, GripVertical, LayoutGrid } from "lucide-react";
+import { ChevronDown, ChevronLeft, Archive, LayoutGrid } from "lucide-react";
 import type { WorkspaceWithBoards } from "@/lib/data";
 import type { Board } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
@@ -181,7 +181,7 @@ function BoardListItem({
     <li
       ref={rowRef}
       className={cn(
-        "group flex items-center gap-0.5 rounded-lg",
+        "rounded-lg",
         isDragging && "opacity-40",
         isDropTarget &&
           dropPosition === "after" &&
@@ -192,22 +192,25 @@ function BoardListItem({
       )}
       onDragOver={(e) => {
         e.preventDefault();
-        e.stopPropagation();
         onDragOverRow(edgeFromCursor(e.clientY));
       }}
       onDrop={(e) => {
         e.preventDefault();
-        e.stopPropagation();
         onDropOnRow(edgeFromCursor(e.clientY));
       }}
     >
-      <button
-        type="button"
+      <Link
+        href={`/board/${board.id}`}
         draggable
         onDragStart={(e) => {
           // Show the whole row as the drag preview, anchored to wherever
           // the cursor actually is on it (not its center) - see the
-          // matching comment in ItemRow.tsx/GroupSection.tsx.
+          // matching comment in ItemRow.tsx/GroupSection.tsx. Dragging
+          // the row itself (no separate grip handle needed here, unlike
+          // the board table) works fine alongside the plain click-to-
+          // navigate: a native dragstart only fires once the pointer has
+          // actually moved past a threshold, so a simple click is
+          // unaffected.
           if (rowRef.current) {
             const rect = rowRef.current.getBoundingClientRect();
             e.dataTransfer.setDragImage(rowRef.current, e.clientX - rect.left, e.clientY - rect.top);
@@ -216,15 +219,8 @@ function BoardListItem({
           onDragStart();
         }}
         onDragEnd={onDragEnd}
-        title="גרירה לשינוי סדר הלוחות"
-        className="shrink-0 cursor-grab px-0.5 text-slate-300 opacity-0 hover:text-slate-500 group-hover:opacity-100 active:cursor-grabbing dark:text-slate-600 dark:hover:text-slate-400"
-      >
-        <GripVertical size={13} />
-      </button>
-      <Link
-        href={`/board/${board.id}`}
         className={cn(
-          "flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-800",
+          "flex cursor-grab items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 active:cursor-grabbing dark:text-slate-300 dark:hover:bg-night-800",
           active && "bg-brand-50 font-semibold text-brand-700 dark:bg-brand-900/40 dark:text-brand-300"
         )}
       >

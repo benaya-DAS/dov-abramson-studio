@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, Archive, LayoutGrid } from "lucide-react";
 import type { WorkspaceWithBoards } from "@/lib/data";
 import type { Board } from "@/lib/supabase/types";
@@ -12,9 +12,68 @@ import { cn } from "@/lib/utils";
 import CreateBoardButton from "./CreateBoardButton";
 import CreateWorkspaceButton from "./CreateWorkspaceButton";
 
+const MIN_WIDTH = 220;
+const MAX_WIDTH = 480;
+const DEFAULT_WIDTH = 288; // matches the old fixed w-72 (18rem)
+const STORAGE_KEY = "sidebar-width";
+
+function clampWidth(width: number) {
+  return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, width));
+}
+
 export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoards[] }) {
+  const [width, setWidth] = useState(DEFAULT_WIDTH);
+  const [resizing, setResizing] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      const parsed = stored ? Number(stored) : NaN;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (Number.isFinite(parsed)) setWidth(clampWidth(parsed));
+    } catch {
+      // Private browsing / storage blocked - just keep the default width.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!resizing) return;
+    function handleMouseMove(e: MouseEvent) {
+      // RTL layout: the sidebar sits flush against the right edge of the
+      // viewport, so its width is the distance from the viewport's right
+      // edge to the cursor - dragging the handle (on the sidebar's left
+      // edge) further left makes it wider.
+      setWidth(clampWidth(window.innerWidth - e.clientX));
+    }
+    function handleMouseUp() {
+      setResizing(false);
+      setWidth((w) => {
+        try {
+          localStorage.setItem(STORAGE_KEY, String(w));
+        } catch {
+          // Private browsing / storage blocked - the width still applies
+          // for this session, just won't persist across reloads.
+        }
+        return w;
+      });
+    }
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [resizing]);
+
   return (
-    <aside className="flex h-screen w-72 shrink-0 flex-col border-l border-slate-200 bg-white dark:border-night-700 dark:bg-night-900">
+    <aside
+      style={{ width }}
+      className="relative flex h-screen shrink-0 flex-col border-l border-slate-200 bg-white dark:border-night-700 dark:bg-night-900"
+    >
       {/* h-16 matches TopBar.tsx's own h-16 exactly, so this header's
        * border-b lands on the same Y as the top bar's border-b instead of
        * sitting a few px lower (py-4 here vs. a fixed height there) - the
@@ -53,6 +112,20 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
           ארכיון לוחות
         </Link>
       </div>
+
+      {/* -translate-x-1/2 straddles the handle over the border-l above, so
+       * the hit area isn't confined to one pixel-wide line. */}
+      <div
+        onMouseDown={(e) => {
+          e.preventDefault();
+          setResizing(true);
+        }}
+        title="גרירה לשינוי רוחב הסיידבר"
+        className={cn(
+          "absolute inset-y-0 left-0 z-10 w-1.5 -translate-x-1/2 cursor-col-resize transition-colors",
+          resizing ? "bg-brand-400/60 dark:bg-brand-500/40" : "hover:bg-brand-300/50 dark:hover:bg-brand-500/30"
+        )}
+      />
     </aside>
   );
 }

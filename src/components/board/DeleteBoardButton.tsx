@@ -38,7 +38,7 @@ export default function DeleteBoardButton({
 
     if (error) {
       console.error("Failed to delete board:", error);
-      setError("מחיקת הלוח נכשלה. נסו שוב.");
+      setError(`מחיקת הלוח נכשלה: ${error.message}`);
       setLoading(false);
       return;
     }

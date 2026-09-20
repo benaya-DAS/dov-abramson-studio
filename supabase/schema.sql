@@ -581,6 +581,23 @@ begin
     v_new := to_jsonb(new);
   end if;
 
+  -- Skip logging when the parent board no longer exists. This matters for
+  -- deleting a board itself: that cascades (on delete cascade) into its
+  -- groups and items, which fires THIS trigger for each cascaded row - but
+  -- by then the boards row is already gone from this transaction's view
+  -- (the cascade's nested delete runs after a command-counter increment
+  -- that makes it so), so an insert here referencing that board_id would
+  -- violate activity_logs' own FK and abort the whole board deletion.
+  -- There's no history worth keeping for a board that no longer exists
+  -- anyway.
+  if not exists (select 1 from public.boards b where b.id = v_board_id) then
+    if tg_op = 'DELETE' then
+      return old;
+    else
+      return new;
+    end if;
+  end if;
+
   insert into public.activity_logs (board_id, entity_type, entity_id, action_type, previous_state, new_state, changed_by)
   values (v_board_id, v_entity_type, v_entity_id, lower(tg_op), v_prev, v_new, auth.uid());
 

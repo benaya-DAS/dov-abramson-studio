@@ -120,6 +120,13 @@ security definer
 set search_path = public
 as $$
 begin
+  -- avatar_url is deliberately NOT in the on-conflict SET list below: this
+  -- function fires on every sign-in (on_auth_user_updated, whenever
+  -- Google refreshes raw_user_meta_data), not just the first one. Setting
+  -- it there would silently overwrite a photo the user uploaded
+  -- themselves (UserMenu's avatar upload) with Google's picture on their
+  -- very next login. It's only ever set here on the initial INSERT, i.e.
+  -- the first time this profile row is created.
   insert into public.profiles (id, email, full_name, avatar_url)
   values (
     new.id,
@@ -130,7 +137,6 @@ begin
   on conflict (id) do update
     set email = excluded.email,
         full_name = excluded.full_name,
-        avatar_url = excluded.avatar_url,
         updated_at = now();
   return new;
 end;

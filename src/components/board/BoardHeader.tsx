@@ -89,7 +89,10 @@ export default function BoardHeader({
             ייבוא קטלוג
           </button>
           <NewMonthButton boardId={boardId} boardName={boardName} />
-          <DeleteBoardButton boardId={boardId} boardName={boardName} />
+          {/* Only offered on an empty board - deleting a board that still
+           * has items is far more likely to be a costly mistake than an
+           * intentional cleanup. */}
+          {items.length === 0 && <DeleteBoardButton boardId={boardId} boardName={boardName} />}
         </>
       )}
 

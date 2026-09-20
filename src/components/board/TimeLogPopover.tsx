@@ -34,6 +34,15 @@ export default function TimeLogPopover({
   const [sessions, setSessions] = useState<TimeLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingSession, setEditingSession] = useState<TimeLog | "new" | null>(null);
+  // The most recently deleted session, kept around just long enough to
+  // offer an undo instead of a native confirm() dialog before deleting.
+  const [pendingUndo, setPendingUndo] = useState<TimeLog | null>(null);
+
+  useEffect(() => {
+    if (!pendingUndo) return;
+    const timer = setTimeout(() => setPendingUndo(null), 6000);
+    return () => clearTimeout(timer);
+  }, [pendingUndo]);
 
   function close() {
     blurActiveElement();
@@ -59,12 +68,38 @@ export default function TimeLogPopover({
     fetchSessions();
   }, [fetchSessions]);
 
-  async function handleDelete(id: string) {
-    if (!confirm("למחוק את הרישום הזה?")) return;
+  async function handleDelete(session: TimeLog) {
+    // Deletes immediately - no native confirm() dialog - and offers undo
+    // instead (a fresh delete replaces whatever undo was already pending,
+    // matching a standard single-slot toast).
+    setSessions((prev) => prev.filter((s) => s.id !== session.id));
     const supabase = createClient();
-    const { error } = await supabase.from("time_logs").delete().eq("id", id);
+    const { error } = await supabase.from("time_logs").delete().eq("id", session.id);
     if (error) {
       console.error("Failed to delete time session:", error);
+      fetchSessions();
+      return;
+    }
+    setPendingUndo(session);
+    onChanged();
+  }
+
+  async function handleUndoDelete() {
+    if (!pendingUndo) return;
+    const session = pendingUndo;
+    setPendingUndo(null);
+    const supabase = createClient();
+    // A fresh row (new id) with the same item/user/start/end - end_time
+    // null vs. set decides whether it comes back as active or completed,
+    // and duration_seconds is recomputed by the usual trigger either way.
+    const { error } = await supabase.from("time_logs").insert({
+      item_id: session.item_id,
+      user_id: session.user_id,
+      start_time: session.start_time,
+      end_time: session.end_time,
+    });
+    if (error) {
+      console.error("Failed to undo time session delete:", error);
       return;
     }
     fetchSessions();
@@ -98,6 +133,18 @@ export default function TimeLogPopover({
                 <X size={14} />
               </button>
             </div>
+
+            {pendingUndo && (
+              <div className="flex items-center justify-between gap-2 border-b border-slate-100 bg-slate-50 px-4 py-2 dark:border-night-700 dark:bg-night-900/40">
+                <span className="text-xs text-slate-500 dark:text-slate-400">הרישום נמחק</span>
+                <button
+                  onClick={handleUndoDelete}
+                  className="text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+                >
+                  ביטול
+                </button>
+              </div>
+            )}
 
             {!readOnly && currentUserId && (
               <div className="border-b border-slate-100 p-2 dark:border-night-700">
@@ -158,7 +205,7 @@ export default function TimeLogPopover({
                         </button>
                         {editable && (
                           <button
-                            onClick={() => handleDelete(s.id)}
+                            onClick={() => handleDelete(s)}
                             className="text-slate-300 hover:text-red-500 dark:text-slate-600 dark:hover:text-red-400"
                             title="מחיקת רישום"
                           >

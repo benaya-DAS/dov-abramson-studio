@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import * as XLSX from "xlsx";
 import { Plus, Trash2, X } from "lucide-react";
 import { Avatar } from "@/components/topbar/UserMenu";
 import { createClient } from "@/lib/supabase/client";
@@ -72,62 +71,6 @@ export default function TimeLogPopover({
     onChanged();
   }
 
-  async function handleClear() {
-    if (!currentUserId) return;
-    if (!confirm("למחוק את כל הרישומים שלכם עבור הפריט הזה? לא ניתן לבטל פעולה זו.")) return;
-    const supabase = createClient();
-    // Scoped to the current user regardless — RLS only ever permits
-    // deleting your own sessions, so this can't touch anyone else's.
-    const { error } = await supabase
-      .from("time_logs")
-      .delete()
-      .eq("item_id", itemId)
-      .eq("user_id", currentUserId);
-    if (error) {
-      console.error("Failed to clear time sessions:", error);
-      return;
-    }
-    fetchSessions();
-    onChanged();
-  }
-
-  function handleExport() {
-    const rows = sessions.map((s) => {
-      const person = profiles.find((p) => p.id === s.user_id);
-      return {
-        "איש צוות": person?.full_name || person?.email || "",
-        תאריך: formatSessionDate(s.start_time),
-        התחלה: formatSessionTime(s.start_time),
-        סיום: s.end_time ? formatSessionTime(s.end_time) : "פעיל כעת",
-        "משך (HH:MM:SS)": s.duration_seconds != null ? formatDuration(s.duration_seconds) : "",
-        "משך (שעות)": s.duration_seconds != null ? (s.duration_seconds / 3600).toFixed(2) : "",
-      };
-    });
-
-    // Only completed sessions have a duration_seconds to sum (an active
-    // one is still null - the trigger that fills it in only runs once
-    // end_time is set) - so this total is "accumulated so far", the same
-    // as what every row above it actually shows, not counting whatever's
-    // still ticking on a currently-running session.
-    const totalSecondsFromSessions = sessions.reduce((sum, s) => sum + (s.duration_seconds ?? 0), 0);
-    rows.push({
-      "איש צוות": "",
-      תאריך: "",
-      התחלה: "",
-      סיום: 'סה"כ',
-      "משך (HH:MM:SS)": formatDuration(totalSecondsFromSessions),
-      "משך (שעות)": (totalSecondsFromSessions / 3600).toFixed(2),
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(rows, {
-      header: ["איש צוות", "תאריך", "התחלה", "סיום", "משך (HH:MM:SS)", "משך (שעות)"],
-    });
-    worksheet["!cols"] = [{ wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 12 }];
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "יומן זמן");
-    XLSX.writeFile(workbook, "יומן-מעקב-זמן.xlsx");
-  }
-
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={close} />
@@ -151,26 +94,9 @@ export default function TimeLogPopover({
           <>
             <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-night-700">
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">יומן מעקב זמן</h3>
-              <div className="flex items-center gap-3">
-                {sessions.length > 0 && !readOnly && currentUserId && (
-                  <button
-                    onClick={handleClear}
-                    className="text-xs font-medium text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400"
-                  >
-                    ניקוי
-                  </button>
-                )}
-                <button
-                  onClick={handleExport}
-                  disabled={sessions.length === 0}
-                  className="text-xs font-medium text-slate-400 hover:text-brand-600 disabled:opacity-40 dark:text-slate-500 dark:hover:text-brand-400"
-                >
-                  ייצוא לאקסל
-                </button>
-                <button onClick={close} className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300">
-                  <X size={14} />
-                </button>
-              </div>
+              <button onClick={close} className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300">
+                <X size={14} />
+              </button>
             </div>
 
             {!readOnly && currentUserId && (

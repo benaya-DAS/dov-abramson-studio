@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, Archive, LayoutGrid } from "lucide-react";
 import type { WorkspaceWithBoards } from "@/lib/data";
@@ -15,26 +15,43 @@ import CreateWorkspaceButton from "./CreateWorkspaceButton";
 const MIN_WIDTH = 220;
 const MAX_WIDTH = 480;
 const DEFAULT_WIDTH = 288; // matches the old fixed w-72 (18rem)
-const STORAGE_KEY = "sidebar-width";
+// Dragging the handle narrower than this snaps the sidebar fully closed,
+// rather than letting it shrink down to something unusably thin.
+const COLLAPSE_THRESHOLD = 160;
+const COLLAPSED_RAIL_WIDTH = 28;
+const WIDTH_STORAGE_KEY = "sidebar-width";
+const COLLAPSED_STORAGE_KEY = "sidebar-collapsed";
 
 function clampWidth(width: number) {
   return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, width));
 }
 
 export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoards[] }) {
+  const router = useRouter();
   const [width, setWidth] = useState(DEFAULT_WIDTH);
+  const [collapsed, setCollapsed] = useState(false);
   const [resizing, setResizing] = useState(false);
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      const parsed = stored ? Number(stored) : NaN;
+      const storedWidth = localStorage.getItem(WIDTH_STORAGE_KEY);
+      const parsedWidth = storedWidth ? Number(storedWidth) : NaN;
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (Number.isFinite(parsed)) setWidth(clampWidth(parsed));
+      if (Number.isFinite(parsedWidth)) setWidth(clampWidth(parsedWidth));
+      if (localStorage.getItem(COLLAPSED_STORAGE_KEY) === "1") setCollapsed(true);
     } catch {
-      // Private browsing / storage blocked - just keep the default width.
+      // Private browsing / storage blocked - just keep the defaults.
     }
   }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(COLLAPSED_STORAGE_KEY, collapsed ? "1" : "0");
+    } catch {
+      // Private browsing / storage blocked - the state still applies for
+      // this session, just won't persist across reloads.
+    }
+  }, [collapsed]);
 
   useEffect(() => {
     if (!resizing) return;
@@ -42,14 +59,20 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
       // RTL layout: the sidebar sits flush against the right edge of the
       // viewport, so its width is the distance from the viewport's right
       // edge to the cursor - dragging the handle (on the sidebar's left
-      // edge) further left makes it wider.
-      setWidth(clampWidth(window.innerWidth - e.clientX));
+      // edge) further left makes it wider. Recomputed fresh from `raw`
+      // every move (not read from the `collapsed` state) so this closure
+      // - which only gets rebuilt when `resizing` changes - can't act on a
+      // stale value while the drag crosses the threshold back and forth.
+      const raw = window.innerWidth - e.clientX;
+      const shouldCollapse = raw < COLLAPSE_THRESHOLD;
+      setCollapsed(shouldCollapse);
+      if (!shouldCollapse) setWidth(clampWidth(raw));
     }
     function handleMouseUp() {
       setResizing(false);
       setWidth((w) => {
         try {
-          localStorage.setItem(STORAGE_KEY, String(w));
+          localStorage.setItem(WIDTH_STORAGE_KEY, String(w));
         } catch {
           // Private browsing / storage blocked - the width still applies
           // for this session, just won't persist across reloads.
@@ -69,6 +92,24 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
     };
   }, [resizing]);
 
+  if (collapsed) {
+    return (
+      <aside
+        style={{ width: COLLAPSED_RAIL_WIDTH }}
+        className="flex h-screen shrink-0 flex-col border-l border-slate-200 bg-white dark:border-night-700 dark:bg-night-900"
+      >
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          title="פתיחת הסיידבר"
+          className="flex h-full w-full flex-col items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-night-800 dark:hover:text-slate-300"
+        >
+          <ChevronLeft size={16} />
+        </button>
+      </aside>
+    );
+  }
+
   return (
     <aside
       style={{ width }}
@@ -78,7 +119,12 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
        * border-b lands on the same Y as the top bar's border-b instead of
        * sitting a few px lower (py-4 here vs. a fixed height there) - the
        * two rules read as one continuous line across the top of the app. */}
-      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-4 dark:border-night-700">
+      <button
+        type="button"
+        onClick={() => router.refresh()}
+        title="רענון הדף"
+        className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-4 text-right hover:bg-slate-50 dark:border-night-700 dark:hover:bg-night-800"
+      >
         <Image
           src="/web-app-manifest-512x512.png"
           alt="סטודיו דוב אברמסון"
@@ -90,7 +136,7 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
           <p className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">סטודיו דוב אברמסון</p>
           <p className="text-xs text-slate-400 dark:text-slate-500">ניהול פרויקטים</p>
         </div>
-      </div>
+      </button>
 
       <nav className="flex-1 overflow-y-auto px-2 py-3">
         <ul className="space-y-1">
@@ -120,7 +166,7 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
           e.preventDefault();
           setResizing(true);
         }}
-        title="גרירה לשינוי רוחב הסיידבר"
+        title="גרירה לשינוי רוחב הסיידבר (או גרירה שמאלה עד הסוף כדי לסגור)"
         className={cn(
           "absolute inset-y-0 left-0 z-10 w-1.5 -translate-x-1/2 cursor-col-resize transition-colors",
           resizing ? "bg-brand-400/60 dark:bg-brand-500/40" : "hover:bg-brand-300/50 dark:hover:bg-brand-500/30"

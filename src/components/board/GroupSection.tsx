@@ -153,7 +153,24 @@ export default function GroupSection({
   }
 
   return (
-    <div className={cn("mb-4", isDragging && "opacity-40")} onDragOver={handleHeaderDragOver} onDrop={handleHeaderDrop}>
+    <div
+      className={cn("relative mb-4", isDragging && "opacity-40")}
+      onDragOver={handleHeaderDragOver}
+      onDrop={handleHeaderDrop}
+    >
+      {/* Reordering groups shows its insertion line in the gap above/below
+       * this whole block (i.e. between groups), not on the header itself -
+       * appending an item INTO this group (isHeaderItemDropTarget below)
+       * is a different kind of target and stays a highlight on the header,
+       * since that one really does mean "goes inside this group". */}
+      {isDropTarget && (
+        <div
+          className={cn(
+            "absolute inset-x-1 z-10 h-0.5 rounded-full bg-brand-500 dark:bg-brand-400",
+            dragOverGroupPosition === "after" ? "-bottom-2.5" : "-top-2.5"
+          )}
+        />
+      )}
       {/* A plain div, not a <button>, wrapping the row: the name field below
        * is a real <input> when the group is renameable, and interactive
        * content (an input, another button) can't legally nest inside a
@@ -164,15 +181,8 @@ export default function GroupSection({
         ref={headerRef}
         className={cn(
           "flex w-full items-center gap-2 rounded-t-lg px-3 py-2 transition",
-          // A thin inset line on the edge the dragged group would land on
-          // (or a bottom line while an item is about to be appended into
-          // this group) rather than a box/ring overlay around the header.
-          isDropTarget &&
-            dragOverGroupPosition === "after" &&
-            "shadow-[inset_0_-2px_0_0_#6366f1] dark:shadow-[inset_0_-2px_0_0_#818cf8]",
-          isDropTarget &&
-            dragOverGroupPosition !== "after" &&
-            "shadow-[inset_0_2px_0_0_#6366f1] dark:shadow-[inset_0_2px_0_0_#818cf8]",
+          // A bottom line while an item is about to be appended into this
+          // group, rather than a box/ring overlay around the header.
           isHeaderItemDropTarget &&
             "shadow-[inset_0_-2px_0_0_#6366f1] dark:shadow-[inset_0_-2px_0_0_#818cf8]"
         )}

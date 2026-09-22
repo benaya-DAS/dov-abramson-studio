@@ -9,6 +9,7 @@ import type { WorkspaceWithBoards } from "@/lib/data";
 import type { Board } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
+import { useSidebarState } from "./SidebarStateContext";
 import CreateBoardButton from "./CreateBoardButton";
 import CreateWorkspaceButton from "./CreateWorkspaceButton";
 
@@ -20,7 +21,6 @@ const DEFAULT_WIDTH = 288; // matches the old fixed w-72 (18rem)
 const COLLAPSE_THRESHOLD = 160;
 const COLLAPSED_RAIL_WIDTH = 28;
 const WIDTH_STORAGE_KEY = "sidebar-width";
-const COLLAPSED_STORAGE_KEY = "sidebar-collapsed";
 
 function clampWidth(width: number) {
   return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, width));
@@ -29,7 +29,9 @@ function clampWidth(width: number) {
 export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoards[] }) {
   const router = useRouter();
   const [width, setWidth] = useState(DEFAULT_WIDTH);
-  const [collapsed, setCollapsed] = useState(false);
+  // Shared with CollapsedSidebarLogo (rendered inside TopBar) via context,
+  // not local state - see SidebarStateContext.tsx for why.
+  const { collapsed, setCollapsed } = useSidebarState();
   const [resizing, setResizing] = useState(false);
 
   useEffect(() => {
@@ -38,20 +40,10 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
       const parsedWidth = storedWidth ? Number(storedWidth) : NaN;
       // eslint-disable-next-line react-hooks/set-state-in-effect
       if (Number.isFinite(parsedWidth)) setWidth(clampWidth(parsedWidth));
-      if (localStorage.getItem(COLLAPSED_STORAGE_KEY) === "1") setCollapsed(true);
     } catch {
-      // Private browsing / storage blocked - just keep the defaults.
+      // Private browsing / storage blocked - just keep the default.
     }
   }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(COLLAPSED_STORAGE_KEY, collapsed ? "1" : "0");
-    } catch {
-      // Private browsing / storage blocked - the state still applies for
-      // this session, just won't persist across reloads.
-    }
-  }, [collapsed]);
 
   useEffect(() => {
     if (!resizing) return;
@@ -90,7 +82,7 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [resizing]);
+  }, [resizing, setCollapsed]);
 
   if (collapsed) {
     return (

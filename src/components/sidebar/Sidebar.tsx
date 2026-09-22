@@ -9,41 +9,28 @@ import type { WorkspaceWithBoards } from "@/lib/data";
 import type { Board } from "@/lib/supabase/types";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { useSidebarState } from "./SidebarStateContext";
+import { clampWidth, useSidebarState } from "./SidebarStateContext";
 import CreateBoardButton from "./CreateBoardButton";
 import CreateWorkspaceButton from "./CreateWorkspaceButton";
 
-const MIN_WIDTH = 220;
-const MAX_WIDTH = 480;
-const DEFAULT_WIDTH = 288; // matches the old fixed w-72 (18rem)
 // Dragging the handle narrower than this snaps the sidebar fully closed,
 // rather than letting it shrink down to something unusably thin.
 const COLLAPSE_THRESHOLD = 160;
 const COLLAPSED_RAIL_WIDTH = 28;
-const WIDTH_STORAGE_KEY = "sidebar-width";
-
-function clampWidth(width: number) {
-  return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, width));
-}
 
 export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoards[] }) {
   const router = useRouter();
-  const [width, setWidth] = useState(DEFAULT_WIDTH);
   // Shared with CollapsedSidebarLogo (rendered inside TopBar) via context,
   // not local state - see SidebarStateContext.tsx for why.
-  const { collapsed, setCollapsed } = useSidebarState();
+  const { collapsed, width, setCollapsed, setWidthLive, commitWidth } = useSidebarState();
   const [resizing, setResizing] = useState(false);
-
-  useEffect(() => {
-    try {
-      const storedWidth = localStorage.getItem(WIDTH_STORAGE_KEY);
-      const parsedWidth = storedWidth ? Number(storedWidth) : NaN;
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (Number.isFinite(parsedWidth)) setWidth(clampWidth(parsedWidth));
-    } catch {
-      // Private browsing / storage blocked - just keep the default.
-    }
-  }, []);
+  // Tracks the latest live width during a drag, for handleMouseUp to
+  // commit - the effect below only rebuilds when `resizing` changes (on
+  // purpose, so it doesn't tear down/re-add window listeners dozens of
+  // times per second while dragging), so its closures can't just read the
+  // `width` from context without risking a stale value from whenever the
+  // drag started.
+  const latestWidthRef = useRef(width);
 
   useEffect(() => {
     if (!resizing) return;
@@ -58,19 +45,15 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
       const raw = window.innerWidth - e.clientX;
       const shouldCollapse = raw < COLLAPSE_THRESHOLD;
       setCollapsed(shouldCollapse);
-      if (!shouldCollapse) setWidth(clampWidth(raw));
+      if (!shouldCollapse) {
+        const clamped = clampWidth(raw);
+        latestWidthRef.current = clamped;
+        setWidthLive(clamped);
+      }
     }
     function handleMouseUp() {
       setResizing(false);
-      setWidth((w) => {
-        try {
-          localStorage.setItem(WIDTH_STORAGE_KEY, String(w));
-        } catch {
-          // Private browsing / storage blocked - the width still applies
-          // for this session, just won't persist across reloads.
-        }
-        return w;
-      });
+      commitWidth(latestWidthRef.current);
     }
     document.body.style.cursor = "col-resize";
     document.body.style.userSelect = "none";
@@ -82,7 +65,7 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [resizing, setCollapsed]);
+  }, [resizing, setCollapsed, setWidthLive, commitWidth]);
 
   return (
     <aside
@@ -157,6 +140,11 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
           <div
             onMouseDown={(e) => {
               e.preventDefault();
+              // Resync before the drag starts, in case width changed from
+              // outside a drag since this ref's last write (e.g. the
+              // wider-reopen bump in setCollapsed) - otherwise a drag with
+              // no mousemove before mouseup would commit a stale value.
+              latestWidthRef.current = width;
               setResizing(true);
             }}
             title="גרירה לשינוי רוחב הסיידבר (או גרירה שמאלה עד הסוף כדי לסגור)"
@@ -315,6 +303,7 @@ function BoardListItem({
     >
       <Link
         href={`/board/${board.id}`}
+        title={board.name}
         draggable
         onDragStart={(e) => {
           // Show the whole row as the drag preview, anchored to wherever

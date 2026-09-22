@@ -99,10 +99,22 @@ export default function FloatingPanel({
     // overflow-x-auto wrapper, not just window-level scrolling.
     window.addEventListener("scroll", update, true);
     window.addEventListener("resize", update);
+
+    // The panel's own content can change size after the initial
+    // positioning - e.g. TimeLogPopover swapping its short session list
+    // for SessionEditView's much taller calendar - without any window
+    // scroll/resize event firing. Without this, the flip-above/clamp
+    // logic above never reruns against the new size, so a panel that
+    // grows downward can end up with its bottom clipped off the
+    // viewport with no way to reach it.
+    const resizeObserver = new ResizeObserver(update);
+    if (panelRef.current) resizeObserver.observe(panelRef.current);
+
     return () => {
       cancelled = true;
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
+      resizeObserver.disconnect();
     };
   }, [anchorRef, align, gap]);
 

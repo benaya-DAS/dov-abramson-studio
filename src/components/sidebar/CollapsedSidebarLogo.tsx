@@ -15,19 +15,32 @@ export default function CollapsedSidebarLogo() {
   const { collapsed, setCollapsed } = useSidebarState();
   const [entered, setEntered] = useState(false);
 
+  // This component doesn't unmount while expanded - it stays mounted the
+  // whole time and just renders null (see the early return below) - so
+  // `entered` doesn't reset to false on its own between cycles the way a
+  // truly unmounted component's state would. Without this, only the very
+  // first collapse ever saw entered start at false; every later one
+  // re-rendered with entered still true from before and skipped straight
+  // to full opacity. Resetting it synchronously during render (React's
+  // documented "adjusting state when a prop changes" pattern) rather than
+  // in the effect below avoids a one-frame flash at full opacity before
+  // the reset would otherwise land.
+  const [wasCollapsed, setWasCollapsed] = useState(collapsed);
+  if (wasCollapsed !== collapsed) {
+    setWasCollapsed(collapsed);
+    if (collapsed) setEntered(false);
+  }
+
   useEffect(() => {
-    // Only runs while mounted, i.e. while collapsed (see the early return
-    // below) - `entered` naturally resets to its initial `false` on its
-    // own when this unmounts, so there's nothing to reset here for the
-    // uncollapsed case. Two-step mount: start at opacity-0, flip to
-    // opacity-100 a frame later, so the transition below has an actual
-    // "from" state to animate - a class set at the same moment an element
-    // is first inserted into the DOM never transitions, it just appears
-    // as-is.
-    if (!collapsed) return;
+    // Two-step mount: start at opacity-0 (already the case, reset above),
+    // flip to opacity-100 a frame later, so the transition below has an
+    // actual "from" state to animate - a class set at the same moment an
+    // element is first inserted into the DOM never transitions, it just
+    // appears as-is.
+    if (!collapsed || entered) return;
     const id = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(id);
-  }, [collapsed]);
+  }, [collapsed, entered]);
 
   if (!collapsed) return null;
 

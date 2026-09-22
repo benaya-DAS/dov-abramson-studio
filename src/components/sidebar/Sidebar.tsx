@@ -207,6 +207,7 @@ function WorkspaceItem({ workspace }: { workspace: WorkspaceWithBoards }) {
     <li>
       <button
         onClick={() => setOpen((o) => !o)}
+        title={workspace.name}
         className={cn(
           "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-right text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-night-800",
           hasActiveBoard && "text-brand-700 dark:text-brand-400"

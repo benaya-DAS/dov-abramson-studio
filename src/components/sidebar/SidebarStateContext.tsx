@@ -12,7 +12,7 @@ export const DEFAULT_WIDTH = 288; // matches the old fixed w-72 (18rem)
 // than restoring whatever narrow width it happened to be at right before
 // it snapped shut (dragging the handle collapses it once it crosses
 // COLLAPSE_THRESHOLD, which is well below this).
-export const REOPEN_WIDTH = 340;
+export const REOPEN_WIDTH = 300;
 
 export function clampWidth(width: number) {
   return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, width));

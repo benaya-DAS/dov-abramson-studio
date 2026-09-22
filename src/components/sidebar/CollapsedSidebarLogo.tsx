@@ -37,7 +37,7 @@ export default function CollapsedSidebarLogo() {
       onClick={() => setCollapsed(false)}
       title="פתיחת הסיידבר"
       className={cn(
-        "flex shrink-0 items-center gap-3 rounded-lg px-2 py-1.5 transition-opacity duration-100 ease-in hover:bg-slate-100 dark:hover:bg-night-800",
+        "flex shrink-0 items-center gap-3 rounded-lg px-2 py-1.5 transition-opacity duration-[400ms] ease-in hover:bg-slate-100 dark:hover:bg-night-800",
         entered ? "opacity-100" : "opacity-0"
       )}
     >

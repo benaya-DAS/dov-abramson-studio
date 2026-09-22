@@ -84,12 +84,19 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
     };
   }, [resizing, setCollapsed]);
 
-  if (collapsed) {
-    return (
-      <aside
-        style={{ width: COLLAPSED_RAIL_WIDTH }}
-        className="flex h-screen shrink-0 flex-col border-l border-slate-200 bg-white dark:border-night-700 dark:bg-night-900"
-      >
+  return (
+    <aside
+      style={{ width: collapsed ? COLLAPSED_RAIL_WIDTH : width }}
+      className={cn(
+        "relative flex h-screen shrink-0 flex-col overflow-hidden border-l border-slate-200 bg-white dark:border-night-700 dark:bg-night-900",
+        // Only while not actively being dragged: a live drag should track
+        // the cursor 1:1, not lag behind an eased transition - this is
+        // purely for the discrete open/close triggered by a click (the
+        // collapsed rail's chevron, or crossing COLLAPSE_THRESHOLD).
+        !resizing && "transition-[width] duration-300 ease-out"
+      )}
+    >
+      {collapsed ? (
         <button
           type="button"
           onClick={() => setCollapsed(false)}
@@ -98,72 +105,68 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
         >
           <ChevronLeft size={16} />
         </button>
-      </aside>
-    );
-  }
+      ) : (
+        <>
+          {/* h-16 matches TopBar.tsx's own h-16 exactly, so this header's
+           * border-b lands on the same Y as the top bar's border-b instead
+           * of sitting a few px lower (py-4 here vs. a fixed height there)
+           * - the two rules read as one continuous line across the top of
+           * the app. */}
+          <button
+            type="button"
+            onClick={() => router.refresh()}
+            title="רענון הדף"
+            className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-4 text-right hover:bg-slate-50 dark:border-night-700 dark:hover:bg-night-800"
+          >
+            <Image
+              src="/web-app-manifest-512x512.png"
+              alt="סטודיו דוב אברמסון"
+              width={36}
+              height={36}
+              className="h-9 w-9 shrink-0 rounded-lg object-contain"
+            />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">סטודיו דוב אברמסון</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500">ניהול פרויקטים</p>
+            </div>
+          </button>
 
-  return (
-    <aside
-      style={{ width }}
-      className="relative flex h-screen shrink-0 flex-col border-l border-slate-200 bg-white dark:border-night-700 dark:bg-night-900"
-    >
-      {/* h-16 matches TopBar.tsx's own h-16 exactly, so this header's
-       * border-b lands on the same Y as the top bar's border-b instead of
-       * sitting a few px lower (py-4 here vs. a fixed height there) - the
-       * two rules read as one continuous line across the top of the app. */}
-      <button
-        type="button"
-        onClick={() => router.refresh()}
-        title="רענון הדף"
-        className="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-4 text-right hover:bg-slate-50 dark:border-night-700 dark:hover:bg-night-800"
-      >
-        <Image
-          src="/web-app-manifest-512x512.png"
-          alt="סטודיו דוב אברמסון"
-          width={36}
-          height={36}
-          className="h-9 w-9 shrink-0 rounded-lg object-contain"
-        />
-        <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">סטודיו דוב אברמסון</p>
-          <p className="text-xs text-slate-400 dark:text-slate-500">ניהול פרויקטים</p>
-        </div>
-      </button>
+          <nav className="flex-1 overflow-y-auto px-2 py-3">
+            <ul className="space-y-1">
+              {workspaces.map((ws) => (
+                <WorkspaceItem key={ws.id} workspace={ws} />
+              ))}
+            </ul>
+          </nav>
 
-      <nav className="flex-1 overflow-y-auto px-2 py-3">
-        <ul className="space-y-1">
-          {workspaces.map((ws) => (
-            <WorkspaceItem key={ws.id} workspace={ws} />
-          ))}
-        </ul>
-      </nav>
+          <div className="border-t border-slate-200 p-2 dark:border-night-700">
+            <CreateWorkspaceButton nextPosition={workspaces.length} />
+            <Link
+              href="/archive"
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-800"
+              )}
+            >
+              <Archive size={16} />
+              ארכיון לוחות
+            </Link>
+          </div>
 
-      <div className="border-t border-slate-200 p-2 dark:border-night-700">
-        <CreateWorkspaceButton nextPosition={workspaces.length} />
-        <Link
-          href="/archive"
-          className={cn(
-            "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-800"
-          )}
-        >
-          <Archive size={16} />
-          ארכיון לוחות
-        </Link>
-      </div>
-
-      {/* -translate-x-1/2 straddles the handle over the border-l above, so
-       * the hit area isn't confined to one pixel-wide line. */}
-      <div
-        onMouseDown={(e) => {
-          e.preventDefault();
-          setResizing(true);
-        }}
-        title="גרירה לשינוי רוחב הסיידבר (או גרירה שמאלה עד הסוף כדי לסגור)"
-        className={cn(
-          "absolute inset-y-0 left-0 z-10 w-1.5 -translate-x-1/2 cursor-col-resize transition-colors",
-          resizing ? "bg-brand-400/60 dark:bg-brand-500/40" : "hover:bg-brand-300/50 dark:hover:bg-brand-500/30"
-        )}
-      />
+          {/* -translate-x-1/2 straddles the handle over the border-l above,
+           * so the hit area isn't confined to one pixel-wide line. */}
+          <div
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setResizing(true);
+            }}
+            title="גרירה לשינוי רוחב הסיידבר (או גרירה שמאלה עד הסוף כדי לסגור)"
+            className={cn(
+              "absolute inset-y-0 left-0 z-10 w-1.5 -translate-x-1/2 cursor-col-resize transition-colors",
+              resizing ? "bg-brand-400/60 dark:bg-brand-500/40" : "hover:bg-brand-300/50 dark:hover:bg-brand-500/30"
+            )}
+          />
+        </>
+      )}
     </aside>
   );
 }

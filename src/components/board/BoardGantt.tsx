@@ -7,7 +7,14 @@ import { STATUS_COLORS, STATUS_LABELS } from "@/lib/constants";
 import type { Item, Profile } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
 
-const DAY_WIDTH = 34;
+const DAY_WIDTH = 44;
+const ROW_HEIGHT = 44;
+const BAR_HEIGHT = 32;
+// A single day's bar is only DAY_WIDTH wide (minus padding) - far too
+// narrow to hold any text, which is exactly what made every short task
+// unreadable. Bars are floored to this width instead, regardless of how
+// many days they actually span.
+const MIN_BAR_WIDTH = 110;
 
 export default function BoardGantt({
   items,
@@ -47,32 +54,32 @@ export default function BoardGantt({
 
   return (
     <div className="overflow-auto p-5">
-      <div style={{ minWidth: days.length * DAY_WIDTH + 260 }}>
+      <div style={{ minWidth: days.length * DAY_WIDTH + 288 }}>
         {/* Header row: day scale */}
         <div className="sticky top-0 z-10 flex bg-white dark:bg-night-900">
-          <div className="w-64 shrink-0 border-b border-slate-200 dark:border-night-700" />
+          <div className="w-72 shrink-0 border-b border-slate-200 dark:border-night-700" />
           <div className="flex">
             {days.map((d) => (
               <div
                 key={d.toISOString()}
                 style={{ width: DAY_WIDTH }}
                 className={cn(
-                  "shrink-0 border-b border-l border-slate-100 py-1 text-center text-[10px] font-medium dark:border-night-800",
+                  "shrink-0 border-b border-l border-slate-100 py-2 text-center text-xs font-medium dark:border-night-800",
                   isWeekend(d) ? "bg-slate-50 text-slate-400 dark:bg-night-800/60 dark:text-slate-500" : "text-slate-500 dark:text-slate-400",
                   format(d, "yyyy-MM-dd") === format(today, "yyyy-MM-dd") &&
                     "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300"
                 )}
               >
                 <div>{format(d, "d")}</div>
-                <div className="text-[9px] text-slate-400 dark:text-slate-500">{format(d, "EEEEEE", { locale: he })}</div>
+                <div className="text-[10px] text-slate-400 dark:text-slate-500">{format(d, "EEEEEE", { locale: he })}</div>
               </div>
             ))}
           </div>
         </div>
 
         {Object.entries(byGroup).map(([groupId, groupItems]) => (
-          <div key={groupId} className="mb-2">
-            <div className="w-64 py-1.5 text-xs font-bold text-slate-500 dark:text-slate-400">
+          <div key={groupId} className="mb-6">
+            <div className="w-72 py-2 text-sm font-bold text-slate-500 dark:text-slate-400">
               {groupNameByGroupId[groupId] ?? "ללא קבוצה"}
             </div>
             {groupItems.map((item) => {
@@ -86,10 +93,10 @@ export default function BoardGantt({
               const colors = STATUS_COLORS[item.status];
 
               return (
-                <div key={item.id} className="flex items-center" style={{ height: 34 }}>
-                  <div className="flex w-64 shrink-0 items-center gap-2 pl-2 text-xs text-slate-700 dark:text-slate-300">
+                <div key={item.id} className="flex items-center" style={{ height: ROW_HEIGHT }}>
+                  <div className="flex w-72 shrink-0 items-center gap-2 pl-3 text-sm text-slate-700 dark:text-slate-300">
                     <span className="relative shrink-0">
-                      <Avatar profile={assignees[0] ?? null} size={20} />
+                      <Avatar profile={assignees[0] ?? null} size={22} />
                       {assignees.length > 1 && (
                         <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-slate-500 text-[8px] font-bold text-white dark:bg-slate-400 dark:text-night-900">
                           +{assignees.length - 1}
@@ -98,15 +105,16 @@ export default function BoardGantt({
                     </span>
                     <span className="truncate">{item.name || "(ללא שם)"}</span>
                   </div>
-                  <div className="relative flex" style={{ width: days.length * DAY_WIDTH, height: 26 }}>
+                  <div className="relative flex" style={{ width: days.length * DAY_WIDTH, height: BAR_HEIGHT }}>
                     <div
                       title={`${item.status_label?.trim() || STATUS_LABELS[item.status]} · ${item.name}`}
                       style={{
                         insetInlineStart: offset * DAY_WIDTH + 2,
-                        width: span * DAY_WIDTH - 4,
+                        width: Math.max(span * DAY_WIDTH - 4, MIN_BAR_WIDTH),
+                        height: BAR_HEIGHT,
                       }}
                       className={cn(
-                        "absolute top-0 flex h-6 items-center justify-center rounded-md px-2 text-[10px] font-semibold shadow-sm",
+                        "absolute top-0 flex items-center justify-center rounded-md px-3 text-xs font-semibold shadow-sm",
                         colors.bg,
                         colors.text
                       )}

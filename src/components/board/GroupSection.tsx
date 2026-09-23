@@ -122,6 +122,10 @@ export default function GroupSection({
   const headerDropKey = `group:${group.id}`;
   const isHeaderItemDropTarget = canReorderItems && dragOverItemKey === headerDropKey;
   const allDone = group.items.length > 0 && group.items.every((i) => i.status === "done");
+  const doneRatio =
+    group.items.length > 0
+      ? group.items.filter((i) => i.status === "done").length / group.items.length
+      : 0;
   // Reused below in two mutually-exclusive spots (collapsed vs. expanded),
   // never both at once, so a single element is safe to place either way.
   const itemCountLabel = (
@@ -200,7 +204,7 @@ export default function GroupSection({
       <div
         ref={headerRef}
         className={cn(
-          "flex w-full items-center gap-2 rounded-t-lg px-3 py-2 transition",
+          "relative flex w-full items-center gap-2 rounded-t-lg px-3 py-2 transition",
           // A bottom line while an item is about to be appended into this
           // group, rather than a box/ring overlay around the header.
           isHeaderItemDropTarget &&
@@ -293,7 +297,7 @@ export default function GroupSection({
               {group.name}
             </button>
           )}
-          {group.collapsed && <div className="mt-1">{itemCountLabel}</div>}
+          {group.collapsed && <div className="mt-0.5">{itemCountLabel}</div>}
         </div>
 
         {!group.collapsed && itemCountLabel}
@@ -307,6 +311,18 @@ export default function GroupSection({
           >
             מחיקת קבוצה
           </button>
+        )}
+
+        {/* Just a line, no numbers - the done/total count is already spelled
+         * out in itemCountLabel above; this is a quick at-a-glance read on
+         * completion, not a duplicate of that text. */}
+        {group.items.length > 0 && (
+          <div className="absolute inset-x-0 bottom-0 h-0.5 overflow-hidden bg-slate-900/10 dark:bg-white/10">
+            <div
+              className="h-full bg-emerald-500 transition-[width] dark:bg-emerald-400"
+              style={{ width: `${doneRatio * 100}%` }}
+            />
+          </div>
         )}
       </div>
 

@@ -16,6 +16,7 @@ export default function ItemRow({
   onUpdate,
   onSerialBlur,
   onNameBlur,
+  isNewlyAdded,
   currentUserId,
   trackedSeconds,
   activeSessions,
@@ -37,6 +38,9 @@ export default function ItemRow({
   onUpdate: (patch: Partial<Item>) => void;
   onSerialBlur: (serial: string) => void;
   onNameBlur: (name: string) => void;
+  /** True only for the row addItem() most recently created - focuses its
+   * name field on mount, ready for typing. */
+  isNewlyAdded?: boolean;
   currentUserId: string | null;
   trackedSeconds: number;
   activeSessions: ActiveTimeLog[];
@@ -174,6 +178,7 @@ export default function ItemRow({
 
       <td className="min-w-[220px] px-2 py-1.5">
         <input
+          autoFocus={isNewlyAdded}
           value={name}
           disabled={readOnly}
           onChange={(e) => setName(e.target.value)}

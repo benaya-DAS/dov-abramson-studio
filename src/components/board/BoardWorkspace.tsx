@@ -44,6 +44,10 @@ export default function BoardWorkspace({
   const [sortBy, setSortBy] = useState<SortBy>("none");
   const [groupBy, setGroupBy] = useState<GroupByMode>("group");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // The item addItem() most recently created, so its row can autofocus its
+  // name field. Cleared the moment the item is actually edited (see
+  // updateItem).
+  const [newItemId, setNewItemId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(initialGroups.map((g) => [g.id, g.is_collapsed]))
   );
@@ -149,6 +153,7 @@ export default function BoardWorkspace({
   // ---- Mutations --------------------------------------------------------
   function updateItem(id: string, patch: Partial<Item>) {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+    setNewItemId((current) => (current === id ? null : current));
     supabase.from("items").update(patch).eq("id", id).then();
   }
 
@@ -167,7 +172,10 @@ export default function BoardWorkspace({
       })
       .select()
       .single();
-    if (data) setItems((prev) => [...prev, data]);
+    if (data) {
+      setItems((prev) => [...prev, data]);
+      setNewItemId(data.id);
+    }
   }
 
   async function deleteSelected() {
@@ -477,6 +485,7 @@ export default function BoardWorkspace({
             onSerialBlur={handleSerialBlur}
             onNameBlur={handleNameBlur}
             onAddItem={addItem}
+            newItemId={newItemId}
             onAddGroup={addGroup}
             onRenameGroup={renameGroup}
             onDeleteGroup={deleteGroup}

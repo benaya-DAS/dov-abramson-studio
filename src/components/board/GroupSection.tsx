@@ -230,16 +230,20 @@ export default function GroupSection({
             }}
             onDragEnd={onDragEnd}
             title="גרירה לשינוי סדר הקבוצות"
-            className="shrink-0 cursor-grab text-slate-300 hover:text-slate-500 active:cursor-grabbing dark:text-slate-600 dark:hover:text-slate-400"
+            className="shrink-0 self-start cursor-grab text-slate-300 hover:text-slate-500 active:cursor-grabbing dark:text-slate-600 dark:hover:text-slate-400"
           >
             <GripVertical size={15} />
           </button>
         )}
 
+        {/* self-start (not the row's default items-center) - a collapsed
+         * group's name+count column below is two lines tall, and centering
+         * against it would leave the chevron floating in the gap between
+         * them instead of level with the group name. */}
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="shrink-0 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+          className="shrink-0 self-start text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
           title={group.collapsed ? "הרחבת קבוצה" : "כיווץ קבוצה"}
         >
           {group.collapsed ? (
@@ -289,7 +293,7 @@ export default function GroupSection({
               {group.name}
             </button>
           )}
-          {group.collapsed && itemCountLabel}
+          {group.collapsed && <div className="mt-1">{itemCountLabel}</div>}
         </div>
 
         {!group.collapsed && itemCountLabel}

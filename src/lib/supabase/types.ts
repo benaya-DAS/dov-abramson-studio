@@ -185,7 +185,6 @@ export interface Database {
       // longer line up - so callers must check for that explicitly.
       stop_time_log: { Args: { p_log_id: string }; Returns: TimeLog | null };
       undo_activity_log: { Args: { p_log_id: string }; Returns: undefined };
-      discard_new_item: { Args: { p_item_id: string }; Returns: undefined };
       is_allowed_email: { Args: { p_email: string }; Returns: boolean };
     };
     Enums: Record<string, never>;

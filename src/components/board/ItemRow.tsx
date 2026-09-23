@@ -16,8 +16,8 @@ export default function ItemRow({
   onUpdate,
   onSerialBlur,
   onNameBlur,
-  isNewlyAdded,
-  onDiscardNewItem,
+  isDraft,
+  onDiscardDraftItem,
   currentUserId,
   trackedSeconds,
   activeSessions,
@@ -39,10 +39,12 @@ export default function ItemRow({
   onUpdate: (patch: Partial<Item>) => void;
   onSerialBlur: (serial: string) => void;
   onNameBlur: (name: string) => void;
-  /** True only for the row addItem() most recently created - drives
-   * autofocusing its name field and the immediate-Escape discard below. */
-  isNewlyAdded?: boolean;
-  onDiscardNewItem?: () => void;
+  /** True only for the row addItem() most recently created and that hasn't
+   * been saved to the database yet - drives autofocusing its name field,
+   * the immediate-Escape discard below, and disabling time tracking (which
+   * needs a real item_id to attach a time_logs row to). */
+  isDraft?: boolean;
+  onDiscardDraftItem?: () => void;
   currentUserId: string | null;
   trackedSeconds: number;
   activeSessions: ActiveTimeLog[];
@@ -180,7 +182,7 @@ export default function ItemRow({
 
       <td className="min-w-[220px] px-2 py-1.5">
         <input
-          autoFocus={isNewlyAdded}
+          autoFocus={isDraft}
           value={name}
           disabled={readOnly}
           onChange={(e) => setName(e.target.value)}
@@ -196,13 +198,15 @@ export default function ItemRow({
           }}
           onKeyDown={(e) => {
             // Escaping a brand-new row before typing anything into it
-            // discards the row entirely (and, server-side, its history)
-            // instead of just reverting the field to its already-blank
-            // value and leaving an empty row behind.
-            if (e.key === "Escape" && isNewlyAdded && name === item.name && onDiscardNewItem) {
+            // discards the row entirely instead of just reverting the
+            // field to its already-blank value and leaving an empty row
+            // behind - it's still just a local draft at this point (see
+            // BoardWorkspace's addItem/draftItemId), so there's nothing in
+            // the database or board history to clean up either.
+            if (e.key === "Escape" && isDraft && name === item.name && onDiscardDraftItem) {
               cancelingFieldRef.current = true;
               e.currentTarget.blur();
-              onDiscardNewItem();
+              onDiscardDraftItem();
               return;
             }
             handleEditableKeyDown(e, () => setName(item.name));
@@ -314,7 +318,10 @@ export default function ItemRow({
           baseSeconds={trackedSeconds}
           activeSessions={activeSessions}
           onTimeLogChanged={onTimeLogChanged}
-          readOnly={readOnly}
+          // A draft row's id isn't in the database yet, so a time_logs
+          // insert against it would fail its item_id foreign key - disabled
+          // until the row is saved (any other edit clears isDraft first).
+          readOnly={readOnly || isDraft}
         />
       </td>
     </tr>

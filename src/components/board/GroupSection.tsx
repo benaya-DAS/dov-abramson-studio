@@ -32,6 +32,8 @@ export default function GroupSection({
   onSerialBlur,
   onNameBlur,
   onAddItem,
+  newItemId,
+  onDiscardNewItem,
   onRenameGroup,
   onDeleteGroup,
   onColorChange,
@@ -66,6 +68,9 @@ export default function GroupSection({
   onSerialBlur: (id: string, serial: string) => void;
   onNameBlur: (id: string, name: string) => void;
   onAddItem: () => void;
+  /** The item addItem() most recently created - see BoardWorkspace. */
+  newItemId: string | null;
+  onDiscardNewItem: (id: string) => void;
   onTimeLogChanged: () => void;
   onRenameGroup?: (name: string) => void;
   onDeleteGroup?: () => void;
@@ -314,6 +319,8 @@ export default function GroupSection({
                   onUpdate={(patch) => onUpdateItem(item.id, patch)}
                   onSerialBlur={(serial) => onSerialBlur(item.id, serial)}
                   onNameBlur={(name) => onNameBlur(item.id, name)}
+                  isNewlyAdded={item.id === newItemId}
+                  onDiscardNewItem={() => onDiscardNewItem(item.id)}
                   currentUserId={currentUserId}
                   trackedSeconds={trackedSecondsByItem[item.id] ?? 0}
                   activeSessions={activeSessionsByItem[item.id] ?? NO_ACTIVE_SESSIONS}

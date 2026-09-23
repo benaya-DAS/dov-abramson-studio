@@ -16,6 +16,8 @@ export default function ItemRow({
   onUpdate,
   onSerialBlur,
   onNameBlur,
+  isNewlyAdded,
+  onDiscardNewItem,
   currentUserId,
   trackedSeconds,
   activeSessions,
@@ -37,6 +39,10 @@ export default function ItemRow({
   onUpdate: (patch: Partial<Item>) => void;
   onSerialBlur: (serial: string) => void;
   onNameBlur: (name: string) => void;
+  /** True only for the row addItem() most recently created - drives
+   * autofocusing its name field and the immediate-Escape discard below. */
+  isNewlyAdded?: boolean;
+  onDiscardNewItem?: () => void;
   currentUserId: string | null;
   trackedSeconds: number;
   activeSessions: ActiveTimeLog[];
@@ -174,6 +180,7 @@ export default function ItemRow({
 
       <td className="min-w-[220px] px-2 py-1.5">
         <input
+          autoFocus={isNewlyAdded}
           value={name}
           disabled={readOnly}
           onChange={(e) => setName(e.target.value)}
@@ -187,7 +194,19 @@ export default function ItemRow({
               onNameBlur(name);
             }
           }}
-          onKeyDown={(e) => handleEditableKeyDown(e, () => setName(item.name))}
+          onKeyDown={(e) => {
+            // Escaping a brand-new row before typing anything into it
+            // discards the row entirely (and, server-side, its history)
+            // instead of just reverting the field to its already-blank
+            // value and leaving an empty row behind.
+            if (e.key === "Escape" && isNewlyAdded && name === item.name && onDiscardNewItem) {
+              cancelingFieldRef.current = true;
+              e.currentTarget.blur();
+              onDiscardNewItem();
+              return;
+            }
+            handleEditableKeyDown(e, () => setName(item.name));
+          }}
           placeholder="שם המשימה..."
           className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm font-medium text-slate-800 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white disabled:hover:border-transparent dark:text-slate-100 dark:hover:border-night-700 dark:focus:bg-night-800"
         />

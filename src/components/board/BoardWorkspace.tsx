@@ -44,6 +44,12 @@ export default function BoardWorkspace({
   const [sortBy, setSortBy] = useState<SortBy>("none");
   const [groupBy, setGroupBy] = useState<GroupByMode>("group");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // The item addItem() most recently created, so its row can autofocus its
+  // name field and - only for this one row - let an immediate Escape (with
+  // nothing typed yet) discard it outright instead of leaving a blank row
+  // behind. Cleared the moment the item is actually edited (see
+  // updateItem), so the shortcut can't fire again once it holds real data.
+  const [newItemId, setNewItemId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(initialGroups.map((g) => [g.id, g.is_collapsed]))
   );
@@ -149,6 +155,7 @@ export default function BoardWorkspace({
   // ---- Mutations --------------------------------------------------------
   function updateItem(id: string, patch: Partial<Item>) {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+    setNewItemId((current) => (current === id ? null : current));
     supabase.from("items").update(patch).eq("id", id).then();
   }
 
@@ -167,7 +174,27 @@ export default function BoardWorkspace({
       })
       .select()
       .single();
-    if (data) setItems((prev) => [...prev, data]);
+    if (data) {
+      setItems((prev) => [...prev, data]);
+      setNewItemId(data.id);
+    }
+  }
+
+  // Escaping out of a just-created item's name field before typing
+  // anything - see newItemId above. discard_new_item both deletes the row
+  // and purges its own activity_logs entries, so this leaves no trace in
+  // the board's history (unlike a normal delete, which would still log
+  // both the insert and the delete). The RPC re-checks server-side that
+  // the item is still exactly as blank as addItem() left it, so a stale
+  // client-side call here can only ever no-op, never drop real data.
+  async function discardNewItem(id: string) {
+    const { error } = await supabase.rpc("discard_new_item", { p_item_id: id });
+    if (error) {
+      console.error("Failed to discard new item:", error);
+      return;
+    }
+    setItems((prev) => prev.filter((i) => i.id !== id));
+    setNewItemId((current) => (current === id ? null : current));
   }
 
   async function deleteSelected() {
@@ -477,6 +504,8 @@ export default function BoardWorkspace({
             onSerialBlur={handleSerialBlur}
             onNameBlur={handleNameBlur}
             onAddItem={addItem}
+            newItemId={newItemId}
+            onDiscardNewItem={discardNewItem}
             onAddGroup={addGroup}
             onRenameGroup={renameGroup}
             onDeleteGroup={deleteGroup}

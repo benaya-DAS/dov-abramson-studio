@@ -738,6 +738,53 @@ begin
 end;
 $$;
 
+-- A brand-new item the creator abandoned before typing a name into it (e.g.
+-- pressed Escape right after clicking "add item") shouldn't leave any trace
+-- in the board's history - not the insert that items_log_activity already
+-- logged for it, and not a delete either. Deleting the item directly from
+-- the client would still leave both of those log rows behind (clients have
+-- no delete grant on activity_logs at all), so this security-definer
+-- function deletes the item AND purges every activity_logs row for it in
+-- one step. Scoped narrowly to avoid this becoming a way to quietly erase
+-- history for a real item: only the item's own creator can call it, and
+-- only while the item is still in EXACTLY the default state addItem() left
+-- it in - not just an empty name, so a row someone filled in other fields
+-- on (dates, status, deliverable) without ever naming it can't be wiped by
+-- a stray Escape in the name field.
+create or replace function public.discard_new_item(p_item_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_item public.items;
+begin
+  select * into v_item from public.items where id = p_item_id;
+  if v_item.id is null then
+    return;
+  end if;
+  if v_item.created_by is distinct from auth.uid() then
+    raise exception 'Not authorized';
+  end if;
+  if v_item.name <> ''
+    or v_item.deliverable is not null
+    or v_item.status <> 'not_started'
+    or v_item.status_label is not null
+    or v_item.serial_id is not null
+    or v_item.start_date is not null
+    or v_item.due_date is not null
+    or v_item.hours <> 0
+    or v_item.person_ids <> array[v_item.created_by]
+  then
+    raise exception 'Item is no longer blank';
+  end if;
+
+  delete from public.items where id = p_item_id;
+  delete from public.activity_logs where entity_id = p_item_id;
+end;
+$$;
+
 -- ============================================================================
 -- 12. ROW LEVEL SECURITY
 --
@@ -899,6 +946,7 @@ grant select on public.item_tracked_seconds to authenticated;
 grant execute on function public.rollover_board_month(uuid) to authenticated;
 grant execute on function public.stop_time_log(uuid) to authenticated;
 grant execute on function public.undo_activity_log(uuid) to authenticated;
+grant execute on function public.discard_new_item(uuid) to authenticated;
 grant execute on function public.is_allowed_email(text) to authenticated, anon;
 
 -- ============================================================================

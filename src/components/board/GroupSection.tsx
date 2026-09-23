@@ -128,12 +128,17 @@ export default function GroupSection({
       : 0;
   // Reused below in two mutually-exclusive spots (collapsed vs. expanded),
   // never both at once, so a single element is safe to place either way.
+  // No self-start here: "self-start" means something different in each of
+  // those two spots' flex context (horizontal containment in the collapsed
+  // column vs. vertical alignment in the expanded row), so it's applied by
+  // each placement individually below instead of baked into the shared
+  // element itself.
   const itemCountLabel = (
     <button
       type="button"
       onClick={onToggleCollapse}
       className={cn(
-        "shrink-0 self-start text-xs",
+        "shrink-0 text-xs",
         allDone
           ? "font-bold text-emerald-600 dark:text-emerald-400"
           : "font-medium text-slate-400 dark:text-slate-500"
@@ -234,20 +239,28 @@ export default function GroupSection({
             }}
             onDragEnd={onDragEnd}
             title="גרירה לשינוי סדר הקבוצות"
-            className="shrink-0 self-start cursor-grab text-slate-300 hover:text-slate-500 active:cursor-grabbing dark:text-slate-600 dark:hover:text-slate-400"
+            className={cn(
+              "shrink-0 cursor-grab text-slate-300 hover:text-slate-500 active:cursor-grabbing dark:text-slate-600 dark:hover:text-slate-400",
+              // Only overriding the row's default items-center while
+              // collapsed - a collapsed group's name+count column is two
+              // lines tall, and centering against it would leave the grip
+              // floating in the gap between them instead of level with the
+              // group name. Expanded, the row is single-line and centering
+              // is already correct, so this stays unset there.
+              group.collapsed && "self-start"
+            )}
           >
             <GripVertical size={15} />
           </button>
         )}
 
-        {/* self-start (not the row's default items-center) - a collapsed
-         * group's name+count column below is two lines tall, and centering
-         * against it would leave the chevron floating in the gap between
-         * them instead of level with the group name. */}
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="shrink-0 self-start text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+          className={cn(
+            "shrink-0 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300",
+            group.collapsed && "self-start"
+          )}
           title={group.collapsed ? "הרחבת קבוצה" : "כיווץ קבוצה"}
         >
           {group.collapsed ? (
@@ -297,7 +310,7 @@ export default function GroupSection({
               {group.name}
             </button>
           )}
-          {group.collapsed && <div className="mt-0.5">{itemCountLabel}</div>}
+          {group.collapsed && <div className="mt-0.5 self-start">{itemCountLabel}</div>}
         </div>
 
         {!group.collapsed && itemCountLabel}

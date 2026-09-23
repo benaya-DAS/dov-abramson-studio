@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Users, X } from "lucide-react";
+import { FoldVertical, Search, UnfoldVertical, Users, X } from "lucide-react";
 import { Avatar } from "@/components/topbar/UserMenu";
 import type { Profile } from "@/lib/supabase/types";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,8 @@ export default function FilterBar({
   onSortByChange,
   groupBy,
   onGroupByChange,
+  onCollapseAll,
+  onExpandAll,
 }: {
   profiles: Profile[];
   currentUserId: string | null;
@@ -30,6 +32,8 @@ export default function FilterBar({
   onSortByChange: (v: SortBy) => void;
   groupBy: GroupByMode;
   onGroupByChange: (v: GroupByMode) => void;
+  onCollapseAll: () => void;
+  onExpandAll: () => void;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-5 py-2.5 dark:border-night-700 dark:bg-night-900">
@@ -115,6 +119,25 @@ export default function FilterBar({
           <option value="status">סטטוס</option>
         </select>
       </label>
+
+      <div className="mx-1 h-5 w-px bg-slate-200 dark:bg-night-700" />
+
+      <button
+        onClick={onCollapseAll}
+        title="כיווץ כל הקבוצות"
+        className="flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-night-700 dark:text-slate-300 dark:hover:bg-night-800"
+      >
+        <FoldVertical size={14} />
+        כיווץ הכל
+      </button>
+      <button
+        onClick={onExpandAll}
+        title="פתיחת כל הקבוצות"
+        className="flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-night-700 dark:text-slate-300 dark:hover:bg-night-800"
+      >
+        <UnfoldVertical size={14} />
+        פתיחת הכל
+      </button>
     </div>
   );
 }

@@ -442,6 +442,24 @@ export default function BoardWorkspace({
       }));
   }, [groupBy, groups, sortedItems, collapsed, profiles, sortBy]);
 
+  // Applies to whichever buckets are currently on screen (real board groups,
+  // or the synthetic person/status buckets under those groupBy modes) -
+  // `collapsed` is keyed the same way regardless of mode. Only real groups
+  // have a row in the groups table to persist is_collapsed on; a synthetic
+  // bucket's collapsed state is local-only already (recomputed from group
+  // membership every render), same as toggleCollapse's own persistence.
+  function setAllCollapsed(value: boolean) {
+    const ids = displayGroups.map((g) => g.id);
+    setCollapsed((prev) => {
+      const next = { ...prev };
+      for (const id of ids) next[id] = value;
+      return next;
+    });
+    if (groupBy === "group" && ids.length > 0) {
+      supabase.from("groups").update({ is_collapsed: value }).in("id", ids).then();
+    }
+  }
+
   return (
     <div className="flex h-full flex-col">
       <BoardHeader
@@ -470,6 +488,8 @@ export default function BoardWorkspace({
           onSortByChange={setSortBy}
           groupBy={groupBy}
           onGroupByChange={setGroupBy}
+          onCollapseAll={() => setAllCollapsed(true)}
+          onExpandAll={() => setAllCollapsed(false)}
         />
       )}
 

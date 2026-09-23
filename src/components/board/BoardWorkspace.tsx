@@ -156,7 +156,15 @@ export default function BoardWorkspace({
     const inGroup = items.filter((i) => i.group_id === groupId);
     const { data } = await supabase
       .from("items")
-      .insert({ board_id: board.id, group_id: groupId, position: inGroup.length })
+      .insert({
+        board_id: board.id,
+        group_id: groupId,
+        position: inGroup.length,
+        // Default-assign the item to whoever created it, rather than
+        // leaving it unassigned - they can still remove themselves via
+        // PersonPicker if that's not actually right for this task.
+        person_ids: currentUserId ? [currentUserId] : [],
+      })
       .select()
       .single();
     if (data) setItems((prev) => [...prev, data]);

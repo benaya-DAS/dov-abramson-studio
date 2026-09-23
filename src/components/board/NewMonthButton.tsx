@@ -32,8 +32,13 @@ export default function NewMonthButton({ boardId, boardName }: { boardId: string
       return;
     }
     setConfirming(false);
-    router.refresh();
+    // push() first, then refresh(): see the matching comment in
+    // CreateBoardButton.tsx - refresh() has to land on the NEW route to
+    // actually invalidate the sidebar's (persisted-across-navigation)
+    // layout data, or its response can get dropped once the URL changes
+    // out from under it.
     if (data?.id) router.push(`/board/${data.id}`);
+    router.refresh();
   }
 
   return (

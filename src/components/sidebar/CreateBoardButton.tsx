@@ -29,8 +29,16 @@ export default function CreateBoardButton({ workspaceId }: { workspaceId: string
       setEditing(false);
       setName("");
       startTransition(() => {
-        router.refresh();
+        // push() first, then refresh(): the (app) layout that fetches the
+        // sidebar's workspace/board list persists across navigations
+        // under it and isn't automatically refetched by push() alone - a
+        // refresh() called before/alongside it targets the OLD route and
+        // can get its in-flight response dropped once the URL changes out
+        // from under it. Calling refresh() once already on the new route
+        // is what actually invalidates the layout's cached data, so the
+        // new board shows up in the sidebar without a manual page reload.
         router.push(`/board/${data.id}`);
+        router.refresh();
       });
     }
   }

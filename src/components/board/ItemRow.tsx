@@ -207,7 +207,7 @@ export default function ItemRow({
         />
       </td>
 
-      <td className="w-40 px-2 py-1.5">
+      <td className="w-52 px-2 py-1.5">
         <input
           list="deliverable-options"
           value={deliverable}

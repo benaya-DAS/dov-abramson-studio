@@ -377,7 +377,7 @@ export default function GroupSection({
                 <th className="w-10 px-3 py-2"></th>
                 <th className="min-w-[220px] px-2 py-2 text-right">פריט</th>
                 <th className="w-16 px-1 py-2">איש צוות</th>
-                <th className="w-40 px-2 py-2 text-right">תוצר עיצובי</th>
+                <th className="w-52 px-2 py-2 text-right">תוצר עיצובי</th>
                 <th className="w-32 px-1 py-2">סטטוס</th>
                 <th className="w-28 px-2 py-2">מס&quot;ד</th>
                 <th className="w-32 px-2 py-2">תאריך התחלה</th>

@@ -32,8 +32,6 @@ export default function GroupSection({
   onSerialBlur,
   onNameBlur,
   onAddItem,
-  draftItemId,
-  onDiscardDraftItem,
   onRenameGroup,
   onDeleteGroup,
   onColorChange,
@@ -68,10 +66,6 @@ export default function GroupSection({
   onSerialBlur: (id: string, serial: string) => void;
   onNameBlur: (id: string, name: string) => void;
   onAddItem: () => void;
-  /** The id of a not-yet-saved draft row addItem() just created locally -
-   * see BoardWorkspace. */
-  draftItemId: string | null;
-  onDiscardDraftItem: (id: string) => void;
   onTimeLogChanged: () => void;
   onRenameGroup?: (name: string) => void;
   onDeleteGroup?: () => void;
@@ -320,8 +314,6 @@ export default function GroupSection({
                   onUpdate={(patch) => onUpdateItem(item.id, patch)}
                   onSerialBlur={(serial) => onSerialBlur(item.id, serial)}
                   onNameBlur={(name) => onNameBlur(item.id, name)}
-                  isDraft={item.id === draftItemId}
-                  onDiscardDraftItem={() => onDiscardDraftItem(item.id)}
                   currentUserId={currentUserId}
                   trackedSeconds={trackedSecondsByItem[item.id] ?? 0}
                   activeSessions={activeSessionsByItem[item.id] ?? NO_ACTIVE_SESSIONS}

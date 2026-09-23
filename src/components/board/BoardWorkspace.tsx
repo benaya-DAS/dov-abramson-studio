@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import BoardHeader from "./BoardHeader";
 import ViewTabs, { type BoardView } from "./ViewTabs";
@@ -44,26 +44,6 @@ export default function BoardWorkspace({
   const [sortBy, setSortBy] = useState<SortBy>("none");
   const [groupBy, setGroupBy] = useState<GroupByMode>("group");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  // The id of a "draft" row addItem() just created locally - it isn't in
-  // the database at all yet (see addItem below), which is what makes
-  // Escape-to-discard trivial: there's nothing to delete or leave a trace
-  // of. Cleared the moment the row is actually edited (updateItem), at
-  // which point it gets its real INSERT and behaves like any other item
-  // from then on. Only one row can be mid-draft at a time.
-  const [draftItemId, setDraftItemId] = useState<string | null>(null);
-  // Per-item queue of pending writes, so a draft's own INSERT (fired by its
-  // first edit) and a second edit landing moments later - e.g. the catalog
-  // auto-fill in handleNameBlur, which round-trips to the server before
-  // calling updateItem again - can never race each other into an UPDATE
-  // reaching Postgres before the INSERT it depends on has.
-  const pendingWritesRef = useRef<Map<string, Promise<void>>>(new Map());
-
-  function queueItemWrite(id: string, run: () => Promise<void>) {
-    const prior = pendingWritesRef.current.get(id) ?? Promise.resolve();
-    const next = prior.then(run, run);
-    pendingWritesRef.current.set(id, next);
-    return next;
-  }
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(initialGroups.map((g) => [g.id, g.is_collapsed]))
   );
@@ -167,109 +147,33 @@ export default function BoardWorkspace({
   }, [supabase, board.id, refreshTrackedSeconds]);
 
   // ---- Mutations --------------------------------------------------------
-  // A draft row (see draftItemId) doesn't exist in the database yet, so its
-  // first edit has to INSERT the whole row instead of UPDATEing one - after
-  // that it's a normal item and every further call takes the plain update
-  // path below.
-  async function insertDraftItem(item: Item) {
-    // created_at/updated_at are deliberately left out - the database's own
-    // defaults reflect the moment the row actually landed, not when the
-    // draft was first put on screen.
-    const { data, error } = await supabase
+  function updateItem(id: string, patch: Partial<Item>) {
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+    supabase.from("items").update(patch).eq("id", id).then();
+  }
+
+  async function addItem(groupId: string) {
+    const inGroup = items.filter((i) => i.group_id === groupId);
+    const { data } = await supabase
       .from("items")
       .insert({
-        id: item.id,
-        board_id: item.board_id,
-        group_id: item.group_id,
-        name: item.name,
-        person_ids: item.person_ids,
-        deliverable: item.deliverable,
-        status: item.status,
-        status_label: item.status_label,
-        serial_id: item.serial_id,
-        start_date: item.start_date,
-        due_date: item.due_date,
-        hours: item.hours,
-        position: item.position,
-        created_by: item.created_by,
+        board_id: board.id,
+        group_id: groupId,
+        position: inGroup.length,
+        // Default-assign the item to whoever created it, rather than
+        // leaving it unassigned - they can still remove themselves via
+        // PersonPicker if that's not actually right for this task.
+        person_ids: currentUserId ? [currentUserId] : [],
       })
       .select()
       .single();
-    if (error || !data) {
-      console.error("Failed to save new item:", error);
-      // Never actually made it into the database - drop the local draft
-      // rather than leaving a row on screen that a refresh would lose.
-      setItems((prev) => prev.filter((i) => i.id !== item.id));
-      return;
-    }
-    setItems((prev) => prev.map((i) => (i.id === item.id ? data : i)));
-  }
-
-  function updateItem(id: string, patch: Partial<Item>) {
-    if (id === draftItemId) {
-      const draft = items.find((i) => i.id === id);
-      if (!draft) return;
-      const merged = { ...draft, ...patch };
-      setItems((prev) => prev.map((i) => (i.id === id ? merged : i)));
-      setDraftItemId(null);
-      queueItemWrite(id, () => insertDraftItem(merged));
-      return;
-    }
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
-    queueItemWrite(id, async () => {
-      const { error } = await supabase.from("items").update(patch).eq("id", id);
-      if (error) console.error("Failed to update item:", error);
-    });
-  }
-
-  // Adds a row that exists only in local state, not yet in the database -
-  // nothing to persist until the user actually does something with it (see
-  // updateItem/insertDraftItem above). That's what makes discarding it on
-  // an immediate Escape (below) trivial: there's no row and no history
-  // entry to undo, because none was ever created.
-  function addItem(groupId: string) {
-    const inGroup = items.filter((i) => i.group_id === groupId);
-    const id = crypto.randomUUID();
-    const now = new Date().toISOString();
-    const draft: Item = {
-      id,
-      board_id: board.id,
-      group_id: groupId,
-      name: "",
-      // Default-assign the item to whoever created it, rather than leaving
-      // it unassigned - they can still remove themselves via PersonPicker
-      // if that's not actually right for this task.
-      person_ids: currentUserId ? [currentUserId] : [],
-      deliverable: null,
-      status: "not_started",
-      status_label: null,
-      serial_id: null,
-      start_date: null,
-      due_date: null,
-      hours: 0,
-      position: inGroup.length,
-      created_by: currentUserId,
-      created_at: now,
-      updated_at: now,
-    };
-    setItems((prev) => [...prev, draft]);
-    setDraftItemId(id);
-  }
-
-  // Escaping out of a just-created row's name field before typing anything
-  // into it - see draftItemId above. The row was never inserted, so this is
-  // just removing it from local state; there's nothing in the database to
-  // delete and nothing in board history to leave a trace of.
-  function discardDraftItem(id: string) {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-    setDraftItemId((current) => (current === id ? null : current));
+    if (data) setItems((prev) => [...prev, data]);
   }
 
   async function deleteSelected() {
     const ids = Array.from(selected);
     setItems((prev) => prev.filter((i) => !ids.includes(i.id)));
     setSelected(new Set());
-    setDraftItemId((current) => (current && ids.includes(current) ? null : current));
     await supabase.from("items").delete().in("id", ids);
   }
 
@@ -573,8 +477,6 @@ export default function BoardWorkspace({
             onSerialBlur={handleSerialBlur}
             onNameBlur={handleNameBlur}
             onAddItem={addItem}
-            draftItemId={draftItemId}
-            onDiscardDraftItem={discardDraftItem}
             onAddGroup={addGroup}
             onRenameGroup={renameGroup}
             onDeleteGroup={deleteGroup}

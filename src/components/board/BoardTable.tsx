@@ -16,8 +16,6 @@ export default function BoardTable({
   onSerialBlur,
   onNameBlur,
   onAddItem,
-  draftItemId,
-  onDiscardDraftItem,
   onAddGroup,
   onRenameGroup,
   onDeleteGroup,
@@ -42,10 +40,6 @@ export default function BoardTable({
   onSerialBlur: (id: string, serial: string) => void;
   onNameBlur: (id: string, name: string) => void;
   onAddItem: (groupId: string) => void;
-  /** The id of a not-yet-saved draft row addItem() just created locally -
-   * see BoardWorkspace. */
-  draftItemId: string | null;
-  onDiscardDraftItem: (id: string) => void;
   onAddGroup: (name: string) => void;
   onRenameGroup: (groupId: string, name: string) => void;
   onDeleteGroup: (groupId: string) => void;
@@ -118,8 +112,6 @@ export default function BoardTable({
             onSerialBlur={onSerialBlur}
             onNameBlur={onNameBlur}
             onAddItem={() => onAddItem(group.id)}
-            draftItemId={draftItemId}
-            onDiscardDraftItem={onDiscardDraftItem}
             onRenameGroup={
               group.isRealGroup && !readOnly ? (name) => onRenameGroup(group.id, name) : undefined
             }

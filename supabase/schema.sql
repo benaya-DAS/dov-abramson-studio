@@ -243,6 +243,14 @@ create table if not exists public.groups (
 
 create index if not exists groups_board_id_idx on public.groups (board_id);
 
+-- A single group within a board can be archived independently of the whole
+-- board (see boards.is_archived) - it drops to a separate "ארכיון" section
+-- at the bottom of the board, its own edits and its items' edits are
+-- blocked (see items_write_unarchived below), but it (and its items) stay
+-- fully viewable.
+alter table public.groups add column if not exists is_archived boolean not null default false;
+create index if not exists groups_is_archived_idx on public.groups (is_archived);
+
 -- ============================================================================
 -- 6. ITEMS  (tasks / rows)
 -- ============================================================================
@@ -818,7 +826,7 @@ create policy "groups_write_unarchived" on public.groups
     and exists (select 1 from public.boards b where b.id = board_id and b.is_archived = false)
   );
 
--- ---- items (blocked once parent board is archived) ---------------------
+-- ---- items (blocked once the parent board OR parent group is archived) -
 drop policy if exists "items_select_studio" on public.items;
 create policy "items_select_studio" on public.items
   for select using (public.is_studio_member());
@@ -827,11 +835,19 @@ drop policy if exists "items_write_unarchived" on public.items;
 create policy "items_write_unarchived" on public.items
   for all using (
     public.is_studio_member()
-    and exists (select 1 from public.boards b where b.id = board_id and b.is_archived = false)
+    and exists (
+      select 1 from public.boards b
+      join public.groups g on g.id = items.group_id
+      where b.id = items.board_id and b.is_archived = false and g.is_archived = false
+    )
   )
   with check (
     public.is_studio_member()
-    and exists (select 1 from public.boards b where b.id = board_id and b.is_archived = false)
+    and exists (
+      select 1 from public.boards b
+      join public.groups g on g.id = items.group_id
+      where b.id = items.board_id and b.is_archived = false and g.is_archived = false
+    )
   );
 
 -- ---- project_catalog ---------------------------------------------------

@@ -49,6 +49,7 @@ export type Group = {
   color: string;
   position: number;
   is_collapsed: boolean;
+  is_archived: boolean;
   created_at: string;
 };
 

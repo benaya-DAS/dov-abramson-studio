@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, GripVertical, Plus } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronDown, ChevronLeft, GripVertical, MoreVertical, Plus } from "lucide-react";
 import ItemRow from "./ItemRow";
 import { blurActiveElement, formatDuration, formatHours, cn } from "@/lib/utils";
 import { useEscapeKey } from "@/lib/useEscapeKey";
@@ -20,6 +20,9 @@ export interface DisplayGroup {
   collapsed: boolean;
   items: Item[];
   isRealGroup: boolean;
+  /** Always false for a synthetic person/status bucket - archiving only
+   * applies to a real board group. */
+  isArchived: boolean;
 }
 
 export default function GroupSection({
@@ -36,6 +39,7 @@ export default function GroupSection({
   onRenameGroup,
   onDeleteGroup,
   onColorChange,
+  onToggleArchived,
   canReorder,
   isDragging,
   isDropTarget,
@@ -73,6 +77,11 @@ export default function GroupSection({
   onRenameGroup?: (name: string) => void;
   onDeleteGroup?: () => void;
   onColorChange?: (color: string) => void;
+  /** Archives/restores this group - independent of onColorChange, so it
+   * stays available even while the group itself is archived (and its
+   * other edit controls are gone). Undefined only when the whole board is
+   * read-only. */
+  onToggleArchived?: (archived: boolean) => void;
   /** True only for a real, unarchived group while the board is grouped by
    * "group" - dragging a synthetic person/status bucket, or a row on a
    * read-only board, has nothing real to reorder. */
@@ -183,7 +192,13 @@ export default function GroupSection({
 
   return (
     <div
-      className={cn("relative mb-4", isDragging && "opacity-40")}
+      className={cn(
+        "relative mb-4",
+        isDragging && "opacity-40",
+        // Archived groups stay fully viewable, just visually muted so it
+        // reads at a glance as "done with, not part of the active board".
+        group.isArchived && "opacity-60 grayscale-[0.4]"
+      )}
       onDragOver={handleHeaderDragOver}
       onDrop={handleHeaderDrop}
     >
@@ -315,10 +330,12 @@ export default function GroupSection({
 
         {!group.collapsed && itemCountLabel}
 
-        {onColorChange && (
-          <GroupColorPicker
+        {(onColorChange || onToggleArchived) && (
+          <GroupOptionsMenu
             color={group.color}
-            onChange={onColorChange}
+            onColorChange={onColorChange}
+            isArchived={group.isArchived}
+            onToggleArchived={onToggleArchived}
             // Same reasoning as the chevron/grip above - only need to
             // override the row's items-center while collapsed, when the
             // name+count column next to it is two lines tall.
@@ -455,13 +472,23 @@ export default function GroupSection({
   );
 }
 
-function GroupColorPicker({
+// Trigger is a plain "⋮" (not a colored swatch) - its popover holds the
+// same color palette the swatch used to open directly, plus (when
+// onToggleArchived is given) an archive/restore action below it. Either
+// piece can be absent independently: an archived group's onColorChange is
+// undefined (its color is no longer editable) while onToggleArchived stays
+// live so it can still be restored; a fully read-only board has neither.
+function GroupOptionsMenu({
   color,
-  onChange,
+  onColorChange,
+  isArchived,
+  onToggleArchived,
   className,
 }: {
   color: string;
-  onChange: (color: string) => void;
+  onColorChange?: (color: string) => void;
+  isArchived: boolean;
+  onToggleArchived?: (archived: boolean) => void;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -480,10 +507,11 @@ function GroupColorPicker({
         ref={buttonRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        title="צבע הקבוצה"
-        className="flex h-5 w-5 items-center justify-center rounded ring-1 ring-inset ring-black/10 hover:ring-black/20 dark:ring-white/10 dark:hover:ring-white/20"
-        style={{ backgroundColor: color }}
-      />
+        title="אפשרויות קבוצה"
+        className="flex h-6 w-6 items-center justify-center rounded text-slate-400 hover:bg-black/5 hover:text-slate-600 dark:text-slate-500 dark:hover:bg-white/10 dark:hover:text-slate-300"
+      >
+        <MoreVertical size={16} />
+      </button>
 
       {open && (
         <>
@@ -491,24 +519,45 @@ function GroupColorPicker({
           <FloatingPanel
             anchorRef={buttonRef}
             align="end"
-            className="z-50 grid grid-cols-4 gap-1.5 rounded-lg border border-slate-200 bg-white p-2 shadow-lg dark:border-night-700 dark:bg-night-800"
+            className="z-50 rounded-lg border border-slate-200 bg-white p-2 shadow-lg dark:border-night-700 dark:bg-night-800"
           >
-            {GROUP_COLORS.map((c) => (
+            {onColorChange && (
+              <div className="grid grid-cols-4 gap-1.5">
+                {GROUP_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => {
+                      onColorChange(c);
+                      setOpen(false);
+                    }}
+                    title={c}
+                    className={cn(
+                      "flex h-6 w-6 items-center justify-center rounded ring-1 ring-inset ring-black/10 transition hover:scale-110 dark:ring-white/10",
+                      c === color && "ring-2 ring-offset-1 ring-slate-500 dark:ring-offset-night-800"
+                    )}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {onToggleArchived && (
               <button
-                key={c}
                 type="button"
                 onClick={() => {
-                  onChange(c);
+                  onToggleArchived(!isArchived);
                   setOpen(false);
                 }}
-                title={c}
                 className={cn(
-                  "flex h-6 w-6 items-center justify-center rounded ring-1 ring-inset ring-black/10 transition hover:scale-110 dark:ring-white/10",
-                  c === color && "ring-2 ring-offset-1 ring-slate-500 dark:ring-offset-night-800"
+                  "flex w-full items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-night-700",
+                  onColorChange && "mt-2 border-t border-slate-100 pt-2.5 dark:border-night-700"
                 )}
-                style={{ backgroundColor: c }}
-              />
-            ))}
+              >
+                {isArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                {isArchived ? "החזר לשימוש" : "ארכב"}
+              </button>
+            )}
           </FloatingPanel>
         </>
       )}

@@ -291,6 +291,16 @@ export default function BoardWorkspace({
     await supabase.from("groups").delete().eq("id", groupId);
   }
 
+  // Archiving a group is separate from archiving the whole board (see
+  // board.is_archived / readOnly) - it drops the group to its own "ארכיון"
+  // section (displayGroups below) and makes it (and its items, enforced by
+  // items_write_unarchived's RLS check on the parent group too) read-only,
+  // without touching anything else on the board.
+  function toggleGroupArchived(groupId: string, archived: boolean) {
+    setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, is_archived: archived } : g)));
+    supabase.from("groups").update({ is_archived: archived }).eq("id", groupId).then();
+  }
+
   function toggleCollapse(groupId: string) {
     setCollapsed((prev) => {
       const next = { ...prev, [groupId]: !prev[groupId] };
@@ -397,6 +407,7 @@ export default function BoardWorkspace({
             .filter((i) => i.group_id === g.id)
             .sort((a, b) => (sortBy === "none" ? a.position - b.position : 0)),
           isRealGroup: true,
+          isArchived: g.is_archived,
         }));
     }
 
@@ -423,6 +434,7 @@ export default function BoardWorkspace({
         collapsed: collapsed[key] ?? false,
         items: its,
         isRealGroup: false,
+        isArchived: false,
       }));
     }
 
@@ -439,6 +451,7 @@ export default function BoardWorkspace({
         collapsed: collapsed[status] ?? false,
         items: its,
         isRealGroup: false,
+        isArchived: false,
       }));
   }, [groupBy, groups, sortedItems, collapsed, profiles, sortBy]);
 
@@ -516,6 +529,7 @@ export default function BoardWorkspace({
             onRenameGroup={renameGroup}
             onDeleteGroup={deleteGroup}
             onChangeGroupColor={changeGroupColor}
+            onToggleGroupArchived={toggleGroupArchived}
             onReorderGroup={reorderGroup}
             onMoveItem={moveItem}
             currentUserId={currentUserId}

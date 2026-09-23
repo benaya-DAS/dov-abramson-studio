@@ -57,3 +57,24 @@ input[type="time"] {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Plays once, automatically, whenever an element carrying this class is
+   inserted into the DOM - unlike a CSS transition, which needs two class
+   values swapped after mount to animate between, a @keyframes animation
+   just runs on its own the moment the element mounts. Used for a group
+   settling into the board's "ארכיון" section right when it's archived
+   (BoardTable.tsx), since that's a genuinely fresh mount there, not an
+   update to an existing element. */
+@keyframes group-archive-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-group-archive-in {
+  animation: group-archive-in 350ms ease-out;
+}

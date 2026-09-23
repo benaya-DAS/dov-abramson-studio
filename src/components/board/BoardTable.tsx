@@ -21,6 +21,7 @@ export default function BoardTable({
   onRenameGroup,
   onDeleteGroup,
   onChangeGroupColor,
+  onToggleGroupArchived,
   onReorderGroup,
   onMoveItem,
   currentUserId,
@@ -47,6 +48,7 @@ export default function BoardTable({
   onRenameGroup: (groupId: string, name: string) => void;
   onDeleteGroup: (groupId: string) => void;
   onChangeGroupColor: (groupId: string, color: string) => void;
+  onToggleGroupArchived: (groupId: string, archived: boolean) => void;
   onReorderGroup: (draggedId: string, targetId: string, position: "before" | "after") => void;
   /** targetItemId null means "append at the end of targetGroupId" (dropped
    * on the group header, or into a currently-empty group); position is
@@ -94,91 +96,115 @@ export default function BoardTable({
     setAddingGroup(false);
   }
 
+  // Archived groups (see DisplayGroup.isArchived) drop to their own
+  // "ארכיון" section below the active ones instead of sitting in position
+  // order among them - split once here rather than filtering the same
+  // array twice below.
+  const activeGroups = displayGroups.filter((g) => !g.isArchived);
+  const archivedGroups = displayGroups.filter((g) => g.isArchived);
+
+  function renderGroup(group: DisplayGroup) {
+    // A group archived on its own (independent of the whole board) is
+    // read-only the same way an archived board's groups are - forcing it
+    // here, rather than only in GroupSection, is what also turns off
+    // reordering and the other per-group edit controls below.
+    const effectiveReadOnly = readOnly || group.isArchived;
+    const canReorderThis = canReorderGroups && group.isRealGroup && !effectiveReadOnly;
+    const canReorderItemsHere = canReorderItems && group.isRealGroup && !effectiveReadOnly;
+    return (
+      <GroupSection
+        key={group.id}
+        group={group}
+        profiles={profiles}
+        selected={selected}
+        onToggleSelect={onToggleSelect}
+        onToggleCollapse={() => onToggleCollapse(group.id)}
+        onUpdateItem={onUpdateItem}
+        onSerialBlur={onSerialBlur}
+        onNameBlur={onNameBlur}
+        onAddItem={() => onAddItem(group.id)}
+        newItemId={newItemId}
+        onRenameGroup={
+          group.isRealGroup && !effectiveReadOnly ? (name) => onRenameGroup(group.id, name) : undefined
+        }
+        onDeleteGroup={
+          group.isRealGroup && !effectiveReadOnly ? () => onDeleteGroup(group.id) : undefined
+        }
+        onColorChange={
+          group.isRealGroup && !effectiveReadOnly
+            ? (color) => onChangeGroupColor(group.id, color)
+            : undefined
+        }
+        // Deliberately gated on the board-level readOnly, not
+        // effectiveReadOnly - it has to stay available while the group
+        // itself is archived, since that's the only way back.
+        onToggleArchived={
+          group.isRealGroup && !readOnly
+            ? (archived) => onToggleGroupArchived(group.id, archived)
+            : undefined
+        }
+        canReorder={canReorderThis}
+        isDragging={draggingId === group.id}
+        isDropTarget={dragOverGroupId === group.id && draggingId !== group.id}
+        dragOverGroupPosition={dragOverGroupPosition}
+        onDragStart={canReorderThis ? () => setDraggingId(group.id) : undefined}
+        onDragEnd={
+          canReorderThis
+            ? () => {
+                setDraggingId(null);
+                setDragOverGroupId(null);
+              }
+            : undefined
+        }
+        onDragOverGroup={
+          canReorderThis && draggingId
+            ? (position) => {
+                setDragOverGroupId(group.id);
+                setDragOverGroupPosition(position);
+              }
+            : undefined
+        }
+        onDropOnGroup={
+          canReorderThis && draggingId
+            ? (position) => {
+                onReorderGroup(draggingId, group.id, position);
+                setDraggingId(null);
+                setDragOverGroupId(null);
+              }
+            : undefined
+        }
+        canReorderItems={canReorderItemsHere}
+        draggingItemId={draggingItemId}
+        dragOverItemKey={dragOverItemKey}
+        dragOverItemPosition={dragOverItemPosition}
+        onItemDragStart={(itemId) => setDraggingItemId(itemId)}
+        onItemDragEnd={() => {
+          setDraggingItemId(null);
+          setDragOverItemKey(null);
+        }}
+        onItemDragOver={(key, position) => {
+          setDragOverItemKey(key);
+          setDragOverItemPosition(position);
+        }}
+        onMoveItemHere={(draggedId, targetItemId, position) =>
+          onMoveItem(draggedId, group.id, targetItemId, position)
+        }
+        currentUserId={currentUserId}
+        trackedSecondsByItem={trackedSecondsByItem}
+        activeSessionsByItem={activeSessionsByItem}
+        onTimeLogChanged={onTimeLogChanged}
+        readOnly={effectiveReadOnly}
+      />
+    );
+  }
+
   return (
     <div className="p-5">
       {displayGroups.length === 0 && (
         <p className="py-10 text-center text-sm text-slate-400 dark:text-slate-500">אין משימות להצגה.</p>
       )}
 
-      {displayGroups.map((group) => {
-        const canReorderThis = canReorderGroups && group.isRealGroup && !readOnly;
-        const canReorderItemsHere = canReorderItems && group.isRealGroup && !readOnly;
-        return (
-          <GroupSection
-            key={group.id}
-            group={group}
-            profiles={profiles}
-            selected={selected}
-            onToggleSelect={onToggleSelect}
-            onToggleCollapse={() => onToggleCollapse(group.id)}
-            onUpdateItem={onUpdateItem}
-            onSerialBlur={onSerialBlur}
-            onNameBlur={onNameBlur}
-            onAddItem={() => onAddItem(group.id)}
-            newItemId={newItemId}
-            onRenameGroup={
-              group.isRealGroup && !readOnly ? (name) => onRenameGroup(group.id, name) : undefined
-            }
-            onDeleteGroup={
-              group.isRealGroup && !readOnly ? () => onDeleteGroup(group.id) : undefined
-            }
-            onColorChange={
-              group.isRealGroup && !readOnly ? (color) => onChangeGroupColor(group.id, color) : undefined
-            }
-            canReorder={canReorderThis}
-            isDragging={draggingId === group.id}
-            isDropTarget={dragOverGroupId === group.id && draggingId !== group.id}
-            dragOverGroupPosition={dragOverGroupPosition}
-            onDragStart={canReorderThis ? () => setDraggingId(group.id) : undefined}
-            onDragEnd={
-              canReorderThis
-                ? () => {
-                    setDraggingId(null);
-                    setDragOverGroupId(null);
-                  }
-                : undefined
-            }
-            onDragOverGroup={
-              canReorderThis && draggingId
-                ? (position) => {
-                    setDragOverGroupId(group.id);
-                    setDragOverGroupPosition(position);
-                  }
-                : undefined
-            }
-            onDropOnGroup={
-              canReorderThis && draggingId
-                ? (position) => {
-                    onReorderGroup(draggingId, group.id, position);
-                    setDraggingId(null);
-                    setDragOverGroupId(null);
-                  }
-                : undefined
-            }
-            canReorderItems={canReorderItemsHere}
-            draggingItemId={draggingItemId}
-            dragOverItemKey={dragOverItemKey}
-            dragOverItemPosition={dragOverItemPosition}
-            onItemDragStart={(itemId) => setDraggingItemId(itemId)}
-            onItemDragEnd={() => {
-              setDraggingItemId(null);
-              setDragOverItemKey(null);
-            }}
-            onItemDragOver={(key, position) => {
-              setDragOverItemKey(key);
-              setDragOverItemPosition(position);
-            }}
-            onMoveItemHere={(draggedId, targetItemId, position) =>
-              onMoveItem(draggedId, group.id, targetItemId, position)
-            }
-            currentUserId={currentUserId}
-            trackedSecondsByItem={trackedSecondsByItem}
-            activeSessionsByItem={activeSessionsByItem}
-            onTimeLogChanged={onTimeLogChanged}
-            readOnly={readOnly}
-          />
-        );
-      })}
+      {activeGroups.map(renderGroup)}
 
       {!readOnly && canAddGroup && (
         <div className="mt-2">
@@ -204,6 +230,23 @@ export default function BoardTable({
               הוספת קבוצה
             </button>
           )}
+        </div>
+      )}
+
+      {archivedGroups.length > 0 && (
+        <div className="mt-8 border-t border-slate-200 pt-4 dark:border-night-700">
+          <h3 className="mb-3 text-sm font-bold text-slate-400 dark:text-slate-500">ארכיון</h3>
+          {archivedGroups.map((group) => (
+            // Keyed (and animated) at this wrapper, not just on the
+            // GroupSection inside it - a group moving from activeGroups to
+            // archivedGroups is a different position in the tree as far as
+            // React's reconciliation is concerned, so this genuinely mounts
+            // fresh right when it lands here, which is what makes the
+            // animation play at exactly the right moment.
+            <div key={group.id} className="animate-group-archive-in">
+              {renderGroup(group)}
+            </div>
+          ))}
         </div>
       )}
 

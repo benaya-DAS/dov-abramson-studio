@@ -493,7 +493,13 @@ export default function BoardWorkspace({
         />
       )}
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      {/* scrollbar-gutter: stable - collapsing/expanding a group changes
+       * this container's total content height, which otherwise toggles
+       * whether it actually needs a vertical scrollbar. Without reserving
+       * that space up front, every group's width visibly shifts by the
+       * scrollbar's width each time that happens, since they're all
+       * children of this same scrollable box. */}
+      <div className="min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
         {view === "table" && (
           <BoardTable
             displayGroups={displayGroups}

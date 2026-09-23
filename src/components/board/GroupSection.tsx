@@ -315,12 +315,24 @@ export default function GroupSection({
 
         {!group.collapsed && itemCountLabel}
 
-        {onColorChange && <GroupColorPicker color={group.color} onChange={onColorChange} />}
+        {onColorChange && (
+          <GroupColorPicker
+            color={group.color}
+            onChange={onColorChange}
+            // Same reasoning as the chevron/grip above - only need to
+            // override the row's items-center while collapsed, when the
+            // name+count column next to it is two lines tall.
+            className={group.collapsed ? "self-start" : undefined}
+          />
+        )}
 
         {onDeleteGroup && group.items.length === 0 && (
           <button
             onClick={onDeleteGroup}
-            className="shrink-0 text-xs text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400"
+            className={cn(
+              "shrink-0 text-xs text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400",
+              group.collapsed && "self-start"
+            )}
           >
             מחיקת קבוצה
           </button>
@@ -446,9 +458,11 @@ export default function GroupSection({
 function GroupColorPicker({
   color,
   onChange,
+  className,
 }: {
   color: string;
   onChange: (color: string) => void;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -461,7 +475,7 @@ function GroupColorPicker({
   useEscapeKey(close, open);
 
   return (
-    <div className="shrink-0">
+    <div className={cn("shrink-0", className)}>
       <button
         ref={buttonRef}
         type="button"

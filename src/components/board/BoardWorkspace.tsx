@@ -171,6 +171,10 @@ export default function BoardWorkspace({
         // leaving it unassigned - they can still remove themselves via
         // PersonPicker if that's not actually right for this task.
         person_ids: currentUserId ? [currentUserId] : [],
+        // discard_new_item()'s ownership check reads this - without it the
+        // column was left null on every new item, so that RPC always
+        // rejected the discard as "Not authorized".
+        created_by: currentUserId,
       })
       .select()
       .single();

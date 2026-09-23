@@ -168,6 +168,7 @@ export default function SessionEditView({
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
               className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-brand-400 dark:border-night-600 dark:bg-night-900 dark:text-slate-100 dark:[color-scheme:dark]"
             />
           </label>
@@ -177,6 +178,7 @@ export default function SessionEditView({
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
               className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-brand-400 dark:border-night-600 dark:bg-night-900 dark:text-slate-100 dark:[color-scheme:dark]"
             />
           </label>

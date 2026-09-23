@@ -339,8 +339,25 @@ export default function GroupSection({
         )}
       </div>
 
-      {!group.collapsed && (
-        <div className="overflow-x-auto rounded-b-lg border border-t-0 border-slate-300 dark:border-night-700">
+      {/* Animating this open/closed needs the table to stay mounted while
+       * collapsed (a plain {!group.collapsed && ...} unmounts it, leaving
+       * nothing to transition from/to) - grid-template-rows 0fr<->1fr on an
+       * always-rendered grid row is what lets the height animate smoothly
+       * without ever measuring or hardcoding a pixel height (which "auto"
+       * can't be transitioned to directly in CSS). The row's own child adds
+       * overflow-y-hidden (alongside its existing overflow-x-auto) so its
+       * content actually gets clipped as the row shrinks toward 0, instead
+       * of just poking out past it. inert while collapsed keeps its rows
+       * out of the tab order and hit-testing (and off the accessibility
+       * tree) even though they're still technically in the DOM. */}
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-300 ease-out",
+          group.collapsed ? "grid-rows-[0fr]" : "grid-rows-[1fr]"
+        )}
+        inert={group.collapsed}
+      >
+        <div className="overflow-x-auto overflow-y-hidden rounded-b-lg border border-t-0 border-slate-300 dark:border-night-700">
           <table className="w-full border-collapse text-right">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-400 dark:border-night-700 dark:bg-night-800/60 dark:text-slate-500">
@@ -421,7 +438,7 @@ export default function GroupSection({
             </tfoot>
           </table>
         </div>
-      )}
+      </div>
     </div>
   );
 }

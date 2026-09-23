@@ -121,6 +121,23 @@ export default function GroupSection({
   const headerRef = useRef<HTMLDivElement>(null);
   const headerDropKey = `group:${group.id}`;
   const isHeaderItemDropTarget = canReorderItems && dragOverItemKey === headerDropKey;
+  const allDone = group.items.length > 0 && group.items.every((i) => i.status === "done");
+  // Reused below in two mutually-exclusive spots (collapsed vs. expanded),
+  // never both at once, so a single element is safe to place either way.
+  const itemCountLabel = (
+    <button
+      type="button"
+      onClick={onToggleCollapse}
+      className={cn(
+        "shrink-0 self-start text-xs",
+        allDone
+          ? "font-bold text-emerald-600 dark:text-emerald-400"
+          : "font-medium text-slate-400 dark:text-slate-500"
+      )}
+    >
+      {group.items.length} משימות
+    </button>
+  );
 
   function groupEdgeFromCursor(clientY: number): "before" | "after" {
     const rect = headerRef.current?.getBoundingClientRect();
@@ -238,43 +255,44 @@ export default function GroupSection({
          * and chevron already carry the color accent, so the name text
          * doesn't need to gamble on every custom color being legible in
          * both themes. */}
-        {onRenameGroup ? (
-          <input
-            defaultValue={group.name}
-            onBlur={(e) => {
-              const trimmed = e.target.value.trim();
-              if (trimmed && trimmed !== group.name) onRenameGroup(trimmed);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.currentTarget.blur();
-              } else if (e.key === "Escape") {
-                // Reset the DOM value directly (this input is uncontrolled)
-                // before blurring, so the onBlur above sees it unchanged
-                // and no-ops instead of committing the in-progress edit.
-                e.currentTarget.value = group.name;
-                e.currentTarget.blur();
-              }
-            }}
-            className="min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-800 outline-none dark:text-slate-100"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            className="min-w-0 flex-1 truncate text-right text-sm font-bold text-slate-800 dark:text-slate-100"
-          >
-            {group.name}
-          </button>
-        )}
+        {/* Collapsed groups show the item count as a second line under the
+         * name instead of inline next to it - the column wrapper only
+         * matters while collapsed, so it's the same min-w-0 flex-1 the name
+         * itself used to carry directly. */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          {onRenameGroup ? (
+            <input
+              defaultValue={group.name}
+              onBlur={(e) => {
+                const trimmed = e.target.value.trim();
+                if (trimmed && trimmed !== group.name) onRenameGroup(trimmed);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.currentTarget.blur();
+                } else if (e.key === "Escape") {
+                  // Reset the DOM value directly (this input is uncontrolled)
+                  // before blurring, so the onBlur above sees it unchanged
+                  // and no-ops instead of committing the in-progress edit.
+                  e.currentTarget.value = group.name;
+                  e.currentTarget.blur();
+                }
+              }}
+              className="min-w-0 flex-1 bg-transparent text-sm font-bold text-slate-800 outline-none dark:text-slate-100"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              className="min-w-0 flex-1 truncate text-right text-sm font-bold text-slate-800 dark:text-slate-100"
+            >
+              {group.name}
+            </button>
+          )}
+          {group.collapsed && itemCountLabel}
+        </div>
 
-        <button
-          type="button"
-          onClick={onToggleCollapse}
-          className="shrink-0 text-xs font-medium text-slate-400 dark:text-slate-500"
-        >
-          {group.items.length} משימות
-        </button>
+        {!group.collapsed && itemCountLabel}
 
         {onColorChange && <GroupColorPicker color={group.color} onChange={onColorChange} />}
 

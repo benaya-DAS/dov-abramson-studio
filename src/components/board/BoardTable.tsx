@@ -1,10 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import GroupSection, { type DisplayGroup } from "./GroupSection";
 import { DELIVERABLE_OPTIONS } from "@/lib/constants";
 import type { ActiveTimeLog, Item, Profile } from "@/lib/supabase/types";
+
+// FLIP ("First, Last, Invert, Play"): archiving/restoring a group moves it
+// between two separate sections of the page (active groups vs. the
+// "ארכיון" list below), which - since they're rendered by two different
+// .map() calls - genuinely unmounts it from one spot and mounts it fresh in
+// the other, rather than updating one element in place. That fresh mount is
+// exactly what this wraps: if BoardTable recorded where the group's box
+// used to be (in originRects, captured the instant the archive toggle was
+// clicked, before the re-render moved it), this offsets the freshly-mounted
+// box back to that spot with no transition, then releases it to its real
+// position on the next frame WITH a transition - so instead of popping
+// straight to its new spot, it visibly slides there.
+function FlipGroup({
+  groupId,
+  nodesRef,
+  originRects,
+  children,
+}: {
+  groupId: string;
+  nodesRef: React.RefObject<Map<string, HTMLDivElement>>;
+  originRects: React.RefObject<Map<string, DOMRect>>;
+  children: React.ReactNode;
+}) {
+  const setRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      if (el) nodesRef.current.set(groupId, el);
+      else nodesRef.current.delete(groupId);
+    },
+    [groupId, nodesRef]
+  );
+
+  useLayoutEffect(() => {
+    const el = nodesRef.current.get(groupId);
+    const origin = originRects.current.get(groupId);
+    if (!el || !origin) return;
+    originRects.current.delete(groupId);
+    const next = el.getBoundingClientRect();
+    const dx = origin.left - next.left;
+    const dy = origin.top - next.top;
+    if (!dx && !dy) return;
+    el.style.transition = "none";
+    el.style.transform = `translate(${dx}px, ${dy}px)`;
+    // Forces layout so the browser registers that starting transform
+    // before the rAF below flips it to the animated end state - without
+    // this the two style writes would coalesce into one and there'd be
+    // nothing to visibly transition from.
+    el.getBoundingClientRect();
+    requestAnimationFrame(() => {
+      el.style.transition = "transform 420ms cubic-bezier(0.22, 1, 0.36, 1)";
+      el.style.transform = "";
+    });
+    // groupId alone as the dep is deliberate: this must run exactly once
+    // per genuine mount (a new groupId), never on an ordinary re-render of
+    // an already-mounted group.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupId]);
+
+  return <div ref={setRef}>{children}</div>;
+}
 
 export default function BoardTable({
   displayGroups,
@@ -89,6 +148,19 @@ export default function BoardTable({
   // header key (appending always lands at the very end, no ambiguity).
   const [dragOverItemPosition, setDragOverItemPosition] = useState<"before" | "after">("before");
 
+  // See FlipGroup above - groupNodesRef is every currently-mounted group's
+  // own DOM node (so its box can be measured on demand), originRects is
+  // where a group's box was the instant it was archived/restored, until
+  // FlipGroup consumes that entry on its next mount.
+  const groupNodesRef = useRef<Map<string, HTMLDivElement>>(new Map());
+  const originRectsRef = useRef<Map<string, DOMRect>>(new Map());
+
+  function handleToggleGroupArchived(groupId: string, archived: boolean) {
+    const node = groupNodesRef.current.get(groupId);
+    if (node) originRectsRef.current.set(groupId, node.getBoundingClientRect());
+    onToggleGroupArchived(groupId, archived);
+  }
+
   function submitNewGroup() {
     const trimmed = newGroupName.trim();
     if (trimmed) onAddGroup(trimmed);
@@ -112,89 +184,92 @@ export default function BoardTable({
     const canReorderThis = canReorderGroups && group.isRealGroup && !effectiveReadOnly;
     const canReorderItemsHere = canReorderItems && group.isRealGroup && !effectiveReadOnly;
     return (
-      <GroupSection
-        key={group.id}
-        group={group}
-        profiles={profiles}
-        selected={selected}
-        onToggleSelect={onToggleSelect}
-        onToggleCollapse={() => onToggleCollapse(group.id)}
-        onUpdateItem={onUpdateItem}
-        onSerialBlur={onSerialBlur}
-        onNameBlur={onNameBlur}
-        onAddItem={() => onAddItem(group.id)}
-        newItemId={newItemId}
-        onRenameGroup={
-          group.isRealGroup && !effectiveReadOnly ? (name) => onRenameGroup(group.id, name) : undefined
-        }
-        onDeleteGroup={
-          group.isRealGroup && !effectiveReadOnly ? () => onDeleteGroup(group.id) : undefined
-        }
-        onColorChange={
-          group.isRealGroup && !effectiveReadOnly
-            ? (color) => onChangeGroupColor(group.id, color)
-            : undefined
-        }
-        // Deliberately gated on the board-level readOnly, not
-        // effectiveReadOnly - it has to stay available while the group
-        // itself is archived, since that's the only way back.
-        onToggleArchived={
-          group.isRealGroup && !readOnly
-            ? (archived) => onToggleGroupArchived(group.id, archived)
-            : undefined
-        }
-        canReorder={canReorderThis}
-        isDragging={draggingId === group.id}
-        isDropTarget={dragOverGroupId === group.id && draggingId !== group.id}
-        dragOverGroupPosition={dragOverGroupPosition}
-        onDragStart={canReorderThis ? () => setDraggingId(group.id) : undefined}
-        onDragEnd={
-          canReorderThis
-            ? () => {
-                setDraggingId(null);
-                setDragOverGroupId(null);
-              }
-            : undefined
-        }
-        onDragOverGroup={
-          canReorderThis && draggingId
-            ? (position) => {
-                setDragOverGroupId(group.id);
-                setDragOverGroupPosition(position);
-              }
-            : undefined
-        }
-        onDropOnGroup={
-          canReorderThis && draggingId
-            ? (position) => {
-                onReorderGroup(draggingId, group.id, position);
-                setDraggingId(null);
-                setDragOverGroupId(null);
-              }
-            : undefined
-        }
-        canReorderItems={canReorderItemsHere}
-        draggingItemId={draggingItemId}
-        dragOverItemKey={dragOverItemKey}
-        dragOverItemPosition={dragOverItemPosition}
-        onItemDragStart={(itemId) => setDraggingItemId(itemId)}
-        onItemDragEnd={() => {
-          setDraggingItemId(null);
-          setDragOverItemKey(null);
-        }}
-        onItemDragOver={(key, position) => {
-          setDragOverItemKey(key);
-          setDragOverItemPosition(position);
-        }}
-        onMoveItemHere={(draggedId, targetItemId, position) =>
-          onMoveItem(draggedId, group.id, targetItemId, position)
-        }
-        currentUserId={currentUserId}
-        trackedSecondsByItem={trackedSecondsByItem}
-        activeSessionsByItem={activeSessionsByItem}
-        onTimeLogChanged={onTimeLogChanged}
-        readOnly={effectiveReadOnly}
-      />
+      <FlipGroup key={group.id} groupId={group.id} nodesRef={groupNodesRef} originRects={originRectsRef}>
+        <GroupSection
+          group={group}
+          profiles={profiles}
+          selected={selected}
+          onToggleSelect={onToggleSelect}
+          onToggleCollapse={() => onToggleCollapse(group.id)}
+          onUpdateItem={onUpdateItem}
+          onSerialBlur={onSerialBlur}
+          onNameBlur={onNameBlur}
+          onAddItem={() => onAddItem(group.id)}
+          newItemId={newItemId}
+          onRenameGroup={
+            group.isRealGroup && !effectiveReadOnly ? (name) => onRenameGroup(group.id, name) : undefined
+          }
+          onDeleteGroup={
+            group.isRealGroup && !effectiveReadOnly ? () => onDeleteGroup(group.id) : undefined
+          }
+          onColorChange={
+            group.isRealGroup && !effectiveReadOnly
+              ? (color) => onChangeGroupColor(group.id, color)
+              : undefined
+          }
+          // Deliberately gated on the board-level readOnly, not
+          // effectiveReadOnly - it has to stay available while the group
+          // itself is archived, since that's the only way back. Routed
+          // through handleToggleGroupArchived (not the prop directly) so
+          // the FLIP animation has a "before" rect to work from.
+          onToggleArchived={
+            group.isRealGroup && !readOnly
+              ? (archived) => handleToggleGroupArchived(group.id, archived)
+              : undefined
+          }
+          canReorder={canReorderThis}
+          isDragging={draggingId === group.id}
+          isDropTarget={dragOverGroupId === group.id && draggingId !== group.id}
+          dragOverGroupPosition={dragOverGroupPosition}
+          onDragStart={canReorderThis ? () => setDraggingId(group.id) : undefined}
+          onDragEnd={
+            canReorderThis
+              ? () => {
+                  setDraggingId(null);
+                  setDragOverGroupId(null);
+                }
+              : undefined
+          }
+          onDragOverGroup={
+            canReorderThis && draggingId
+              ? (position) => {
+                  setDragOverGroupId(group.id);
+                  setDragOverGroupPosition(position);
+                }
+              : undefined
+          }
+          onDropOnGroup={
+            canReorderThis && draggingId
+              ? (position) => {
+                  onReorderGroup(draggingId, group.id, position);
+                  setDraggingId(null);
+                  setDragOverGroupId(null);
+                }
+              : undefined
+          }
+          canReorderItems={canReorderItemsHere}
+          draggingItemId={draggingItemId}
+          dragOverItemKey={dragOverItemKey}
+          dragOverItemPosition={dragOverItemPosition}
+          onItemDragStart={(itemId) => setDraggingItemId(itemId)}
+          onItemDragEnd={() => {
+            setDraggingItemId(null);
+            setDragOverItemKey(null);
+          }}
+          onItemDragOver={(key, position) => {
+            setDragOverItemKey(key);
+            setDragOverItemPosition(position);
+          }}
+          onMoveItemHere={(draggedId, targetItemId, position) =>
+            onMoveItem(draggedId, group.id, targetItemId, position)
+          }
+          currentUserId={currentUserId}
+          trackedSecondsByItem={trackedSecondsByItem}
+          activeSessionsByItem={activeSessionsByItem}
+          onTimeLogChanged={onTimeLogChanged}
+          readOnly={effectiveReadOnly}
+        />
+      </FlipGroup>
     );
   }
 
@@ -236,17 +311,7 @@ export default function BoardTable({
       {archivedGroups.length > 0 && (
         <div className="mt-8 border-t border-slate-200 pt-4 dark:border-night-700">
           <h3 className="mb-3 text-sm font-bold text-slate-400 dark:text-slate-500">ארכיון</h3>
-          {archivedGroups.map((group) => (
-            // Keyed (and animated) at this wrapper, not just on the
-            // GroupSection inside it - a group moving from activeGroups to
-            // archivedGroups is a different position in the tree as far as
-            // React's reconciliation is concerned, so this genuinely mounts
-            // fresh right when it lands here, which is what makes the
-            // animation play at exactly the right moment.
-            <div key={group.id} className="animate-group-archive-in">
-              {renderGroup(group)}
-            </div>
-          ))}
+          {archivedGroups.map(renderGroup)}
         </div>
       )}
 

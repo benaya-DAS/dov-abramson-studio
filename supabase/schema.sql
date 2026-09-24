@@ -635,34 +635,6 @@ begin
     v_new := to_jsonb(new);
   end if;
 
-  -- Skip logging drag-reorder/collapse-toggle updates - moving a board,
-  -- group, or item around, or expanding/collapsing a group, isn't a
-  -- content change worth surfacing in the history/undo list, just UI
-  -- arrangement. Detected by field, not by a separate flag, since the
-  -- app's own write paths only ever touch these columns in isolation (see
-  -- BoardWorkspace.tsx's moveItem/reorderGroup/toggleCollapse) - never
-  -- alongside a real content edit in the same statement.
-  if tg_op = 'UPDATE' and tg_table_name = 'groups'
-    and old.name is not distinct from new.name
-    and old.color is not distinct from new.color
-    and old.is_archived is not distinct from new.is_archived
-  then
-    return new;
-  end if;
-  if tg_op = 'UPDATE' and tg_table_name = 'items'
-    and old.name is not distinct from new.name
-    and old.deliverable is not distinct from new.deliverable
-    and old.status is not distinct from new.status
-    and old.status_label is not distinct from new.status_label
-    and old.serial_id is not distinct from new.serial_id
-    and old.start_date is not distinct from new.start_date
-    and old.due_date is not distinct from new.due_date
-    and old.hours is not distinct from new.hours
-    and old.person_ids is not distinct from new.person_ids
-  then
-    return new;
-  end if;
-
   -- Skip logging when the parent board no longer exists. This matters for
   -- deleting a board itself: that cascades (on delete cascade) into its
   -- groups and items, which fires THIS trigger for each cascaded row - but

@@ -629,6 +629,46 @@ begin
     v_prev := null;
     v_new := to_jsonb(new);
   else
+    -- UPDATE: skip logging drag-reorder/collapse-toggle updates - moving a
+    -- group/item around, or expanding/collapsing a group, isn't a content
+    -- change worth surfacing in the history/undo list, just UI arrangement.
+    --
+    -- Genuine if/elsif per table, not a combined boolean condition (e.g.
+    -- `tg_table_name = 'groups' and old.color = ...`) - this function is
+    -- shared by both the items and groups triggers, so OLD/NEW are
+    -- items%ROWTYPE on one and groups%ROWTYPE on the other, and Postgres
+    -- does NOT guarantee short-circuit evaluation of AND/OR (this is
+    -- documented Postgres behavior, not a bug): referencing old.color while
+    -- OLD is actually an items row raises "record old has no field color"
+    -- even behind a leading `tg_table_name = 'groups' and` that's false. A
+    -- real if/elsif branch, unlike a boolean expression, genuinely never
+    -- evaluates the untaken branch's statements at all - the same
+    -- principle the tg_op branching above already relies on. (Verified
+    -- against a real Postgres instance before shipping this, after an
+    -- earlier version of this exact check broke every insert in
+    -- production by getting this wrong.)
+    if tg_table_name = 'groups' then
+      if old.name is not distinct from new.name
+        and old.color is not distinct from new.color
+        and old.is_archived is not distinct from new.is_archived
+      then
+        return new;
+      end if;
+    elsif tg_table_name = 'items' then
+      if old.name is not distinct from new.name
+        and old.deliverable is not distinct from new.deliverable
+        and old.status is not distinct from new.status
+        and old.status_label is not distinct from new.status_label
+        and old.serial_id is not distinct from new.serial_id
+        and old.start_date is not distinct from new.start_date
+        and old.due_date is not distinct from new.due_date
+        and old.hours is not distinct from new.hours
+        and old.person_ids is not distinct from new.person_ids
+      then
+        return new;
+      end if;
+    end if;
+
     v_board_id := new.board_id;
     v_entity_id := new.id;
     v_prev := to_jsonb(old);

@@ -84,17 +84,22 @@ export default function BoardHeader({
         </button>
       )}
 
-      <ExportButton
-        items={items}
-        profiles={profiles}
-        groupNameByGroupId={groupNameByGroupId}
-        boardName={boardName}
-        trackedSecondsByItem={trackedSecondsByItem}
-      />
+      {/* Export/history/catalog-import/new-month are all desktop-only -
+       * none of them fit or matter on a phone-width screen, so rather than
+       * cramming them in, they're just not offered there at all. */}
+      <div className="hidden md:block">
+        <ExportButton
+          items={items}
+          profiles={profiles}
+          groupNameByGroupId={groupNameByGroupId}
+          boardName={boardName}
+          trackedSecondsByItem={trackedSecondsByItem}
+        />
+      </div>
 
       <button
         onClick={() => setShowHistory(true)}
-        className="flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-night-700 dark:text-slate-300 dark:hover:bg-night-800"
+        className="hidden items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-night-700 dark:text-slate-300 dark:hover:bg-night-800 md:flex"
         title="היסטוריית פעילות"
       >
         <History size={14} />
@@ -105,12 +110,14 @@ export default function BoardHeader({
         <>
           <button
             onClick={() => setShowImporter(true)}
-            className="flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-night-700 dark:text-slate-300 dark:hover:bg-night-800"
+            className="hidden items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-night-700 dark:text-slate-300 dark:hover:bg-night-800 md:flex"
           >
             <FileSpreadsheet size={14} />
             ייבוא קטלוג
           </button>
-          <NewMonthButton boardId={boardId} boardName={boardName} />
+          <div className="hidden md:block">
+            <NewMonthButton boardId={boardId} boardName={boardName} />
+          </div>
           {/* Only offered on an empty board - deleting a board that still
            * has items is far more likely to be a costly mistake than an
            * intentional cleanup. */}

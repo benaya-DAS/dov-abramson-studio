@@ -176,7 +176,19 @@ export default function ItemRow({
         />
       </td>
 
-      <td className="min-w-[220px] px-2 py-1.5">
+      {/* Frozen column: sticky right-0 (RTL, so this is the row's actual
+       * start edge), matching the header cell in GroupSection.tsx. Needs
+       * its own background since sticky cells sit above the ones scrolled
+       * underneath them - group-hover/selected mirror the row's own
+       * hover/selected background (rather than inheriting it, which a
+       * sticky cell's own opaque bg would otherwise block) so this cell
+       * doesn't look inert while the rest of the row highlights. */}
+      <td
+        className={cn(
+          "sticky right-0 z-10 min-w-[220px] bg-slate-50 px-2 py-1.5 group-hover:bg-slate-100 dark:bg-night-900 dark:group-hover:bg-night-800/60",
+          selected && "!bg-brand-50/60 dark:!bg-brand-900/20"
+        )}
+      >
         <input
           autoFocus={isNewlyAdded}
           value={name}

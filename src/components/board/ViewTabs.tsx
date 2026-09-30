@@ -19,7 +19,10 @@ export default function ViewTabs({
   onChange: (v: BoardView) => void;
 }) {
   return (
-    <div className="flex items-center gap-1 border-b border-slate-200 px-5 dark:border-night-700">
+    // Gantt/calendar don't fit a phone screen, and with them gone table is
+    // the only view left - a single-tab switcher would be pointless, so
+    // the whole bar (not just those two tabs) is desktop-only.
+    <div className="hidden items-center gap-1 border-b border-slate-200 px-5 dark:border-night-700 md:flex">
       {TABS.map((tab) => {
         const Icon = tab.icon;
         const active = view === tab.id;

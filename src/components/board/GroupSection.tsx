@@ -392,7 +392,14 @@ export default function GroupSection({
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-400 dark:border-night-700 dark:bg-night-800/60 dark:text-slate-500">
                 {canReorderItems && <th className="w-6 px-1 py-2"></th>}
                 <th className="w-10 px-3 py-2"></th>
-                <th className="min-w-[220px] px-2 py-2 text-right">פריט</th>
+                {/* Frozen column: sticky right-0, since it's the first data
+                 * column and this table (and page) are RTL - the item name
+                 * stays put while the rest of the row's many columns
+                 * scroll under it. Same bg as this header row so it
+                 * doesn't show scrolled-under cells through it. */}
+                <th className="sticky right-0 z-10 min-w-[220px] bg-slate-50 px-2 py-2 text-right dark:bg-night-800/60">
+                  פריט
+                </th>
                 <th className="w-16 px-1 py-2">איש צוות</th>
                 <th className="w-52 px-2 py-2 text-right">תוצר עיצובי</th>
                 <th className="w-32 px-1 py-2">סטטוס</th>

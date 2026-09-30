@@ -176,7 +176,12 @@ export function Avatar({
     return (
       <span
         style={{ width: size, height: size }}
-        className="inline-flex items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-500 dark:bg-night-700 dark:text-slate-400"
+        // shrink-0: without it, a flex container tight on space (a filter
+        // chip, a crowded row) would let this shrink along the main axis
+        // despite the explicit width/height - flex-shrink overrides an
+        // item's own preferred size by default, squashing a perfect circle
+        // into an oval rather than actually respecting `size`.
+        className="inline-flex shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-500 dark:bg-night-700 dark:text-slate-400"
       >
         ?
       </span>
@@ -190,7 +195,7 @@ export function Avatar({
         alt={profile.full_name || profile.email}
         width={size}
         height={size}
-        className="rounded-full object-cover"
+        className="shrink-0 rounded-full object-cover"
         style={{ width: size, height: size }}
       />
     );
@@ -199,7 +204,7 @@ export function Avatar({
   return (
     <span
       style={{ width: size, height: size }}
-      className="inline-flex items-center justify-center rounded-full bg-brand-100 text-[10px] font-semibold text-brand-700 dark:bg-brand-900/50 dark:text-brand-300"
+      className="inline-flex shrink-0 items-center justify-center rounded-full bg-brand-100 text-[10px] font-semibold text-brand-700 dark:bg-brand-900/50 dark:text-brand-300"
       title={profile.full_name || profile.email}
     >
       {initials(profile.full_name, profile.email)}

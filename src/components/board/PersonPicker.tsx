@@ -59,12 +59,12 @@ export default function PersonPicker({
         ) : (
           <span className="flex items-center -space-x-2 space-x-reverse">
             {assigned.slice(0, MAX_AVATARS_SHOWN).map((p) => (
-              <span key={p.id} className="rounded-full ring-2 ring-white dark:ring-night-900">
+              <span key={p.id} className="shrink-0 rounded-full ring-2 ring-white dark:ring-night-900">
                 <Avatar profile={p} size={26} />
               </span>
             ))}
             {assigned.length > MAX_AVATARS_SHOWN && (
-              <span className="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-600 ring-2 ring-white dark:bg-night-700 dark:text-slate-300 dark:ring-night-900">
+              <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-600 ring-2 ring-white dark:bg-night-700 dark:text-slate-300 dark:ring-night-900">
                 +{assigned.length - MAX_AVATARS_SHOWN}
               </span>
             )}

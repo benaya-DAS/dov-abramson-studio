@@ -102,7 +102,12 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
       <button
         ref={buttonRef}
         onClick={() => setOpen((o) => !o)}
-        className="flex shrink-0 items-center gap-2 rounded-full border border-slate-200 py-1 pl-3 pr-1 hover:bg-slate-50 dark:border-night-700 dark:hover:bg-night-800"
+        // Below sm, the name span is hidden and only the round avatar shows -
+        // symmetric padding keeps this button's own border a circle too. At
+        // sm+, the name reappears, so the asymmetric pl-3/pr-1 comes back to
+        // give it room inside the pill-shaped border (rtl: extra padding on
+        // the far side from the avatar, which sits at the row's start).
+        className="flex shrink-0 items-center gap-2 rounded-full border border-slate-200 p-0.5 hover:bg-slate-50 dark:border-night-700 dark:hover:bg-night-800 sm:py-1 sm:pl-3 sm:pr-1"
       >
         <Avatar profile={displayedProfile} size={28} />
         <span className="hidden text-sm font-medium text-slate-700 dark:text-slate-200 sm:inline">

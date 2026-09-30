@@ -159,7 +159,7 @@ export default function FilterBar({
           className={cn(
             "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition",
             allCollapsed
-              ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-500 dark:bg-brand-900/30 dark:text-brand-300"
+              ? "border-slate-300 bg-slate-200 text-slate-700 dark:border-night-600 dark:bg-night-700 dark:text-slate-100"
               : "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-night-700 dark:text-slate-300 dark:hover:bg-night-800"
           )}
         >
@@ -173,7 +173,7 @@ export default function FilterBar({
           className={cn(
             "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition",
             allExpanded
-              ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-500 dark:bg-brand-900/30 dark:text-brand-300"
+              ? "border-slate-300 bg-slate-200 text-slate-700 dark:border-night-600 dark:bg-night-700 dark:text-slate-100"
               : "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-night-700 dark:text-slate-300 dark:hover:bg-night-800"
           )}
         >

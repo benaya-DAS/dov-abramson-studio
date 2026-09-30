@@ -71,7 +71,10 @@ export default function Sidebar({ workspaces }: { workspaces: WorkspaceWithBoard
     <aside
       style={{ width: collapsed ? COLLAPSED_RAIL_WIDTH : width }}
       className={cn(
-        "relative flex h-screen shrink-0 flex-col overflow-hidden border-l border-slate-200 bg-white dark:border-night-700 dark:bg-night-900",
+        // Hidden below md - a phone-width screen has no room for a persistent
+        // tree column, so mobile gets MobileWorkspaceNav's breadcrumb bar
+        // instead (see AppLayout) rather than this shrunk down to fit.
+        "relative hidden h-screen shrink-0 flex-col overflow-hidden border-l border-slate-200 bg-white dark:border-night-700 dark:bg-night-900 md:flex",
         // Only while not actively being dragged: a live drag should track
         // the cursor 1:1, not lag behind an eased transition - this is
         // purely for the discrete open/close triggered by a click (the

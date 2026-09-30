@@ -22,6 +22,8 @@ export default function FilterBar({
   onGroupByChange,
   onCollapseAll,
   onExpandAll,
+  allCollapsed,
+  allExpanded,
 }: {
   profiles: Profile[];
   currentUserId: string | null;
@@ -35,6 +37,8 @@ export default function FilterBar({
   onGroupByChange: (v: GroupByMode) => void;
   onCollapseAll: () => void;
   onExpandAll: () => void;
+  allCollapsed: boolean;
+  allExpanded: boolean;
 }) {
   // Mobile only - the whole row of controls below starts collapsed behind
   // this single toggle there (there's no room to show it all at once on a
@@ -151,7 +155,13 @@ export default function FilterBar({
         <button
           onClick={onCollapseAll}
           title="כיווץ כל הקבוצות"
-          className="flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-night-700 dark:text-slate-300 dark:hover:bg-night-800"
+          aria-pressed={allCollapsed}
+          className={cn(
+            "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition",
+            allCollapsed
+              ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-500 dark:bg-brand-900/30 dark:text-brand-300"
+              : "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-night-700 dark:text-slate-300 dark:hover:bg-night-800"
+          )}
         >
           <FoldVertical size={14} />
           כיווץ הכל
@@ -159,7 +169,13 @@ export default function FilterBar({
         <button
           onClick={onExpandAll}
           title="פתיחת כל הקבוצות"
-          className="flex items-center gap-1.5 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-night-700 dark:text-slate-300 dark:hover:bg-night-800"
+          aria-pressed={allExpanded}
+          className={cn(
+            "flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition",
+            allExpanded
+              ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-500 dark:bg-brand-900/30 dark:text-brand-300"
+              : "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-night-700 dark:text-slate-300 dark:hover:bg-night-800"
+          )}
         >
           <UnfoldVertical size={14} />
           פתיחת הכל

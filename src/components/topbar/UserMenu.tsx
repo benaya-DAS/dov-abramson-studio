@@ -172,21 +172,22 @@ export function Avatar({
   profile: Pick<Profile, "full_name" | "email" | "avatar_url"> | null;
   size?: number;
 }) {
+  // A fixed-size, overflow-hidden wrapper is the actual circle - the image
+  // (or placeholder text) inside it just fills that box with `fill` /
+  // absolute positioning, so nothing about the image's own intrinsic size,
+  // srcset, or subpixel rounding can ever distort the shape: the wrapper's
+  // width/height are equal and explicit, and its overflow-hidden + rounded
+  // corners are the only thing that determines what's visible. shrink-0
+  // additionally stops a tight flex container (a filter chip, a crowded
+  // row) from shrinking the wrapper itself below that size.
+  const boxStyle = { width: size, height: size };
+  const boxClass = "relative inline-block shrink-0 overflow-hidden rounded-full";
+
   if (!profile) {
     return (
       <span
-        style={{ width: size, height: size }}
-        // shrink-0: without it, a flex container tight on space (a filter
-        // chip, a crowded row) would let this shrink along the main axis
-        // despite the explicit width/height - flex-shrink overrides an
-        // item's own preferred size by default, squashing a perfect circle
-        // into an oval rather than actually respecting `size`. aspect-square
-        // is a second, stronger guarantee on top of that: even in a squeeze
-        // scenario shrink-0 doesn't catch (an ancestor that isn't this
-        // element's own direct flex container), it forces width and height
-        // to shrink together rather than independently, so the shape stays
-        // a smaller circle instead of an oval.
-        className="inline-flex aspect-square shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-500 dark:bg-night-700 dark:text-slate-400"
+        style={boxStyle}
+        className={`${boxClass} flex items-center justify-center bg-slate-200 text-[10px] font-semibold text-slate-500 dark:bg-night-700 dark:text-slate-400`}
       >
         ?
       </span>
@@ -195,21 +196,22 @@ export function Avatar({
 
   if (profile.avatar_url) {
     return (
-      <Image
-        src={profile.avatar_url}
-        alt={profile.full_name || profile.email}
-        width={size}
-        height={size}
-        className="aspect-square shrink-0 rounded-full object-cover"
-        style={{ width: size, height: size }}
-      />
+      <span style={boxStyle} className={boxClass}>
+        <Image
+          src={profile.avatar_url}
+          alt={profile.full_name || profile.email}
+          fill
+          sizes={`${size}px`}
+          className="object-cover"
+        />
+      </span>
     );
   }
 
   return (
     <span
-      style={{ width: size, height: size }}
-      className="inline-flex aspect-square shrink-0 items-center justify-center rounded-full bg-brand-100 text-[10px] font-semibold text-brand-700 dark:bg-brand-900/50 dark:text-brand-300"
+      style={boxStyle}
+      className={`${boxClass} flex items-center justify-center bg-brand-100 text-[10px] font-semibold text-brand-700 dark:bg-brand-900/50 dark:text-brand-300`}
       title={profile.full_name || profile.email}
     >
       {initials(profile.full_name, profile.email)}

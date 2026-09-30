@@ -473,6 +473,12 @@ export default function BoardWorkspace({
     }
   }
 
+  // Drives the "pressed" look on FilterBar's collapse/expand-all buttons -
+  // vacuously false when there are no groups on screen at all, so neither
+  // button reads as active with nothing to act on.
+  const allGroupsCollapsed = displayGroups.length > 0 && displayGroups.every((g) => g.collapsed);
+  const allGroupsExpanded = displayGroups.length > 0 && displayGroups.every((g) => !g.collapsed);
+
   return (
     <div className="flex h-full flex-col">
       <BoardHeader
@@ -503,6 +509,8 @@ export default function BoardWorkspace({
           onGroupByChange={setGroupBy}
           onCollapseAll={() => setAllCollapsed(true)}
           onExpandAll={() => setAllCollapsed(false)}
+          allCollapsed={allGroupsCollapsed}
+          allExpanded={allGroupsExpanded}
         />
       )}
 

@@ -24,7 +24,10 @@ export default function MobileTopBarLogo() {
         height={32}
         className="h-8 w-8 shrink-0 rounded-lg object-contain"
       />
-      <p className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">סטודיו דוב אברמסון</p>
+      <span className="min-w-0">
+        <p className="truncate text-sm font-bold text-slate-900 dark:text-slate-100">סטודיו דוב אברמסון</p>
+        <p className="truncate text-xs text-slate-400 dark:text-slate-500">ניהול פרויקטים</p>
+      </span>
     </button>
   );
 }

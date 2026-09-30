@@ -1,6 +1,7 @@
 import ThemeToggle from "./ThemeToggle";
 import UserMenu from "./UserMenu";
 import CollapsedSidebarLogo from "@/components/sidebar/CollapsedSidebarLogo";
+import MobileTopBarLogo from "@/components/sidebar/MobileTopBarLogo";
 import { getCurrentProfile } from "@/lib/data";
 
 export default async function TopBar() {
@@ -15,6 +16,7 @@ export default async function TopBar() {
        * over" rather than vanishing. */}
       <div className="flex flex-1 items-center">
         <CollapsedSidebarLogo />
+        <MobileTopBarLogo />
       </div>
       {/* JSX order sets visual position under dir="rtl": UserMenu (avatar)
        * comes first here so it sits closer to center, ThemeToggle after it

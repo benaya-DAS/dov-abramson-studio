@@ -50,7 +50,12 @@ export default function CollapsedSidebarLogo() {
       onClick={() => setCollapsed(false)}
       title="פתיחת הסיידבר"
       className={cn(
-        "flex shrink-0 items-center gap-3 rounded-lg px-2 py-1.5 transition-opacity duration-[400ms] ease-in hover:bg-slate-100 dark:hover:bg-night-800",
+        // Desktop-only (hidden below md): on mobile the sidebar itself is
+        // hidden via CSS rather than this `collapsed` state, so `collapsed`
+        // can still be true there (persisted via localStorage from an
+        // earlier desktop session) - without this, that stale state would
+        // show this button on top of MobileTopBarLogo's own logo.
+        "hidden shrink-0 items-center gap-3 rounded-lg px-2 py-1.5 transition-opacity duration-[400ms] ease-in hover:bg-slate-100 dark:hover:bg-night-800 md:flex",
         entered ? "opacity-100" : "opacity-0"
       )}
     >

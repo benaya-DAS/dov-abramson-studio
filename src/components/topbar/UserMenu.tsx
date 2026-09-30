@@ -98,11 +98,11 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
   const displayedProfile = avatarOverride ? { ...profile, avatar_url: avatarOverride } : profile;
 
   return (
-    <div>
+    <div className="shrink-0">
       <button
         ref={buttonRef}
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 rounded-full border border-slate-200 py-1 pl-3 pr-1 hover:bg-slate-50 dark:border-night-700 dark:hover:bg-night-800"
+        className="flex shrink-0 items-center gap-2 rounded-full border border-slate-200 py-1 pl-3 pr-1 hover:bg-slate-50 dark:border-night-700 dark:hover:bg-night-800"
       >
         <Avatar profile={displayedProfile} size={28} />
         <span className="hidden text-sm font-medium text-slate-700 dark:text-slate-200 sm:inline">
@@ -180,8 +180,13 @@ export function Avatar({
         // chip, a crowded row) would let this shrink along the main axis
         // despite the explicit width/height - flex-shrink overrides an
         // item's own preferred size by default, squashing a perfect circle
-        // into an oval rather than actually respecting `size`.
-        className="inline-flex shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-500 dark:bg-night-700 dark:text-slate-400"
+        // into an oval rather than actually respecting `size`. aspect-square
+        // is a second, stronger guarantee on top of that: even in a squeeze
+        // scenario shrink-0 doesn't catch (an ancestor that isn't this
+        // element's own direct flex container), it forces width and height
+        // to shrink together rather than independently, so the shape stays
+        // a smaller circle instead of an oval.
+        className="inline-flex aspect-square shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-500 dark:bg-night-700 dark:text-slate-400"
       >
         ?
       </span>
@@ -195,7 +200,7 @@ export function Avatar({
         alt={profile.full_name || profile.email}
         width={size}
         height={size}
-        className="shrink-0 rounded-full object-cover"
+        className="aspect-square shrink-0 rounded-full object-cover"
         style={{ width: size, height: size }}
       />
     );
@@ -204,7 +209,7 @@ export function Avatar({
   return (
     <span
       style={{ width: size, height: size }}
-      className="inline-flex shrink-0 items-center justify-center rounded-full bg-brand-100 text-[10px] font-semibold text-brand-700 dark:bg-brand-900/50 dark:text-brand-300"
+      className="inline-flex aspect-square shrink-0 items-center justify-center rounded-full bg-brand-100 text-[10px] font-semibold text-brand-700 dark:bg-brand-900/50 dark:text-brand-300"
       title={profile.full_name || profile.email}
     >
       {initials(profile.full_name, profile.email)}

@@ -6,7 +6,7 @@ import ItemRow from "./ItemRow";
 import { blurActiveElement, formatDuration, formatHours, cn } from "@/lib/utils";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import { GROUP_COLORS } from "@/lib/constants";
-import type { ActiveTimeLog, Item, Profile } from "@/lib/supabase/types";
+import type { ActiveTimeLog, DeliverableOption, Item, Profile } from "@/lib/supabase/types";
 import FloatingPanel from "@/components/ui/FloatingPanel";
 
 // Stable reference so items with no active session don't hand TimeTracker
@@ -60,7 +60,9 @@ export default function GroupSection({
   trackedSecondsByItem,
   activeSessionsByItem,
   onTimeLogChanged,
-  deliverableSuggestions,
+  deliverableOptions,
+  onAddDeliverableOption,
+  onDeleteDeliverableOption,
   readOnly,
 }: {
   group: DisplayGroup;
@@ -119,9 +121,11 @@ export default function GroupSection({
   currentUserId: string | null;
   trackedSecondsByItem: Record<string, number>;
   activeSessionsByItem: Record<string, ActiveTimeLog[]>;
-  /** Curated defaults plus every value anyone's typed into the deliverable
-   * field, for its autocomplete dropdown - see BoardWorkspace. */
-  deliverableSuggestions: string[];
+  /** Studio-wide suggestions for the deliverable field's autocomplete
+   * dropdown - see BoardWorkspace. */
+  deliverableOptions: DeliverableOption[];
+  onAddDeliverableOption: (label: string) => void;
+  onDeleteDeliverableOption: (id: string) => void;
   readOnly?: boolean;
 }) {
   // Both footer cells (decimal hours, HH:MM:SS) derive from the same
@@ -433,7 +437,9 @@ export default function GroupSection({
                   trackedSeconds={trackedSecondsByItem[item.id] ?? 0}
                   activeSessions={activeSessionsByItem[item.id] ?? NO_ACTIVE_SESSIONS}
                   onTimeLogChanged={onTimeLogChanged}
-                  deliverableSuggestions={deliverableSuggestions}
+                  deliverableOptions={deliverableOptions}
+                  onAddDeliverableOption={onAddDeliverableOption}
+                  onDeleteDeliverableOption={onDeleteDeliverableOption}
                   readOnly={readOnly}
                   canReorder={canReorderItems}
                   isDragging={draggingItemId === item.id}

@@ -43,17 +43,6 @@ export const STATUS_COLORS: Record<ItemStatus, { bg: string; text: string; dot: 
 
 export const STATUS_ORDER: ItemStatus[] = ["not_started", "working", "stuck", "done"];
 
-export const DELIVERABLE_OPTIONS = [
-  "דימוי ובאנרים",
-  "מודעות עיתונים",
-  "עיצוב דיגיטלי",
-  "עיצוב דפוס",
-  "אנימציה",
-  "סרטון",
-  "מצגת",
-  "מיתוג",
-];
-
 export const GROUP_COLORS = [
   "#579bfc",
   "#0086c0",

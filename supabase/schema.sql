@@ -343,6 +343,36 @@ create trigger items_set_updated_at
   for each row execute function public.set_updated_at();
 
 -- ============================================================================
+-- 6a. DELIVERABLE OPTIONS  (autocomplete suggestions for items.deliverable)
+--
+-- Shared across every board, not just one - this is a studio-wide list of
+-- "things we've called a deliverable before", not board data. Seeded once
+-- with a curated starter set below; after that, the app itself adds a row
+-- whenever someone types a new value and removes one when someone deletes
+-- it from the suggestions dropdown. Deleting a row here never touches any
+-- item's own `deliverable` text - it only stops that value from being
+-- offered as a suggestion going forward.
+-- ============================================================================
+
+create table if not exists public.deliverable_options (
+  id uuid primary key default gen_random_uuid(),
+  label text not null unique,
+  created_at timestamptz not null default now()
+);
+
+insert into public.deliverable_options (label)
+values
+  ('דימוי ובאנרים'),
+  ('מודעות עיתונים'),
+  ('עיצוב דיגיטלי'),
+  ('עיצוב דפוס'),
+  ('אנימציה'),
+  ('סרטון'),
+  ('מצגת'),
+  ('מיתוג')
+on conflict (label) do nothing;
+
+-- ============================================================================
 -- 7. PROJECT CATALOG  (parsed from customer Excel files)
 -- ============================================================================
 
@@ -802,6 +832,7 @@ alter table public.workspaces enable row level security;
 alter table public.boards enable row level security;
 alter table public.groups enable row level security;
 alter table public.items enable row level security;
+alter table public.deliverable_options enable row level security;
 alter table public.project_catalog enable row level security;
 alter table public.time_logs enable row level security;
 alter table public.activity_logs enable row level security;
@@ -890,6 +921,15 @@ create policy "items_write_unarchived" on public.items
     )
   );
 
+-- ---- deliverable_options ------------------------------------------------
+drop policy if exists "deliverable_options_select_studio" on public.deliverable_options;
+create policy "deliverable_options_select_studio" on public.deliverable_options
+  for select using (public.is_studio_member());
+
+drop policy if exists "deliverable_options_write_studio" on public.deliverable_options;
+create policy "deliverable_options_write_studio" on public.deliverable_options
+  for all using (public.is_studio_member()) with check (public.is_studio_member());
+
 -- ---- project_catalog ---------------------------------------------------
 drop policy if exists "catalog_select_studio" on public.project_catalog;
 create policy "catalog_select_studio" on public.project_catalog
@@ -945,6 +985,7 @@ grant select, insert, update, delete on
   public.boards,
   public.groups,
   public.items,
+  public.deliverable_options,
   public.project_catalog,
   public.time_logs
 to authenticated;
@@ -1000,6 +1041,12 @@ begin
     where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'activity_logs'
   ) then
     alter publication supabase_realtime add table public.activity_logs;
+  end if;
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'deliverable_options'
+  ) then
+    alter publication supabase_realtime add table public.deliverable_options;
   end if;
 end $$;
 

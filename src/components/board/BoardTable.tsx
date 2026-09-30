@@ -3,7 +3,7 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import GroupSection, { type DisplayGroup } from "./GroupSection";
-import type { ActiveTimeLog, Item, Profile } from "@/lib/supabase/types";
+import type { ActiveTimeLog, DeliverableOption, Item, Profile } from "@/lib/supabase/types";
 
 // FLIP ("First, Last, Invert, Play"): archiving/restoring a group moves it
 // between two separate sections of the page (active groups vs. the
@@ -86,7 +86,9 @@ export default function BoardTable({
   trackedSecondsByItem,
   activeSessionsByItem,
   onTimeLogChanged,
-  deliverableSuggestions,
+  deliverableOptions,
+  onAddDeliverableOption,
+  onDeleteDeliverableOption,
   readOnly,
   canAddGroup,
   canReorderGroups,
@@ -122,9 +124,11 @@ export default function BoardTable({
   trackedSecondsByItem: Record<string, number>;
   activeSessionsByItem: Record<string, ActiveTimeLog[]>;
   onTimeLogChanged: () => void;
-  /** Curated defaults plus every value anyone's typed into the deliverable
-   * field, for its autocomplete dropdown - see BoardWorkspace. */
-  deliverableSuggestions: string[];
+  /** Studio-wide suggestions for the deliverable field's autocomplete
+   * dropdown - see BoardWorkspace. */
+  deliverableOptions: DeliverableOption[];
+  onAddDeliverableOption: (label: string) => void;
+  onDeleteDeliverableOption: (id: string) => void;
   readOnly?: boolean;
   canAddGroup: boolean;
   canReorderGroups: boolean;
@@ -270,7 +274,9 @@ export default function BoardTable({
           trackedSecondsByItem={trackedSecondsByItem}
           activeSessionsByItem={activeSessionsByItem}
           onTimeLogChanged={onTimeLogChanged}
-          deliverableSuggestions={deliverableSuggestions}
+          deliverableOptions={deliverableOptions}
+          onAddDeliverableOption={onAddDeliverableOption}
+          onDeleteDeliverableOption={onDeleteDeliverableOption}
           readOnly={effectiveReadOnly}
         />
       </FlipGroup>

@@ -62,12 +62,13 @@ export async function getBoardMeta(boardId: string) {
 export async function getBoardFull(boardId: string) {
   const supabase = await createClient();
 
-  const [{ data: board }, { data: groups }, { data: items }, { data: profiles }] =
+  const [{ data: board }, { data: groups }, { data: items }, { data: profiles }, { data: deliverableOptions }] =
     await Promise.all([
       supabase.from("boards").select("*, workspaces(id, name)").eq("id", boardId).single(),
       supabase.from("groups").select("*").eq("board_id", boardId).order("position"),
       supabase.from("items").select("*").eq("board_id", boardId).order("position"),
       supabase.from("profiles").select("*").order("full_name"),
+      supabase.from("deliverable_options").select("*").order("created_at"),
     ]);
 
   return {
@@ -75,5 +76,6 @@ export async function getBoardFull(boardId: string) {
     groups: groups ?? [],
     items: items ?? [],
     profiles: profiles ?? [],
+    deliverableOptions: deliverableOptions ?? [],
   };
 }

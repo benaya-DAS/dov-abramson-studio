@@ -8,7 +8,7 @@ export default async function BoardPage({
   params: Promise<{ boardId: string }>;
 }) {
   const { boardId } = await params;
-  const [{ board, groups, items, profiles }, currentProfile] = await Promise.all([
+  const [{ board, groups, items, profiles, deliverableOptions }, currentProfile] = await Promise.all([
     getBoardFull(boardId),
     getCurrentProfile(),
   ]);
@@ -22,6 +22,7 @@ export default async function BoardPage({
       initialGroups={groups}
       initialItems={items}
       profiles={profiles}
+      initialDeliverableOptions={deliverableOptions}
       currentUserId={currentProfile?.id ?? null}
     />
   );

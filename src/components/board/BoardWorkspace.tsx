@@ -9,8 +9,8 @@ import BoardTable from "./BoardTable";
 import BoardGantt from "./BoardGantt";
 import BoardCalendar from "./BoardCalendar";
 import type { DisplayGroup } from "./GroupSection";
-import { DELIVERABLE_OPTIONS, GROUP_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
-import type { ActiveTimeLog, Board, Group, Item, Profile } from "@/lib/supabase/types";
+import { GROUP_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
+import type { ActiveTimeLog, Board, DeliverableOption, Group, Item, Profile } from "@/lib/supabase/types";
 
 export default function BoardWorkspace({
   board,
@@ -18,6 +18,7 @@ export default function BoardWorkspace({
   initialGroups,
   initialItems,
   profiles,
+  initialDeliverableOptions,
   currentUserId,
 }: {
   board: Board;
@@ -25,6 +26,7 @@ export default function BoardWorkspace({
   initialGroups: Group[];
   initialItems: Item[];
   profiles: Profile[];
+  initialDeliverableOptions: DeliverableOption[];
   currentUserId: string | null;
 }) {
   const supabase = useMemo(() => createClient(), []);
@@ -33,20 +35,11 @@ export default function BoardWorkspace({
   const [boardName, setBoardName] = useState(board.name);
   const [groups, setGroups] = useState<Group[]>(initialGroups);
   const [items, setItems] = useState<Item[]>(initialItems);
-  // The curated defaults, plus every distinct value anyone on this board
-  // has ever actually typed into the deliverable field - so a value one
-  // person types becomes a suggestion for everyone else, with no separate
-  // table to maintain (it just rides along on `items`, which already syncs
-  // live via the realtime subscription below).
-  const deliverableSuggestions = useMemo(() => {
-    const custom = new Set<string>();
-    for (const item of items) {
-      const value = item.deliverable?.trim();
-      if (value) custom.add(value);
-    }
-    for (const option of DELIVERABLE_OPTIONS) custom.delete(option);
-    return [...DELIVERABLE_OPTIONS, ...Array.from(custom).sort((a, b) => a.localeCompare(b, "he"))];
-  }, [items]);
+  // Studio-wide (not per-board), so this doesn't live under displayGroups
+  // like everything else here - it's kept in sync live via its own
+  // realtime subscription below, same idea as items/groups.
+  const [deliverableOptions, setDeliverableOptions] =
+    useState<DeliverableOption[]>(initialDeliverableOptions);
   const [trackedSecondsByItem, setTrackedSecondsByItem] = useState<Record<string, number>>({});
   const [activeSessionsByItem, setActiveSessionsByItem] = useState<Record<string, ActiveTimeLog[]>>(
     {}
@@ -109,6 +102,32 @@ export default function BoardWorkspace({
       supabase.removeChannel(channel);
     };
   }, [supabase, board.id]);
+
+  // deliverable_options is studio-wide, not board-scoped, so this channel
+  // has no board_id filter (and isn't named per-board either) - anyone on
+  // any board adding/removing a suggestion should update it here too.
+  useEffect(() => {
+    const channel = supabase
+      .channel("deliverable-options")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "deliverable_options" },
+        (payload) => {
+          setDeliverableOptions((prev) => {
+            if (payload.eventType === "DELETE") {
+              return prev.filter((o) => o.id !== (payload.old as DeliverableOption).id);
+            }
+            const row = payload.new as DeliverableOption;
+            const exists = prev.some((o) => o.id === row.id);
+            return exists ? prev.map((o) => (o.id === row.id ? row : o)) : [...prev, row];
+          });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
 
   // ---- Time tracking: completed-session totals + any currently-running
   // session, for every item, from every studio member (not just the
@@ -313,6 +332,28 @@ export default function BoardWorkspace({
   function toggleGroupArchived(groupId: string, archived: boolean) {
     setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, is_archived: archived } : g)));
     supabase.from("groups").update({ is_archived: archived }).eq("id", groupId).then();
+  }
+
+  // Called whenever someone commits a deliverable value that isn't already
+  // among the known suggestions - the label unique constraint makes this
+  // safe to fire even if two people type the same new value at once (the
+  // loser's insert is just ignored, and both end up seeing the winner's row
+  // via realtime). Not awaited by callers - it's a background "remember
+  // this for next time", not something the field's own save should wait on.
+  async function addDeliverableOption(label: string) {
+    const { data } = await supabase
+      .from("deliverable_options")
+      .insert({ label })
+      .select()
+      .single();
+    if (data) {
+      setDeliverableOptions((prev) => (prev.some((o) => o.id === data.id) ? prev : [...prev, data]));
+    }
+  }
+
+  function deleteDeliverableOption(id: string) {
+    setDeliverableOptions((prev) => prev.filter((o) => o.id !== id));
+    supabase.from("deliverable_options").delete().eq("id", id).then();
   }
 
   function toggleCollapse(groupId: string) {
@@ -558,7 +599,9 @@ export default function BoardWorkspace({
             trackedSecondsByItem={trackedSecondsByItem}
             activeSessionsByItem={activeSessionsByItem}
             onTimeLogChanged={refreshTrackedSeconds}
-            deliverableSuggestions={deliverableSuggestions}
+            deliverableOptions={deliverableOptions}
+            onAddDeliverableOption={addDeliverableOption}
+            onDeleteDeliverableOption={deleteDeliverableOption}
             readOnly={readOnly}
             canAddGroup={groupBy === "group"}
             canReorderGroups={groupBy === "group"}

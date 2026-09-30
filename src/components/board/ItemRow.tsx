@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { GripVertical } from "lucide-react";
+import { GripVertical, X } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 import PersonPicker from "./PersonPicker";
 import TimeTracker from "./TimeTracker";
-import type { ActiveTimeLog, Item, ItemStatus, Profile } from "@/lib/supabase/types";
+import type { ActiveTimeLog, DeliverableOption, Item, ItemStatus, Profile } from "@/lib/supabase/types";
 import { cn, formatHours } from "@/lib/utils";
 import FloatingPanel from "@/components/ui/FloatingPanel";
 
@@ -22,7 +22,9 @@ export default function ItemRow({
   trackedSeconds,
   activeSessions,
   onTimeLogChanged,
-  deliverableSuggestions,
+  deliverableOptions,
+  onAddDeliverableOption,
+  onDeleteDeliverableOption,
   readOnly,
   canReorder,
   isDragging,
@@ -47,10 +49,11 @@ export default function ItemRow({
   trackedSeconds: number;
   activeSessions: ActiveTimeLog[];
   onTimeLogChanged: () => void;
-  /** Curated defaults plus every value anyone's typed into this field
-   * across the board, for the deliverable autocomplete dropdown - see
-   * BoardWorkspace. */
-  deliverableSuggestions: string[];
+  /** Studio-wide suggestions for the deliverable field's autocomplete
+   * dropdown - see BoardWorkspace. */
+  deliverableOptions: DeliverableOption[];
+  onAddDeliverableOption: (label: string) => void;
+  onDeleteDeliverableOption: (id: string) => void;
   readOnly?: boolean;
   /** True only when this board is grouped by "group" (real, position-backed
    * groups) with no sort active - dragging to reorder while a different
@@ -103,13 +106,17 @@ export default function ItemRow({
 
   const deliverableQuery = deliverable.trim().toLowerCase();
   const filteredDeliverableOptions = deliverableQuery
-    ? deliverableSuggestions.filter((o) => o.toLowerCase().includes(deliverableQuery))
-    : deliverableSuggestions;
+    ? deliverableOptions.filter((o) => o.label.toLowerCase().includes(deliverableQuery))
+    : deliverableOptions;
 
   function commitDeliverable(value: string) {
     setDeliverable(value);
     setDeliverableOpen(false);
+    const trimmed = value.trim();
     if (value !== (item.deliverable ?? "")) onUpdate({ deliverable: value || null });
+    if (trimmed && !deliverableOptions.some((o) => o.label.toLowerCase() === trimmed.toLowerCase())) {
+      onAddDeliverableOption(trimmed);
+    }
   }
 
   function edgeFromCursor(clientY: number): "before" | "after" {
@@ -264,12 +271,12 @@ export default function ItemRow({
           }}
           onFocus={() => setDeliverableOpen(true)}
           onBlur={() => {
-            setDeliverableOpen(false);
             if (cancelingFieldRef.current) {
               cancelingFieldRef.current = false;
+              setDeliverableOpen(false);
               return;
             }
-            if (deliverable !== (item.deliverable ?? "")) onUpdate({ deliverable: deliverable || null });
+            commitDeliverable(deliverable);
           }}
           onKeyDown={(e) => handleEditableKeyDown(e, () => setDeliverable(item.deliverable ?? ""))}
           placeholder="תוצר עיצובי"
@@ -285,21 +292,41 @@ export default function ItemRow({
         {deliverableOpen && !readOnly && filteredDeliverableOptions.length > 0 && (
           <FloatingPanel
             anchorRef={deliverableInputRef}
+            // "end" (not the default "start") is what's RTL-correct here:
+            // FloatingPanel's "start"/"end" always mean the anchor's
+            // left/right edge respectively, regardless of page direction -
+            // "end" aligns the panel's right edge to the input's right
+            // edge, which is this row's actual reading-start in RTL.
+            align="end"
             className="z-50 max-h-56 w-56 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-night-700 dark:bg-night-800"
           >
             {filteredDeliverableOptions.map((o) => (
-              <button
-                key={o}
-                type="button"
-                // Prevents the default focus-shift (and the resulting blur
-                // on the input above, which would close this dropdown)
-                // before the click that should actually select o fires.
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => commitDeliverable(o)}
-                className="block w-full truncate rounded-md px-2 py-1.5 text-right text-xs text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-night-700"
+              <div
+                key={o.id}
+                className="group/option flex items-center gap-1 rounded-md hover:bg-slate-50 dark:hover:bg-night-700"
               >
-                {o}
-              </button>
+                <button
+                  type="button"
+                  // Prevents the default focus-shift (and the resulting
+                  // blur on the input above, which would close this
+                  // dropdown) before the click that should actually select
+                  // o.label fires.
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => commitDeliverable(o.label)}
+                  className="min-w-0 flex-1 truncate px-2 py-1.5 text-right text-xs text-slate-700 dark:text-slate-200"
+                >
+                  {o.label}
+                </button>
+                <button
+                  type="button"
+                  title="הסרה מהרשימה"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => onDeleteDeliverableOption(o.id)}
+                  className="shrink-0 rounded p-1 text-slate-300 opacity-0 hover:bg-slate-200 hover:text-red-500 group-hover/option:opacity-100 dark:text-slate-500 dark:hover:bg-night-600 dark:hover:text-red-400"
+                >
+                  <X size={12} />
+                </button>
+              </div>
             ))}
           </FloatingPanel>
         )}

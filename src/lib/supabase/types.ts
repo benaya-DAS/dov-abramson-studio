@@ -53,6 +53,14 @@ export type Group = {
   created_at: string;
 };
 
+/** A studio-wide (not per-board) autocomplete suggestion for items.deliverable
+ * - see deliverable_options in schema.sql. */
+export type DeliverableOption = {
+  id: string;
+  label: string;
+  created_at: string;
+};
+
 export type Item = {
   id: string;
   board_id: string;
@@ -152,6 +160,12 @@ export interface Database {
         Row: Item;
         Insert: Partial<Item>;
         Update: Partial<Item>;
+        Relationships: Relationships;
+      };
+      deliverable_options: {
+        Row: DeliverableOption;
+        Insert: Partial<DeliverableOption>;
+        Update: Partial<DeliverableOption>;
         Relationships: Relationships;
       };
       project_catalog: {

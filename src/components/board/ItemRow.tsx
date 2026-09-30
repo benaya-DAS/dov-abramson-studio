@@ -7,6 +7,7 @@ import PersonPicker from "./PersonPicker";
 import TimeTracker from "./TimeTracker";
 import type { ActiveTimeLog, Item, ItemStatus, Profile } from "@/lib/supabase/types";
 import { cn, formatHours } from "@/lib/utils";
+import FloatingPanel from "@/components/ui/FloatingPanel";
 
 export default function ItemRow({
   item,
@@ -21,6 +22,7 @@ export default function ItemRow({
   trackedSeconds,
   activeSessions,
   onTimeLogChanged,
+  deliverableSuggestions,
   readOnly,
   canReorder,
   isDragging,
@@ -45,6 +47,10 @@ export default function ItemRow({
   trackedSeconds: number;
   activeSessions: ActiveTimeLog[];
   onTimeLogChanged: () => void;
+  /** Curated defaults plus every value anyone's typed into this field
+   * across the board, for the deliverable autocomplete dropdown - see
+   * BoardWorkspace. */
+  deliverableSuggestions: string[];
   readOnly?: boolean;
   /** True only when this board is grouped by "group" (real, position-backed
    * groups) with no sort active - dragging to reorder while a different
@@ -64,6 +70,8 @@ export default function ItemRow({
   const [name, setName] = useState(item.name);
   const [serial, setSerial] = useState(item.serial_id ?? "");
   const [deliverable, setDeliverable] = useState(item.deliverable ?? "");
+  const [deliverableOpen, setDeliverableOpen] = useState(false);
+  const deliverableInputRef = useRef<HTMLInputElement>(null);
   const rowRef = useRef<HTMLTableRowElement>(null);
   // Escape reverts a field's draft state and blurs it, but blurring
   // synchronously fires onBlur before React has processed the revert (state
@@ -92,6 +100,17 @@ export default function ItemRow({
   useEffect(() => setSerial(item.serial_id ?? ""), [item.serial_id]);
   useEffect(() => setDeliverable(item.deliverable ?? ""), [item.deliverable]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  const deliverableQuery = deliverable.trim().toLowerCase();
+  const filteredDeliverableOptions = deliverableQuery
+    ? deliverableSuggestions.filter((o) => o.toLowerCase().includes(deliverableQuery))
+    : deliverableSuggestions;
+
+  function commitDeliverable(value: string) {
+    setDeliverable(value);
+    setDeliverableOpen(false);
+    if (value !== (item.deliverable ?? "")) onUpdate({ deliverable: value || null });
+  }
 
   function edgeFromCursor(clientY: number): "before" | "after" {
     const rect = rowRef.current?.getBoundingClientRect();
@@ -236,11 +255,16 @@ export default function ItemRow({
 
       <td className="w-52 px-2 py-1.5">
         <input
-          list="deliverable-options"
+          ref={deliverableInputRef}
           value={deliverable}
           disabled={readOnly}
-          onChange={(e) => setDeliverable(e.target.value)}
+          onChange={(e) => {
+            setDeliverable(e.target.value);
+            setDeliverableOpen(true);
+          }}
+          onFocus={() => setDeliverableOpen(true)}
           onBlur={() => {
+            setDeliverableOpen(false);
             if (cancelingFieldRef.current) {
               cancelingFieldRef.current = false;
               return;
@@ -251,6 +275,34 @@ export default function ItemRow({
           placeholder="תוצר עיצובי"
           className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800"
         />
+        {/* Custom dropdown (not a native <input list>/<datalist>) so it can
+         * be styled/positioned like every other popover in this app - a
+         * native datalist's popup is drawn by the browser itself, always
+         * left-aligned to the input regardless of this page's RTL layout,
+         * which is what looked "off-center" here. FloatingPanel's portal
+         * also keeps it from being clipped by the table's own
+         * overflow-x-auto scroll wrapper. */}
+        {deliverableOpen && !readOnly && filteredDeliverableOptions.length > 0 && (
+          <FloatingPanel
+            anchorRef={deliverableInputRef}
+            className="z-50 max-h-56 w-56 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-night-700 dark:bg-night-800"
+          >
+            {filteredDeliverableOptions.map((o) => (
+              <button
+                key={o}
+                type="button"
+                // Prevents the default focus-shift (and the resulting blur
+                // on the input above, which would close this dropdown)
+                // before the click that should actually select o fires.
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => commitDeliverable(o)}
+                className="block w-full truncate rounded-md px-2 py-1.5 text-right text-xs text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-night-700"
+              >
+                {o}
+              </button>
+            ))}
+          </FloatingPanel>
+        )}
       </td>
 
       <td className="w-32 px-1 py-1.5">

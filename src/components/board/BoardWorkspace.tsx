@@ -9,7 +9,7 @@ import BoardTable from "./BoardTable";
 import BoardGantt from "./BoardGantt";
 import BoardCalendar from "./BoardCalendar";
 import type { DisplayGroup } from "./GroupSection";
-import { GROUP_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
+import { DELIVERABLE_OPTIONS, GROUP_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
 import type { ActiveTimeLog, Board, Group, Item, Profile } from "@/lib/supabase/types";
 
 export default function BoardWorkspace({
@@ -33,6 +33,20 @@ export default function BoardWorkspace({
   const [boardName, setBoardName] = useState(board.name);
   const [groups, setGroups] = useState<Group[]>(initialGroups);
   const [items, setItems] = useState<Item[]>(initialItems);
+  // The curated defaults, plus every distinct value anyone on this board
+  // has ever actually typed into the deliverable field - so a value one
+  // person types becomes a suggestion for everyone else, with no separate
+  // table to maintain (it just rides along on `items`, which already syncs
+  // live via the realtime subscription below).
+  const deliverableSuggestions = useMemo(() => {
+    const custom = new Set<string>();
+    for (const item of items) {
+      const value = item.deliverable?.trim();
+      if (value) custom.add(value);
+    }
+    for (const option of DELIVERABLE_OPTIONS) custom.delete(option);
+    return [...DELIVERABLE_OPTIONS, ...Array.from(custom).sort((a, b) => a.localeCompare(b, "he"))];
+  }, [items]);
   const [trackedSecondsByItem, setTrackedSecondsByItem] = useState<Record<string, number>>({});
   const [activeSessionsByItem, setActiveSessionsByItem] = useState<Record<string, ActiveTimeLog[]>>(
     {}
@@ -544,6 +558,7 @@ export default function BoardWorkspace({
             trackedSecondsByItem={trackedSecondsByItem}
             activeSessionsByItem={activeSessionsByItem}
             onTimeLogChanged={refreshTrackedSeconds}
+            deliverableSuggestions={deliverableSuggestions}
             readOnly={readOnly}
             canAddGroup={groupBy === "group"}
             canReorderGroups={groupBy === "group"}

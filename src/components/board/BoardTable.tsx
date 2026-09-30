@@ -3,7 +3,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import GroupSection, { type DisplayGroup } from "./GroupSection";
-import { DELIVERABLE_OPTIONS } from "@/lib/constants";
 import type { ActiveTimeLog, Item, Profile } from "@/lib/supabase/types";
 
 // FLIP ("First, Last, Invert, Play"): archiving/restoring a group moves it
@@ -87,6 +86,7 @@ export default function BoardTable({
   trackedSecondsByItem,
   activeSessionsByItem,
   onTimeLogChanged,
+  deliverableSuggestions,
   readOnly,
   canAddGroup,
   canReorderGroups,
@@ -122,6 +122,9 @@ export default function BoardTable({
   trackedSecondsByItem: Record<string, number>;
   activeSessionsByItem: Record<string, ActiveTimeLog[]>;
   onTimeLogChanged: () => void;
+  /** Curated defaults plus every value anyone's typed into the deliverable
+   * field, for its autocomplete dropdown - see BoardWorkspace. */
+  deliverableSuggestions: string[];
   readOnly?: boolean;
   canAddGroup: boolean;
   canReorderGroups: boolean;
@@ -267,6 +270,7 @@ export default function BoardTable({
           trackedSecondsByItem={trackedSecondsByItem}
           activeSessionsByItem={activeSessionsByItem}
           onTimeLogChanged={onTimeLogChanged}
+          deliverableSuggestions={deliverableSuggestions}
           readOnly={effectiveReadOnly}
         />
       </FlipGroup>
@@ -314,12 +318,6 @@ export default function BoardTable({
           {archivedGroups.map(renderGroup)}
         </div>
       )}
-
-      <datalist id="deliverable-options">
-        {DELIVERABLE_OPTIONS.map((o) => (
-          <option key={o} value={o} />
-        ))}
-      </datalist>
     </div>
   );
 }

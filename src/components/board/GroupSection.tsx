@@ -60,6 +60,7 @@ export default function GroupSection({
   trackedSecondsByItem,
   activeSessionsByItem,
   onTimeLogChanged,
+  deliverableSuggestions,
   readOnly,
 }: {
   group: DisplayGroup;
@@ -118,6 +119,9 @@ export default function GroupSection({
   currentUserId: string | null;
   trackedSecondsByItem: Record<string, number>;
   activeSessionsByItem: Record<string, ActiveTimeLog[]>;
+  /** Curated defaults plus every value anyone's typed into the deliverable
+   * field, for its autocomplete dropdown - see BoardWorkspace. */
+  deliverableSuggestions: string[];
   readOnly?: boolean;
 }) {
   // Both footer cells (decimal hours, HH:MM:SS) derive from the same
@@ -429,6 +433,7 @@ export default function GroupSection({
                   trackedSeconds={trackedSecondsByItem[item.id] ?? 0}
                   activeSessions={activeSessionsByItem[item.id] ?? NO_ACTIVE_SESSIONS}
                   onTimeLogChanged={onTimeLogChanged}
+                  deliverableSuggestions={deliverableSuggestions}
                   readOnly={readOnly}
                   canReorder={canReorderItems}
                   isDragging={draggingItemId === item.id}

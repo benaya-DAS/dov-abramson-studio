@@ -396,8 +396,11 @@ export default function GroupSection({
                  * column and this table (and page) are RTL - the item name
                  * stays put while the rest of the row's many columns
                  * scroll under it. Same bg as this header row so it
-                 * doesn't show scrolled-under cells through it. */}
-                <th className="sticky right-0 z-10 min-w-[220px] bg-slate-50 px-2 py-2 text-right dark:bg-night-800/60">
+                 * doesn't show scrolled-under cells through it. No
+                 * min-width here either - see ItemRow.tsx's name input,
+                 * whose own ch-based width (clamped to a 10ch floor) is
+                 * what now drives this column's actual width. */}
+                <th className="sticky right-0 z-10 bg-slate-50 px-2 py-2 text-right dark:bg-night-800/60">
                   פריט
                 </th>
                 <th className="w-16 px-1 py-2">איש צוות</th>

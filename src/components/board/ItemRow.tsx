@@ -182,10 +182,19 @@ export default function ItemRow({
        * underneath them - group-hover/selected mirror the row's own
        * hover/selected background (rather than inheriting it, which a
        * sticky cell's own opaque bg would otherwise block) so this cell
-       * doesn't look inert while the rest of the row highlights. */}
+       * doesn't look inert while the rest of the row highlights.
+       *
+       * No min-width here - the column's actual width now comes from the
+       * input's own ch-based width below, clamped and reactive to what's
+       * actually typed, rather than a flat 220px regardless of content
+       * (which on mobile wasted a lot of the frozen column's space on
+       * short names). Table auto-layout (the default; nothing here sets
+       * table-layout: fixed) reconciles every row's own preferred width
+       * into one shared column width the normal way - the widest name in
+       * this group's table, not a global constant. */}
       <td
         className={cn(
-          "sticky right-0 z-10 min-w-[220px] bg-slate-50 px-2 py-1.5 group-hover:bg-slate-100 dark:bg-night-900 dark:group-hover:bg-night-800/60",
+          "sticky right-0 z-10 bg-slate-50 px-2 py-1.5 group-hover:bg-slate-100 dark:bg-night-900 dark:group-hover:bg-night-800/60",
           selected && "!bg-brand-50/60 dark:!bg-brand-900/20"
         )}
       >
@@ -206,7 +215,13 @@ export default function ItemRow({
           }}
           onKeyDown={(e) => handleEditableKeyDown(e, () => setName(item.name))}
           placeholder="שם המשימה..."
-          className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm font-medium text-slate-800 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white disabled:hover:border-transparent dark:text-slate-100 dark:hover:border-night-700 dark:focus:bg-night-800"
+          // ch is an approximation (character count, not the font's actual
+          // per-glyph width) but needs no measurement and works in every
+          // browser - unlike the CSS field-sizing: content property, which
+          // would do this natively but isn't supported in Safari yet
+          // (this app's mobile users are largely on iPhones).
+          style={{ width: `${Math.min(40, Math.max(10, name.length + 2))}ch` }}
+          className="rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm font-medium text-slate-800 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white disabled:hover:border-transparent dark:text-slate-100 dark:hover:border-night-700 dark:focus:bg-night-800"
         />
       </td>
 

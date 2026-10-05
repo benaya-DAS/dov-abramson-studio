@@ -367,7 +367,7 @@ export default function ItemRow({
           dir="ltr"
           className={`w-full rounded-md border px-2 py-1.5 text-center text-xs text-slate-600 outline-none focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:focus:bg-night-800 ${
             missingSerial
-              ? "border-red-400 bg-red-50 placeholder:text-red-400 dark:border-red-500/70 dark:bg-red-950/40 dark:placeholder:text-red-400"
+              ? "border-red-400 bg-transparent dark:border-red-500/70"
               : "border-transparent bg-transparent hover:border-slate-200 dark:hover:border-night-700"
           }`}
         />

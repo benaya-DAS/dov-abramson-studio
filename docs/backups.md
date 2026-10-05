@@ -1,7 +1,7 @@
 # גיבוי ושחזור מסד הנתונים
 
-- **גיבוי אוטומטי פעמיים ביום** (בערך 06:20 ו־18:20 בחורף, 07:20 ו־19:20 בקיץ), לתיקייה `db-backups` ב־Shared Drive בגוגל דרייב.
-- **גיבויים בני יותר מ־30 יום נמחקים** אוטומטית (לפח של ה־Shared Drive). המחיקה רצה רק אחרי שגיבוי חדש הועלה בהצלחה, כך שגם אם הגיבויים נכשלים במשך זמן רב, הגיבויים התקינים האחרונים לא יימחקו.
+- **גיבוי אוטומטי פעמיים ביום** (בערך 06:20 ו־18:20 בחורף, 07:20 ו־19:20 בקיץ), לתיקייה `db-backups` בגוגל דרייב: ב"האחסון שלי" של החשבון שחיברתם (אפשרות א'), או ב־Shared Drive (אפשרות ב').
+- **גיבויים בני יותר מ־30 יום נמחקים** אוטומטית (לפח של הדרייב). המחיקה רצה רק אחרי שגיבוי חדש הועלה בהצלחה, כך שגם אם הגיבויים נכשלים במשך זמן רב, הגיבויים התקינים האחרונים לא יימחקו.
 - **שחזור** בלחיצת כפתור ב־GitHub (פירוט בהמשך).
 
 הכול רץ ב־GitHub Actions (`.github/workflows/db-backup.yml`, `db-restore.yml`). אם גיבוי נכשל, GitHub שולח מייל.
@@ -25,7 +25,30 @@
    `postgresql://postgres.fyiostdopgrivjgmzhxw:[YOUR-PASSWORD]@aws-0-....pooler.supabase.com:5432/postgres`
 3. מחליפים את `[YOUR-PASSWORD]` בסיסמת מסד הנתונים. אם היא לא ידועה, אפשר לאפס אותה ב־**Project Settings → Database → Reset database password**. האפליקציה עצמה לא משתמשת בסיסמה הזו, כך שהאיפוס לא ישבור אותה.
 
-### 2. חשבון שירות בגוגל (Service Account)
+### 2. חיבור לגוגל דרייב: בוחרים אחת משתי אפשרויות
+
+**אפשרות א': החשבון האישי שלך (פשוטה יותר, בלי Google Cloud)**
+
+הגיבויים יישמרו ב"האחסון שלי" שלך, בתיקייה `db-backups`. המערכת תוכל לראות ולשנות רק קבצים שהיא עצמה יצרה, ולא שום דבר אחר בדרייב שלך.
+החיסרון: הגיבוי קשור לחשבון שלך. אם החשבון יימחק או שהגישה תבוטל, הגיבויים ייכשלו (ויגיע על כך מייל מ־GitHub).
+
+1. מורידים את rclone מ־[rclone.org/downloads](https://rclone.org/downloads/) (ב־Windows: `Intel/AMD - 64 Bit` תחת Windows; במק: `macOS` לפי סוג המעבד), ופותחים את קובץ ה־zip.
+2. פותחים חלון פקודות בתיקייה שנפתחה:
+   - **Windows:** נכנסים לתיקייה (זו שיש בה `rclone.exe`), לוחצים על שורת הכתובת למעלה, כותבים `cmd` ולוחצים Enter.
+   - **Mac:** קליק ימני על התיקייה ← **New Terminal at Folder** (אם לא מופיע: Services ← New Terminal at Folder).
+3. מדביקים את הפקודה הבאה ולוחצים Enter (במק מוסיפים `./` לפני `rclone`):
+   ```
+   rclone authorize "drive" "eyJzY29wZSI6ICAiZHJpdmUuZmlsZSJ9"
+   ```
+4. נפתח דפדפן: מתחברים עם חשבון הסטודיו ולוחצים **Allow** (לאשר).
+5. חוזרים לחלון הפקודות. יופיע טקסט שמתחיל ב־`{"access_token":` ונגמר ב־`}`. מעתיקים **בדיוק** את הטקסט הזה (מ־`{` ועד `}` כולל) - הוא נכנס לסוד `GDRIVE_TOKEN` בסעיף 4. **שומרים אותו בסוד.**
+6. אפשר למחוק את rclone מהמחשב.
+
+ממשיכים ישר לסעיף 4.
+
+**אפשרות ב': חשבון שירות + Shared Drive (לא תלוי באף משתמש, אבל דורש הרשאות מנהל ב־Google Cloud)**
+
+#### 2ב. חשבון שירות בגוגל (Service Account)
 
 1. נכנסים ל־[Google Cloud Console](https://console.cloud.google.com/) עם חשבון הסטודיו, ויוצרים פרויקט חדש (למשל `studio-backups`).
 2. **APIs & Services → Library** ← מחפשים **Google Drive API** ← **Enable**.
@@ -35,27 +58,28 @@
 
 > אם יצירת המפתח נחסמת עם הודעה על `iam.disableServiceAccountKeyCreation`, זו מדיניות ברירת מחדל של Google Workspace. מנהל ה־Workspace יכול לבטל אותה ב־**IAM & Admin → Organization Policies** עבור הפרויקט הזה בלבד.
 
-### 3. Shared Drive בגוגל דרייב
+#### 3ב. Shared Drive בגוגל דרייב
 
 חשבון שירות לא יכול לשמור קבצים ב"האחסון שלי" של משתמש רגיל, ולכן צריך **Shared Drive** (אחסון שיתופי).
 
 1. בגוגל דרייב: **Shared drives → New**, ונותנים שם (למשל "גיבויי מערכת").
-2. **Manage members** ← מוסיפים את המייל של חשבון השירות מסעיף 2 עם הרשאת **Content manager**.
+2. **Manage members** ← מוסיפים את המייל של חשבון השירות מסעיף 2ב עם הרשאת **Content manager**.
 3. נכנסים ל־Shared Drive ומעתיקים את ה־ID מכתובת הדפדפן: החלק שאחרי `/folders/`.
 
 ### 4. סודות ב־GitHub
 
-ב־GitHub, במאגר: **Settings → Secrets and variables → Actions → New repository secret**. יוצרים שלושה:
+ב־GitHub, במאגר: **Settings → Secrets and variables → Actions → New repository secret**.
 
-| שם | ערך |
-|---|---|
-| `SUPABASE_DB_URL` | ה־URI מסעיף 1, כולל הסיסמה |
-| `GDRIVE_SERVICE_ACCOUNT_JSON` | **כל התוכן** של קובץ ה־JSON מסעיף 2 (פותחים בעורך טקסט ומעתיקים הכול) |
-| `GDRIVE_SHARED_DRIVE_ID` | ה־ID מסעיף 3 |
+| שם | ערך | מתי |
+|---|---|---|
+| `SUPABASE_DB_URL` | ה־URI מסעיף 1, כולל הסיסמה | תמיד |
+| `GDRIVE_TOKEN` | הטקסט מסעיף 2 שלב 5 | אפשרות א' |
+| `GDRIVE_SERVICE_ACCOUNT_JSON` | **כל התוכן** של קובץ ה־JSON מסעיף 2ב (פותחים בעורך טקסט ומעתיקים הכול) | אפשרות ב' |
+| `GDRIVE_SHARED_DRIVE_ID` | ה־ID מסעיף 3ב | אפשרות ב' |
 
 ### 5. בדיקה
 
-**Actions → DB backup → Run workflow**. אחרי דקה־שתיים אמור להופיע קובץ `studio-backup_<תאריך>_<שעה>.dump` בתיקייה `db-backups` ב־Shared Drive.
+**Actions → DB backup → Run workflow**. אחרי דקה־שתיים אמור להופיע קובץ `studio-backup_<תאריך>_<שעה>.dump` בתיקייה `db-backups` (ב"האחסון שלי" באפשרות א', או ב־Shared Drive באפשרות ב').
 
 ---
 

@@ -21,7 +21,13 @@ jobs:
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
       RCLONE_CONFIG_GDRIVE_TYPE: drive
-      RCLONE_CONFIG_GDRIVE_SCOPE: drive
+      # Only files rclone itself created are visible to it - not the rest
+      # of the Drive.
+      RCLONE_CONFIG_GDRIVE_SCOPE: drive.file
+      # Either a personal account's token (GDRIVE_TOKEN, saved to that
+      # account's My Drive) or a service account + shared drive - whichever
+      # secrets are set. See docs/backups.md.
+      RCLONE_CONFIG_GDRIVE_TOKEN: ${{ secrets.GDRIVE_TOKEN }}
       RCLONE_CONFIG_GDRIVE_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
       RCLONE_CONFIG_GDRIVE_TEAM_DRIVE: ${{ secrets.GDRIVE_SHARED_DRIVE_ID }}
       BACKUP_DIR: gdrive:db-backups

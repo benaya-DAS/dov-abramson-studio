@@ -1,0 +1,44 @@
+# Twice-daily backup of the Supabase database to Google Drive, keeping the
+# last 30 days. Setup and restore instructions: docs/backups.md.
+name: DB backup
+
+on:
+  schedule:
+    # 06:23 / 18:23 Israel time in winter (07:23 / 19:23 in summer) - cron
+    # here is always UTC.
+    - cron: "23 4,16 * * *"
+  workflow_dispatch:
+
+# A backup and a restore must never run at the same time.
+concurrency:
+  group: db-backup-restore
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      RCLONE_CONFIG_GDRIVE_TYPE: drive
+      RCLONE_CONFIG_GDRIVE_SCOPE: drive
+      RCLONE_CONFIG_GDRIVE_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+      RCLONE_CONFIG_GDRIVE_TEAM_DRIVE: ${{ secrets.GDRIVE_SHARED_DRIVE_ID }}
+      BACKUP_DIR: gdrive:db-backups
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: .github/scripts/install-db-tools.sh
+
+      - name: Dump database
+        id: dump
+        run: echo "file=$(scripts/db-backup/backup.sh "$RUNNER_TEMP")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to Google Drive
+        run: rclone copy "${{ steps.dump.outputs.file }}" "$BACKUP_DIR"
+
+      # Only after a successful upload, so a run of failed backups can never
+      # age out the last good ones.
+      - name: Delete backups older than 30 days
+        run: rclone delete "$BACKUP_DIR" --max-depth 1 --min-age 30d --include "studio-backup_*.dump"

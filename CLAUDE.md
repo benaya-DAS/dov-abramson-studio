@@ -83,6 +83,14 @@ sudo -u postgres createdb <scratch_db_name>
 sudo -u postgres dropdb <scratch_db_name>   # when done
 ```
 
+**Backups** (`docs/backups.md`, `scripts/db-backup/`): restores are
+data-only into the *current* schema - `restore.sh` truncates every `public`
+table and reloads rows from the dump. So adding a column or table is safe
+(old backups load with defaults/empty), but **renaming or dropping a column
+or table makes every older backup fail to restore** (it rolls back cleanly,
+but can't be used). Avoid that where possible; if unavoidable, tell the user
+explicitly that backups from before the change are no longer restorable.
+
 ## Frontend conventions
 
 - **Mobile vs. desktop**: two parallel CSS-only render branches in the same

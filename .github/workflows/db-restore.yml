@@ -1,0 +1,68 @@
+# Manual restore of the database from a backup in Google Drive. Replaces ALL
+# current data. Instructions: docs/backups.md.
+name: DB restore
+
+on:
+  workflow_dispatch:
+    inputs:
+      backup_file:
+        description: "Backup file name from the Drive folder (e.g. studio-backup_2026-10-05_0623.dump). Leave empty for the latest."
+        required: false
+        default: ""
+      confirm:
+        description: 'Type RESTORE to confirm - all current data will be replaced'
+        required: true
+
+concurrency:
+  group: db-backup-restore
+  cancel-in-progress: false
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      RCLONE_CONFIG_GDRIVE_TYPE: drive
+      RCLONE_CONFIG_GDRIVE_SCOPE: drive
+      RCLONE_CONFIG_GDRIVE_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
+      RCLONE_CONFIG_GDRIVE_TEAM_DRIVE: ${{ secrets.GDRIVE_SHARED_DRIVE_ID }}
+      BACKUP_DIR: gdrive:db-backups
+      BACKUP_FILE: ${{ inputs.backup_file }}
+    steps:
+      - name: Check confirmation
+        if: inputs.confirm != 'RESTORE'
+        run: |
+          echo "::error::Restore not confirmed - type RESTORE in the confirm field."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: .github/scripts/install-db-tools.sh
+
+      - name: Download backup
+        id: fetch
+        run: |
+          name="$BACKUP_FILE"
+          if [ -z "$name" ]; then
+            name=$(rclone lsf "$BACKUP_DIR" --include "studio-backup_*.dump" | sort | tail -n 1)
+          fi
+          if [ -z "$name" ]; then
+            echo "::error::No backup found in $BACKUP_DIR"
+            exit 1
+          fi
+          rclone copyto "$BACKUP_DIR/$name" "$RUNNER_TEMP/$name"
+          echo "Restoring from: $name"
+          echo "file=$RUNNER_TEMP/$name" >> "$GITHUB_OUTPUT"
+
+      # Snapshot of the current state first, so the restore itself can be
+      # undone by restoring this file. Kept in its own folder, which the
+      # 30-day cleanup doesn't touch.
+      - name: Safety backup of current data
+        run: |
+          file=$(scripts/db-backup/backup.sh "$RUNNER_TEMP" pre-restore)
+          rclone copy "$file" "$BACKUP_DIR/pre-restore"
+
+      - name: Restore
+        run: scripts/db-backup/restore.sh "${{ steps.fetch.outputs.file }}"

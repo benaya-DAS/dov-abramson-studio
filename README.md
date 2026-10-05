@@ -15,6 +15,11 @@ data loading fails, re-copy the key from **Supabase Dashboard → Project
 Settings → API → Project API keys → `anon` `public`** and confirm the URL
 matches the same project.
 
+## Backups
+
+Twice-daily database backups to Google Drive (30-day retention), with a
+one-click restore - setup and restore steps in [`docs/backups.md`](docs/backups.md).
+
 ## Tech stack
 
 - **Next.js 16** (App Router, Server Components, Route Handlers, Middleware)

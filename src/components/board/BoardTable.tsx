@@ -89,6 +89,7 @@ export default function BoardTable({
   deliverableOptions,
   onAddDeliverableOption,
   onDeleteDeliverableOption,
+  requireSerial,
   readOnly,
   canAddGroup,
   canReorderGroups,
@@ -129,6 +130,9 @@ export default function BoardTable({
   deliverableOptions: DeliverableOption[];
   onAddDeliverableOption: (label: string) => void;
   onDeleteDeliverableOption: (id: string) => void;
+  /** Highlights an empty serial (מס"ד) field in red - on for boards whose
+   * name starts with "בית אבי חי", where every item needs one. */
+  requireSerial?: boolean;
   readOnly?: boolean;
   canAddGroup: boolean;
   canReorderGroups: boolean;
@@ -277,6 +281,7 @@ export default function BoardTable({
           deliverableOptions={deliverableOptions}
           onAddDeliverableOption={onAddDeliverableOption}
           onDeleteDeliverableOption={onDeleteDeliverableOption}
+          requireSerial={requireSerial}
           readOnly={effectiveReadOnly}
         />
       </FlipGroup>

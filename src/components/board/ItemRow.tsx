@@ -25,6 +25,7 @@ export default function ItemRow({
   deliverableOptions,
   onAddDeliverableOption,
   onDeleteDeliverableOption,
+  requireSerial,
   readOnly,
   canReorder,
   isDragging,
@@ -54,6 +55,9 @@ export default function ItemRow({
   deliverableOptions: DeliverableOption[];
   onAddDeliverableOption: (label: string) => void;
   onDeleteDeliverableOption: (id: string) => void;
+  /** Highlights an empty serial (מס"ד) field in red - on for boards whose
+   * name starts with "בית אבי חי", where every item needs one. */
+  requireSerial?: boolean;
   readOnly?: boolean;
   /** True only when this board is grouped by "group" (real, position-backed
    * groups) with no sort active - dragging to reorder while a different
@@ -72,6 +76,7 @@ export default function ItemRow({
 }) {
   const [name, setName] = useState(item.name);
   const [serial, setSerial] = useState(item.serial_id ?? "");
+  const missingSerial = requireSerial && !serial.trim();
   const [deliverable, setDeliverable] = useState(item.deliverable ?? "");
   const [deliverableOpen, setDeliverableOpen] = useState(false);
   const deliverableInputRef = useRef<HTMLInputElement>(null);
@@ -360,7 +365,11 @@ export default function ItemRow({
           onKeyDown={(e) => handleEditableKeyDown(e, () => setSerial(item.serial_id ?? ""))}
           placeholder='מס"ד'
           dir="ltr"
-          className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-center text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800"
+          className={`w-full rounded-md border px-2 py-1.5 text-center text-xs text-slate-600 outline-none focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:focus:bg-night-800 ${
+            missingSerial
+              ? "border-red-400 bg-red-50 placeholder:text-red-400 dark:border-red-500/70 dark:bg-red-950/40 dark:placeholder:text-red-400"
+              : "border-transparent bg-transparent hover:border-slate-200 dark:hover:border-night-700"
+          }`}
         />
       </td>
 

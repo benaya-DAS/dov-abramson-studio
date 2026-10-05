@@ -602,6 +602,7 @@ export default function BoardWorkspace({
             deliverableOptions={deliverableOptions}
             onAddDeliverableOption={addDeliverableOption}
             onDeleteDeliverableOption={deleteDeliverableOption}
+            requireSerial={boardName.trim().startsWith("בית אבי חי")}
             readOnly={readOnly}
             canAddGroup={groupBy === "group"}
             canReorderGroups={groupBy === "group"}

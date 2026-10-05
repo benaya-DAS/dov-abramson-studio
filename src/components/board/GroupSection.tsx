@@ -63,6 +63,7 @@ export default function GroupSection({
   deliverableOptions,
   onAddDeliverableOption,
   onDeleteDeliverableOption,
+  requireSerial,
   readOnly,
 }: {
   group: DisplayGroup;
@@ -126,6 +127,9 @@ export default function GroupSection({
   deliverableOptions: DeliverableOption[];
   onAddDeliverableOption: (label: string) => void;
   onDeleteDeliverableOption: (id: string) => void;
+  /** Highlights an empty serial (מס"ד) field in red - on for boards whose
+   * name starts with "בית אבי חי", where every item needs one. */
+  requireSerial?: boolean;
   readOnly?: boolean;
 }) {
   // Both footer cells (decimal hours, HH:MM:SS) derive from the same
@@ -440,6 +444,7 @@ export default function GroupSection({
                   deliverableOptions={deliverableOptions}
                   onAddDeliverableOption={onAddDeliverableOption}
                   onDeleteDeliverableOption={onDeleteDeliverableOption}
+                  requireSerial={requireSerial}
                   readOnly={readOnly}
                   canReorder={canReorderItems}
                   isDragging={draggingItemId === item.id}

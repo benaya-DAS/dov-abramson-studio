@@ -11,6 +11,7 @@ import BoardCalendar from "./BoardCalendar";
 import type { DisplayGroup } from "./GroupSection";
 import { GROUP_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
 import type { ActiveTimeLog, Board, DeliverableOption, Group, Item, Profile } from "@/lib/supabase/types";
+import { X } from "lucide-react";
 
 export default function BoardWorkspace({
   board,
@@ -59,9 +60,28 @@ export default function BoardWorkspace({
     Object.fromEntries(initialGroups.map((g) => [g.id, g.is_collapsed]))
   );
 
+  // Every edit here updates local state first and saves in the background,
+  // so a save Supabase rejects would otherwise look fine until the next
+  // refresh silently undoes it. Writes go through .select("id") +
+  // reportWrite so both kinds of failure surface: an outright error (e.g. a
+  // trigger raising), and an update RLS filtered out, which PostgREST
+  // reports as success with zero rows.
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const reportWrite = useCallback(
+    ({ error, data }: { error: { message: string } | null; data: unknown[] | null }) => {
+      if (error) {
+        console.error("Save failed:", error);
+        setSaveError(error.message);
+      } else if (data && data.length === 0) {
+        setSaveError("אין הרשאה לעדכן את השורה (ייתכן שהבורד או הקבוצה בארכיון)");
+      }
+    },
+    []
+  );
+
   function renameBoard(name: string) {
     setBoardName(name);
-    supabase.from("boards").update({ name }).eq("id", board.id).then();
+    supabase.from("boards").update({ name }).eq("id", board.id).select("id").then(reportWrite);
   }
 
   // ---- Realtime sync -------------------------------------------------
@@ -187,7 +207,7 @@ export default function BoardWorkspace({
   function updateItem(id: string, patch: Partial<Item>) {
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...patch } : i)));
     setNewItemId((current) => (current === id ? null : current));
-    supabase.from("items").update(patch).eq("id", id).then();
+    supabase.from("items").update(patch).eq("id", id).select("id").then(reportWrite);
   }
 
   async function addItem(groupId: string) {
@@ -211,11 +231,11 @@ export default function BoardWorkspace({
     }
   }
 
-  async function deleteSelected() {
+  function deleteSelected() {
     const ids = Array.from(selected);
     setItems((prev) => prev.filter((i) => !ids.includes(i.id)));
     setSelected(new Set());
-    await supabase.from("items").delete().in("id", ids);
+    supabase.from("items").delete().in("id", ids).select("id").then(reportWrite);
   }
 
   // Drag-and-drop move: item.position is scoped per group_id (addItem seeds
@@ -262,7 +282,7 @@ export default function BoardWorkspace({
       patches.forEach((patch, id) => {
         const dbPatch: Partial<Item> = { position: patch.position };
         if (patch.group_id) dbPatch.group_id = patch.group_id;
-        supabase.from("items").update(dbPatch).eq("id", id).then();
+        supabase.from("items").update(dbPatch).eq("id", id).select("id").then(reportWrite);
       });
 
       return prev.map((it) => {
@@ -285,12 +305,12 @@ export default function BoardWorkspace({
 
   function renameGroup(groupId: string, name: string) {
     setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, name } : g)));
-    supabase.from("groups").update({ name }).eq("id", groupId).then();
+    supabase.from("groups").update({ name }).eq("id", groupId).select("id").then(reportWrite);
   }
 
   function changeGroupColor(groupId: string, color: string) {
     setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, color } : g)));
-    supabase.from("groups").update({ color }).eq("id", groupId).then();
+    supabase.from("groups").update({ color }).eq("id", groupId).select("id").then(reportWrite);
   }
 
   // Drag-and-drop reorder: reads the CURRENT sorted order out of the state
@@ -313,15 +333,15 @@ export default function BoardWorkspace({
       const insertIndex = position === "after" ? toIndex + 1 : toIndex;
       ordered.splice(insertIndex, 0, moved);
       ordered.forEach((g, i) => {
-        if (g.position !== i) supabase.from("groups").update({ position: i }).eq("id", g.id).then();
+        if (g.position !== i) supabase.from("groups").update({ position: i }).eq("id", g.id).select("id").then(reportWrite);
       });
       return ordered.map((g, i) => ({ ...g, position: i }));
     });
   }
 
-  async function deleteGroup(groupId: string) {
+  function deleteGroup(groupId: string) {
     setGroups((prev) => prev.filter((g) => g.id !== groupId));
-    await supabase.from("groups").delete().eq("id", groupId);
+    supabase.from("groups").delete().eq("id", groupId).select("id").then(reportWrite);
   }
 
   // Archiving a group is separate from archiving the whole board (see
@@ -331,7 +351,7 @@ export default function BoardWorkspace({
   // without touching anything else on the board.
   function toggleGroupArchived(groupId: string, archived: boolean) {
     setGroups((prev) => prev.map((g) => (g.id === groupId ? { ...g, is_archived: archived } : g)));
-    supabase.from("groups").update({ is_archived: archived }).eq("id", groupId).then();
+    supabase.from("groups").update({ is_archived: archived }).eq("id", groupId).select("id").then(reportWrite);
   }
 
   // Called whenever someone commits a deliverable value that isn't already
@@ -536,6 +556,26 @@ export default function BoardWorkspace({
 
   return (
     <div className="flex h-full flex-col">
+      {saveError && (
+        <div
+          role="alert"
+          className="fixed inset-x-4 bottom-4 z-50 mx-auto flex max-w-xl items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-lg dark:border-red-900 dark:bg-red-950 dark:text-red-300"
+        >
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">השינוי לא נשמר - הוא ייעלם ברענון הדף.</p>
+            <p dir="auto" className="mt-1 break-words text-xs opacity-80">
+              {saveError}
+            </p>
+          </div>
+          <button
+            onClick={() => setSaveError(null)}
+            aria-label="סגירה"
+            className="shrink-0 rounded p-0.5 hover:bg-red-100 dark:hover:bg-red-900"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
       <BoardHeader
         boardId={board.id}
         boardName={boardName}

@@ -77,6 +77,11 @@ create table if not exists public.profiles (
 
 comment on table public.profiles is 'Studio personnel, one row per authenticated Google account.';
 
+-- Per-user board table column order/widths (src/lib/tableColumns.ts),
+-- shared across all boards. Written only by the user themself, via
+-- profiles_update_self.
+alter table public.profiles add column if not exists table_layout jsonb;
+
 -- ----------------------------------------------------------------------------
 -- 2a. Hard domain enforcement at the database level.
 --

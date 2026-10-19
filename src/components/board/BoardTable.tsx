@@ -4,6 +4,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import GroupSection, { type DisplayGroup } from "./GroupSection";
 import type { ActiveTimeLog, DeliverableOption, Item, Profile } from "@/lib/supabase/types";
+import type { TableLayout } from "@/lib/tableColumns";
 
 // FLIP ("First, Last, Invert, Play"): archiving/restoring a group moves it
 // between two separate sections of the page (active groups vs. the
@@ -90,6 +91,8 @@ export default function BoardTable({
   onAddDeliverableOption,
   onDeleteDeliverableOption,
   requireSerial,
+  tableLayout,
+  onTableLayoutChange,
   readOnly,
   canAddGroup,
   canReorderGroups,
@@ -133,6 +136,9 @@ export default function BoardTable({
   /** Highlights an empty serial (מס"ד) field in red - on for boards whose
    * name starts with "בית אבי חי", where every item needs one. */
   requireSerial?: boolean;
+  /** The user's column order/widths - see tableColumns.ts. */
+  tableLayout: TableLayout;
+  onTableLayoutChange: (layout: TableLayout, persist: boolean) => void;
   readOnly?: boolean;
   canAddGroup: boolean;
   canReorderGroups: boolean;
@@ -282,6 +288,8 @@ export default function BoardTable({
           onAddDeliverableOption={onAddDeliverableOption}
           onDeleteDeliverableOption={onDeleteDeliverableOption}
           requireSerial={requireSerial}
+          tableLayout={tableLayout}
+          onTableLayoutChange={onTableLayoutChange}
           readOnly={effectiveReadOnly}
         />
       </FlipGroup>

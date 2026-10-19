@@ -16,6 +16,9 @@ export type Profile = {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
+  /** Board table column order/widths - raw as stored, always read through
+   * normalizeLayout() (tableColumns.ts). */
+  table_layout: unknown;
   created_at: string;
   updated_at: string;
 };

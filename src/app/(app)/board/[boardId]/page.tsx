@@ -24,6 +24,7 @@ export default async function BoardPage({
       profiles={profiles}
       initialDeliverableOptions={deliverableOptions}
       currentUserId={currentProfile?.id ?? null}
+      initialTableLayout={currentProfile?.table_layout}
     />
   );
 }

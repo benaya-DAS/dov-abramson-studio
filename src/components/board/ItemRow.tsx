@@ -8,6 +8,7 @@ import TimeTracker from "./TimeTracker";
 import type { ActiveTimeLog, DeliverableOption, Item, ItemStatus, Profile } from "@/lib/supabase/types";
 import { cn, formatHours } from "@/lib/utils";
 import FloatingPanel from "@/components/ui/FloatingPanel";
+import { COLUMNS, type MovableColumnKey } from "@/lib/tableColumns";
 
 export default function ItemRow({
   item,
@@ -26,6 +27,7 @@ export default function ItemRow({
   onAddDeliverableOption,
   onDeleteDeliverableOption,
   requireSerial,
+  columnOrder,
   readOnly,
   canReorder,
   isDragging,
@@ -58,6 +60,9 @@ export default function ItemRow({
   /** Highlights an empty serial (מס"ד) field in red - on for boards whose
    * name starts with "בית אבי חי", where every item needs one. */
   requireSerial?: boolean;
+  /** The user's column order (tableColumns.ts) - the name column isn't in
+   * it, it's always first. */
+  columnOrder: MovableColumnKey[];
   readOnly?: boolean;
   /** True only when this board is grouped by "group" (real, position-backed
    * groups) with no sort active - dragging to reorder while a different
@@ -128,6 +133,183 @@ export default function ItemRow({
     const rect = rowRef.current?.getBoundingClientRect();
     return rect && clientY > rect.top + rect.height / 2 ? "after" : "before";
   }
+
+  // Keyed by column so the row can render them in the user's own column
+  // order (see tableColumns.ts) - each <td> wrapper is added in the map
+  // below, these are just the contents.
+  const cells: Record<MovableColumnKey, React.ReactNode> = {
+    person: (
+      <>
+        <PersonPicker
+          profiles={profiles}
+          personIds={item.person_ids}
+          onChange={readOnly ? undefined : (personIds) => onUpdate({ person_ids: personIds })}
+          readOnly={readOnly}
+        />
+      </>
+    ),
+    deliverable: (
+      <>
+        <input
+          ref={deliverableInputRef}
+          value={deliverable}
+          disabled={readOnly}
+          onChange={(e) => {
+            setDeliverable(e.target.value);
+            setDeliverableOpen(true);
+          }}
+          onFocus={() => setDeliverableOpen(true)}
+          onBlur={() => {
+            if (cancelingFieldRef.current) {
+              cancelingFieldRef.current = false;
+              setDeliverableOpen(false);
+              return;
+            }
+            commitDeliverable(deliverable);
+          }}
+          onKeyDown={(e) => handleEditableKeyDown(e, () => setDeliverable(item.deliverable ?? ""))}
+          placeholder="תוצר עיצובי"
+          className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800"
+        />
+        {/* Custom dropdown (not a native <input list>/<datalist>) so it can
+         * be styled/positioned like every other popover in this app - a
+         * native datalist's popup is drawn by the browser itself, always
+         * left-aligned to the input regardless of this page's RTL layout,
+         * which is what looked "off-center" here. FloatingPanel's portal
+         * also keeps it from being clipped by the table's own
+         * overflow-x-auto scroll wrapper. */}
+        {deliverableOpen && !readOnly && filteredDeliverableOptions.length > 0 && (
+          <FloatingPanel
+            anchorRef={deliverableInputRef}
+            // "end" (not the default "start") is what's RTL-correct here:
+            // FloatingPanel's "start"/"end" always mean the anchor's
+            // left/right edge respectively, regardless of page direction -
+            // "end" aligns the panel's right edge to the input's right
+            // edge, which is this row's actual reading-start in RTL.
+            align="end"
+            className="z-50 max-h-56 w-56 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-night-700 dark:bg-night-800"
+          >
+            {filteredDeliverableOptions.map((o) => (
+              <div
+                key={o.id}
+                className="group/option flex items-center gap-1 rounded-md hover:bg-slate-50 dark:hover:bg-night-700"
+              >
+                <button
+                  type="button"
+                  // Prevents the default focus-shift (and the resulting
+                  // blur on the input above, which would close this
+                  // dropdown) before the click that should actually select
+                  // o.label fires.
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => commitDeliverable(o.label)}
+                  className="min-w-0 flex-1 truncate px-2 py-1.5 text-right text-xs text-slate-700 dark:text-slate-200"
+                >
+                  {o.label}
+                </button>
+                <button
+                  type="button"
+                  title="הסרה מהרשימה"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => onDeleteDeliverableOption(o.id)}
+                  className="shrink-0 rounded p-1 text-slate-300 opacity-0 hover:bg-slate-200 hover:text-red-500 group-hover/option:opacity-100 dark:text-slate-500 dark:hover:bg-night-600 dark:hover:text-red-400"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </FloatingPanel>
+        )}
+      </>
+    ),
+    status: (
+      <>
+        <StatusBadge
+          status={item.status}
+          customLabel={item.status_label}
+          readOnly={readOnly}
+          onChange={(status: ItemStatus) => onUpdate({ status })}
+          onCustomLabelChange={(status_label) => onUpdate({ status_label })}
+        />
+      </>
+    ),
+    serial: (
+      <>
+        <input
+          value={serial}
+          disabled={readOnly}
+          onChange={(e) => setSerial(e.target.value)}
+          onBlur={() => {
+            if (cancelingFieldRef.current) {
+              cancelingFieldRef.current = false;
+              return;
+            }
+            if (serial !== (item.serial_id ?? "")) {
+              onUpdate({ serial_id: serial || null });
+              onSerialBlur(serial);
+            }
+          }}
+          onKeyDown={(e) => handleEditableKeyDown(e, () => setSerial(item.serial_id ?? ""))}
+          placeholder='מס"ד'
+          dir="ltr"
+          className={`w-full rounded-md border px-2 py-1.5 text-center text-xs text-slate-600 outline-none focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:focus:bg-night-800 ${
+            missingSerial
+              ? "border-red-400 bg-transparent dark:border-red-500/70"
+              : "border-transparent bg-transparent hover:border-slate-200 dark:hover:border-night-700"
+          }`}
+        />
+      </>
+    ),
+    start_date: (
+      <>
+        <input
+          type="date"
+          value={item.start_date ?? ""}
+          disabled={readOnly}
+          onChange={(e) => onUpdate({ start_date: e.target.value || null })}
+          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+          className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800 dark:[color-scheme:dark]"
+        />
+      </>
+    ),
+    due_date: (
+      <>
+        <input
+          type="date"
+          value={item.due_date ?? ""}
+          disabled={readOnly}
+          onChange={(e) => onUpdate({ due_date: e.target.value || null })}
+          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+          className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800 dark:[color-scheme:dark]"
+        />
+      </>
+    ),
+    hours: (
+      <>
+        {/* Read-only: this is the tracked time (time_logs), not a manual
+         * estimate - decimal hours (1h30m -> "1.5"), derived the same way
+         * as the time-tracking button's total, just formatted differently. */}
+        <span
+          className="font-mono text-xs text-slate-600 dark:text-slate-300"
+          title="שעות בפועל (ממעקב זמן)"
+        >
+          {formatHours(trackedSeconds / 3600)}
+        </span>
+      </>
+    ),
+    time: (
+      <>
+        <TimeTracker
+          itemId={item.id}
+          userId={currentUserId}
+          profiles={profiles}
+          baseSeconds={trackedSeconds}
+          activeSessions={activeSessions}
+          onTimeLogChanged={onTimeLogChanged}
+          readOnly={readOnly}
+        />
+      </>
+    ),
+  };
 
   return (
     <tr
@@ -251,173 +433,22 @@ export default function ItemRow({
           // browser - unlike the CSS field-sizing: content property, which
           // would do this natively but isn't supported in Safari yet
           // (this app's mobile users are largely on iPhones).
+          // On desktop the column has its own user-resizable width instead
+          // (GroupSection's colgroup), so the input just fills it -
+          // md:!w-full beats this inline width there.
           style={{ width: `${Math.min(40, Math.max(10, name.length + 2))}ch` }}
-          className="rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm font-medium text-slate-800 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white disabled:hover:border-transparent dark:text-slate-100 dark:hover:border-night-700 dark:focus:bg-night-800"
+          className="rounded-md md:!w-full border border-transparent bg-transparent px-2 py-1.5 text-sm font-medium text-slate-800 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white disabled:hover:border-transparent dark:text-slate-100 dark:hover:border-night-700 dark:focus:bg-night-800"
         />
       </td>
 
-      <td className="w-16 px-1 py-1.5">
-        <PersonPicker
-          profiles={profiles}
-          personIds={item.person_ids}
-          onChange={readOnly ? undefined : (personIds) => onUpdate({ person_ids: personIds })}
-          readOnly={readOnly}
-        />
-      </td>
-
-      <td className="w-52 px-2 py-1.5">
-        <input
-          ref={deliverableInputRef}
-          value={deliverable}
-          disabled={readOnly}
-          onChange={(e) => {
-            setDeliverable(e.target.value);
-            setDeliverableOpen(true);
-          }}
-          onFocus={() => setDeliverableOpen(true)}
-          onBlur={() => {
-            if (cancelingFieldRef.current) {
-              cancelingFieldRef.current = false;
-              setDeliverableOpen(false);
-              return;
-            }
-            commitDeliverable(deliverable);
-          }}
-          onKeyDown={(e) => handleEditableKeyDown(e, () => setDeliverable(item.deliverable ?? ""))}
-          placeholder="תוצר עיצובי"
-          className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800"
-        />
-        {/* Custom dropdown (not a native <input list>/<datalist>) so it can
-         * be styled/positioned like every other popover in this app - a
-         * native datalist's popup is drawn by the browser itself, always
-         * left-aligned to the input regardless of this page's RTL layout,
-         * which is what looked "off-center" here. FloatingPanel's portal
-         * also keeps it from being clipped by the table's own
-         * overflow-x-auto scroll wrapper. */}
-        {deliverableOpen && !readOnly && filteredDeliverableOptions.length > 0 && (
-          <FloatingPanel
-            anchorRef={deliverableInputRef}
-            // "end" (not the default "start") is what's RTL-correct here:
-            // FloatingPanel's "start"/"end" always mean the anchor's
-            // left/right edge respectively, regardless of page direction -
-            // "end" aligns the panel's right edge to the input's right
-            // edge, which is this row's actual reading-start in RTL.
-            align="end"
-            className="z-50 max-h-56 w-56 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1 shadow-lg dark:border-night-700 dark:bg-night-800"
-          >
-            {filteredDeliverableOptions.map((o) => (
-              <div
-                key={o.id}
-                className="group/option flex items-center gap-1 rounded-md hover:bg-slate-50 dark:hover:bg-night-700"
-              >
-                <button
-                  type="button"
-                  // Prevents the default focus-shift (and the resulting
-                  // blur on the input above, which would close this
-                  // dropdown) before the click that should actually select
-                  // o.label fires.
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => commitDeliverable(o.label)}
-                  className="min-w-0 flex-1 truncate px-2 py-1.5 text-right text-xs text-slate-700 dark:text-slate-200"
-                >
-                  {o.label}
-                </button>
-                <button
-                  type="button"
-                  title="הסרה מהרשימה"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => onDeleteDeliverableOption(o.id)}
-                  className="shrink-0 rounded p-1 text-slate-300 opacity-0 hover:bg-slate-200 hover:text-red-500 group-hover/option:opacity-100 dark:text-slate-500 dark:hover:bg-night-600 dark:hover:text-red-400"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            ))}
-          </FloatingPanel>
-        )}
-      </td>
-
-      <td className="w-32 px-1 py-1.5">
-        <StatusBadge
-          status={item.status}
-          customLabel={item.status_label}
-          readOnly={readOnly}
-          onChange={(status: ItemStatus) => onUpdate({ status })}
-          onCustomLabelChange={(status_label) => onUpdate({ status_label })}
-        />
-      </td>
-
-      <td className="w-28 px-2 py-1.5">
-        <input
-          value={serial}
-          disabled={readOnly}
-          onChange={(e) => setSerial(e.target.value)}
-          onBlur={() => {
-            if (cancelingFieldRef.current) {
-              cancelingFieldRef.current = false;
-              return;
-            }
-            if (serial !== (item.serial_id ?? "")) {
-              onUpdate({ serial_id: serial || null });
-              onSerialBlur(serial);
-            }
-          }}
-          onKeyDown={(e) => handleEditableKeyDown(e, () => setSerial(item.serial_id ?? ""))}
-          placeholder='מס"ד'
-          dir="ltr"
-          className={`w-full rounded-md border px-2 py-1.5 text-center text-xs text-slate-600 outline-none focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:focus:bg-night-800 ${
-            missingSerial
-              ? "border-red-400 bg-transparent dark:border-red-500/70"
-              : "border-transparent bg-transparent hover:border-slate-200 dark:hover:border-night-700"
-          }`}
-        />
-      </td>
-
-      <td className="w-32 px-2 py-1.5">
-        <input
-          type="date"
-          value={item.start_date ?? ""}
-          disabled={readOnly}
-          onChange={(e) => onUpdate({ start_date: e.target.value || null })}
-          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-          className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800 dark:[color-scheme:dark]"
-        />
-      </td>
-
-      <td className="w-32 px-2 py-1.5">
-        <input
-          type="date"
-          value={item.due_date ?? ""}
-          disabled={readOnly}
-          onChange={(e) => onUpdate({ due_date: e.target.value || null })}
-          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-          className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800 dark:[color-scheme:dark]"
-        />
-      </td>
-
-      <td className="w-20 px-2 py-1.5 text-center">
-        {/* Read-only: this is the tracked time (time_logs), not a manual
-         * estimate - decimal hours (1h30m -> "1.5"), derived the same way
-         * as the time-tracking button's total, just formatted differently. */}
-        <span
-          className="font-mono text-xs text-slate-600 dark:text-slate-300"
-          title="שעות בפועל (ממעקב זמן)"
-        >
-          {formatHours(trackedSeconds / 3600)}
-        </span>
-      </td>
-
-      <td className="w-32 px-2 py-1.5">
-        <TimeTracker
-          itemId={item.id}
-          userId={currentUserId}
-          profiles={profiles}
-          baseSeconds={trackedSeconds}
-          activeSessions={activeSessions}
-          onTimeLogChanged={onTimeLogChanged}
-          readOnly={readOnly}
-        />
-      </td>
+      {columnOrder.map((key) => (
+        <td key={key} className={cn("py-1.5", COLUMNS[key].mobileClass, COLUMNS[key].cellClass)}>
+          {cells[key]}
+        </td>
+      ))}
+      {/* Desktop filler column - takes up whatever width is left over, see
+       * GroupSection's colgroup. */}
+      <td className="hidden md:table-cell" />
     </tr>
   );
 }

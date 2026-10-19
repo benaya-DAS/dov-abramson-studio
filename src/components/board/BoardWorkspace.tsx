@@ -12,6 +12,7 @@ import type { DisplayGroup } from "./GroupSection";
 import { GROUP_COLORS, STATUS_LABELS, STATUS_ORDER } from "@/lib/constants";
 import type { ActiveTimeLog, Board, DeliverableOption, Group, Item, Profile } from "@/lib/supabase/types";
 import { X } from "lucide-react";
+import { normalizeLayout, type TableLayout } from "@/lib/tableColumns";
 
 export default function BoardWorkspace({
   board,
@@ -21,6 +22,7 @@ export default function BoardWorkspace({
   profiles,
   initialDeliverableOptions,
   currentUserId,
+  initialTableLayout,
 }: {
   board: Board;
   workspaceName?: string;
@@ -29,6 +31,8 @@ export default function BoardWorkspace({
   profiles: Profile[];
   initialDeliverableOptions: DeliverableOption[];
   currentUserId: string | null;
+  /** profiles.table_layout as stored - normalized below. */
+  initialTableLayout?: unknown;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const readOnly = board.is_archived;
@@ -78,6 +82,17 @@ export default function BoardWorkspace({
     },
     []
   );
+
+  // Per-user column order/widths, shared by every board (see
+  // tableColumns.ts). Resizing calls this on every pointer move with
+  // persist=false for a live preview; only the final value is saved.
+  const [tableLayout, setTableLayout] = useState<TableLayout>(() => normalizeLayout(initialTableLayout));
+  function changeTableLayout(layout: TableLayout, persist: boolean) {
+    setTableLayout(layout);
+    if (persist && currentUserId) {
+      supabase.from("profiles").update({ table_layout: layout }).eq("id", currentUserId).select("id").then(reportWrite);
+    }
+  }
 
   function renameBoard(name: string) {
     setBoardName(name);
@@ -643,6 +658,8 @@ export default function BoardWorkspace({
             onAddDeliverableOption={addDeliverableOption}
             onDeleteDeliverableOption={deleteDeliverableOption}
             requireSerial={boardName.trim().startsWith("בית אבי חי")}
+            tableLayout={tableLayout}
+            onTableLayoutChange={changeTableLayout}
             readOnly={readOnly}
             canAddGroup={groupBy === "group"}
             canReorderGroups={groupBy === "group"}

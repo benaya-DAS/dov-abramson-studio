@@ -8,6 +8,8 @@ import { useEscapeKey } from "@/lib/useEscapeKey";
 import { GROUP_COLORS } from "@/lib/constants";
 import type { ActiveTimeLog, DeliverableOption, Item, Profile } from "@/lib/supabase/types";
 import FloatingPanel from "@/components/ui/FloatingPanel";
+import ColumnHeaders from "./ColumnHeaders";
+import { columnWidth, type TableLayout } from "@/lib/tableColumns";
 
 // Stable reference so items with no active session don't hand TimeTracker
 // a freshly-allocated empty array on every render.
@@ -64,6 +66,8 @@ export default function GroupSection({
   onAddDeliverableOption,
   onDeleteDeliverableOption,
   requireSerial,
+  tableLayout,
+  onTableLayoutChange,
   readOnly,
 }: {
   group: DisplayGroup;
@@ -130,6 +134,9 @@ export default function GroupSection({
   /** Highlights an empty serial (מס"ד) field in red - on for boards whose
    * name starts with "בית אבי חי", where every item needs one. */
   requireSerial?: boolean;
+  /** The user's column order/widths - see tableColumns.ts. */
+  tableLayout: TableLayout;
+  onTableLayoutChange: (layout: TableLayout, persist: boolean) => void;
   readOnly?: boolean;
 }) {
   // Both footer cells (decimal hours, HH:MM:SS) derive from the same
@@ -139,6 +146,15 @@ export default function GroupSection({
     (sum, i) => sum + (trackedSecondsByItem[i.id] ?? 0),
     0
   );
+
+  // Grip (when shown) + checkbox + name + movable columns + filler.
+  const columnCount = (canReorderItems ? 1 : 0) + 2 + tableLayout.order.length + 1;
+  // Desktop: the columns' combined width, below which the table scrolls
+  // sideways instead of squeezing them (see the table's min-width).
+  const tableWidth =
+    (canReorderItems ? 24 : 0) +
+    40 +
+    (["name", ...tableLayout.order] as const).reduce((sum, key) => sum + columnWidth(tableLayout, key), 0);
   const headerRef = useRef<HTMLDivElement>(null);
   const headerDropKey = `group:${group.id}`;
   const isHeaderItemDropTarget = canReorderItems && dragOverItemKey === headerDropKey;
@@ -399,30 +415,35 @@ export default function GroupSection({
         inert={group.collapsed}
       >
         <div className="overflow-x-auto overflow-y-hidden rounded-b-lg border border-t-0 border-slate-300 dark:border-night-700">
-          <table className="w-full border-collapse text-right">
+          {/* Desktop: table-layout fixed, with every column's width set by
+           * the colgroup from the user's own layout - so every group's
+           * table lines up exactly, and a resize applies to all of them at
+           * once. The trailing filler column takes whatever's left when the
+           * columns are narrower than the screen; min-width (their total)
+           * makes the wrapper scroll sideways when they're wider. Mobile
+           * keeps the plain auto layout and fixed default widths (each
+           * cell's mobileClass) - md: on every width class here. */}
+          <table
+            className="w-full border-collapse text-right md:min-w-[var(--table-w)] md:table-fixed"
+            style={{ "--table-w": `${tableWidth}px` } as React.CSSProperties}
+          >
+            <colgroup>
+              {canReorderItems && <col className="md:w-6" />}
+              <col className="md:w-10" />
+              {(["name", ...tableLayout.order] as const).map((key) => (
+                <col
+                  key={key}
+                  className="md:w-[var(--col-w)]"
+                  style={{ "--col-w": `${columnWidth(tableLayout, key)}px` } as React.CSSProperties}
+                />
+              ))}
+              <col />
+            </colgroup>
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-400 dark:border-night-700 dark:bg-night-800/60 dark:text-slate-500">
                 {canReorderItems && <th className="w-6 px-1 py-2"></th>}
                 <th className="w-10 px-3 py-2"></th>
-                {/* Frozen column: sticky right-0, since it's the first data
-                 * column and this table (and page) are RTL - the item name
-                 * stays put while the rest of the row's many columns
-                 * scroll under it. Same bg as this header row so it
-                 * doesn't show scrolled-under cells through it. No
-                 * min-width here either - see ItemRow.tsx's name input,
-                 * whose own ch-based width (clamped to a 10ch floor) is
-                 * what now drives this column's actual width. */}
-                <th className="sticky right-0 z-10 bg-slate-50 px-2 py-2 text-right dark:bg-night-800/60">
-                  פריט
-                </th>
-                <th className="w-16 px-1 py-2">איש צוות</th>
-                <th className="w-52 px-2 py-2 text-right">תוצר עיצובי</th>
-                <th className="w-32 px-1 py-2">סטטוס</th>
-                <th className="w-28 px-2 py-2">מס&quot;ד</th>
-                <th className="w-32 px-2 py-2">תאריך התחלה</th>
-                <th className="w-32 px-2 py-2">תאריך יעד</th>
-                <th className="w-20 px-2 py-2">שעות</th>
-                <th className="w-32 px-2 py-2">מעקב זמן</th>
+                <ColumnHeaders layout={tableLayout} onChange={onTableLayoutChange} />
               </tr>
             </thead>
             <tbody>
@@ -445,6 +466,7 @@ export default function GroupSection({
                   onAddDeliverableOption={onAddDeliverableOption}
                   onDeleteDeliverableOption={onDeleteDeliverableOption}
                   requireSerial={requireSerial}
+                  columnOrder={tableLayout.order}
                   readOnly={readOnly}
                   canReorder={canReorderItems}
                   isDragging={draggingItemId === item.id}
@@ -470,7 +492,7 @@ export default function GroupSection({
 
               {!readOnly && group.isRealGroup && (
                 <tr>
-                  <td colSpan={canReorderItems ? 11 : 10} className="px-3 py-1.5">
+                  <td colSpan={columnCount} className="px-3 py-1.5">
                     <button
                       onClick={onAddItem}
                       className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-slate-400 hover:bg-slate-50 hover:text-brand-600 dark:text-slate-500 dark:hover:bg-night-800 dark:hover:text-brand-400"
@@ -484,11 +506,18 @@ export default function GroupSection({
             </tbody>
             <tfoot>
               <tr className="border-t border-slate-300 bg-slate-50 text-xs font-bold text-slate-600 dark:border-night-700 dark:bg-night-800/60 dark:text-slate-300">
-                <td colSpan={canReorderItems ? 9 : 8} className="px-3 py-2 text-left">
-                  סה&quot;כ
-                </td>
-                <td className="px-2 py-2 text-center">{formatHours(totalTracked / 3600)}</td>
-                <td className="px-2 py-2 text-center font-mono">{formatDuration(totalTracked)}</td>
+                {canReorderItems && <td />}
+                <td />
+                <td className="px-2 py-2 text-right">סה&quot;כ</td>
+                {/* Totals sit under their own columns, wherever the user
+                 * has moved them. */}
+                {tableLayout.order.map((key) => (
+                  <td key={key} className="px-2 py-2 text-center">
+                    {key === "hours" && formatHours(totalTracked / 3600)}
+                    {key === "time" && <span className="font-mono">{formatDuration(totalTracked)}</span>}
+                  </td>
+                ))}
+                <td className="hidden md:table-cell" />
               </tr>
             </tfoot>
           </table>

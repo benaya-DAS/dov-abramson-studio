@@ -94,6 +94,13 @@ Each backup also writes a read-only Excel copy (`scripts/db-backup/
 export-xlsx.py`, one sheet per board) mirroring `ExportButton.tsx`'s
 columns - a renamed/dropped column it queries breaks the backup run too, and
 a new board column should be added to both.
+**Never `TRUNCATE` in `restore.sh`** (or anything that runs against the live
+DB while people use it): TRUNCATE isn't MVCC-safe, so a statement whose
+snapshot predates it - e.g. the `stable` `is_allowed_email()` the middleware
+calls on every request - sees the table *empty* once the lock frees. That
+made the domain check return false mid-restore and signed users out (hit in
+production). The restore uses `LOCK ... IN EXCLUSIVE MODE` + `DELETE`
+instead: readers keep seeing the old rows until commit, writers wait.
 
 ## Frontend conventions
 

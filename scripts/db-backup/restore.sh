@@ -22,17 +22,22 @@ begin;
 -- restored rows aren't re-logged as new activity and tables can be loaded
 -- in any order.
 set local session_replication_role = replica;
+-- Empty every table with LOCK + DELETE, not TRUNCATE: TRUNCATE isn't
+-- MVCC-safe, so a query that took its snapshot just before it (e.g. the
+-- stable is_allowed_email() the middleware calls on every request) sees
+-- the table EMPTY once the lock frees - which signed users out mid-restore.
+-- EXCLUSIVE still lets others read (they see the old rows until commit)
+-- but holds their writes until the restore is done.
 do \$\$
 declare
-  tables text;
+  t record;
 begin
-  select string_agg(format('%I.%I', schemaname, tablename), ', ')
-    into tables
-    from pg_tables
-   where schemaname = 'public';
-  if tables is not null then
-    execute 'truncate table ' || tables;
-  end if;
+  for t in select schemaname, tablename from pg_tables where schemaname = 'public' loop
+    execute format('lock table %I.%I in exclusive mode', t.schemaname, t.tablename);
+  end loop;
+  for t in select schemaname, tablename from pg_tables where schemaname = 'public' loop
+    execute format('delete from %I.%I', t.schemaname, t.tablename);
+  end loop;
 end
 \$\$;
 \i $work/data.sql

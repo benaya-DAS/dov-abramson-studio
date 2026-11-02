@@ -15,6 +15,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   forbidden: "אין לך הרשאה לפעולה הזו.",
   already_running: "שחזור כבר רץ - אפשר להתחיל חדש רק אחרי שיסתיים.",
   backup_not_found: "הגיבוי הזה כבר לא קיים (ישן מ־30 יום).",
+  status_unknown: "לא הצלחנו לבדוק אם הפעולה הסתיימה - ייתכן שהיא הצליחה. רעננו את הדף בעוד דקה ובדקו.",
 };
 
 export function backupErrorMessage(code: string | undefined) {

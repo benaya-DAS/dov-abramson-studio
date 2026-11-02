@@ -5,22 +5,24 @@ import { cn } from "@/lib/utils";
 
 export type BackupState =
   | { phase: "idle" }
-  | { phase: "running"; note?: string }
-  | { phase: "done" }
+  | { phase: "running"; title: string; note: string }
+  | { phase: "done"; text: string; reload?: boolean }
   | { phase: "failed"; message: string; url?: string };
 
 const ERROR_MESSAGES: Record<string, string> = {
   missing_token: "הכפתור עוד לא מחובר ל־GitHub (חסר מפתח גישה ב־Vercel).",
   bad_token: "מפתח הגישה ל־GitHub פג או לא תקין - צריך לחדש אותו.",
-  forbidden: "אין לך הרשאה ליצור גיבוי.",
+  forbidden: "אין לך הרשאה לפעולה הזו.",
+  already_running: "שחזור כבר רץ - אפשר להתחיל חדש רק אחרי שיסתיים.",
+  backup_not_found: "הגיבוי הזה כבר לא קיים (ישן מ־30 יום).",
 };
 
 export function backupErrorMessage(code: string | undefined) {
-  return (code && ERROR_MESSAGES[code]) || "לא הצלחנו להתחיל גיבוי. נסו שוב בעוד רגע.";
+  return (code && ERROR_MESSAGES[code]) || "הפעולה לא הצליחה. נסו שוב בעוד רגע.";
 }
 
-/** Floating status for a manual backup started from the user menu - it has
- * to outlive the menu itself, which closes as soon as the item is clicked. */
+/** Floating status for a backup/restore started from the user menu - it
+ * has to outlive the menu itself, which closes as soon as you pick one. */
 export default function BackupStatus({ state, onDismiss }: { state: BackupState; onDismiss: () => void }) {
   if (state.phase === "idle") return null;
   return (
@@ -39,13 +41,23 @@ export default function BackupStatus({ state, onDismiss }: { state: BackupState;
       <div className="min-w-0 flex-1">
         {state.phase === "running" && (
           <>
-            <p className="font-medium">מגבה את המערכת...</p>
-            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-              {state.note ?? "לוקח בערך דקה. אפשר להמשיך לעבוד בינתיים."}
-            </p>
+            <p className="font-medium">{state.title}</p>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{state.note}</p>
           </>
         )}
-        {state.phase === "done" && <p className="font-medium">הגיבוי הושלם ונשמר בדרייב.</p>}
+        {state.phase === "done" && (
+          <>
+            <p className="font-medium">{state.text}</p>
+            {state.reload && (
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-1.5 rounded-md bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-700"
+              >
+                רענון הדף
+              </button>
+            )}
+          </>
+        )}
         {state.phase === "failed" && (
           <>
             <p className="font-medium">{state.message}</p>

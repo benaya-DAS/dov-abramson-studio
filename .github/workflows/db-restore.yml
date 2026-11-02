@@ -1,12 +1,29 @@
 # Manual restore of the database from a backup in Google Drive. Replaces ALL
 # current data. Instructions: docs/backups.md.
 name: DB restore
+run-name: DB restore${{ inputs.requested_by && format(' (by {0})', inputs.requested_by) || '' }}
 
 on:
   workflow_dispatch:
     inputs:
       backup_file:
-        description: "Backup file name from db-backups/dump in Drive (e.g. studio-backup_2026-10-05_0623.dump). Leave empty for the latest."
+        description: "Backup file name from db-backups/dump in Drive (e.g. studio-backup_2026-10-05_0623.dump), or pre-restore/latest to undo the last restore. Leave empty for the latest backup."
+        required: false
+        default: ""
+      backup_after:
+        description: "(Used by the app) start time of the backup run to restore - ISO"
+        required: false
+        default: ""
+      backup_before:
+        description: "(Used by the app) end time of the backup run to restore - ISO"
+        required: false
+        default: ""
+      requested_by:
+        description: "(Used by the app) who asked for this restore"
+        required: false
+        default: ""
+      dry_run:
+        description: "true = only find and download the backup, change nothing (for testing)"
         required: false
         default: ""
       confirm:
@@ -33,6 +50,8 @@ jobs:
       BACKUP_DIR: gdrive:db-backups
       DUMP_DIR: gdrive:db-backups/dump
       BACKUP_FILE: ${{ inputs.backup_file }}
+      BACKUP_AFTER: ${{ inputs.backup_after }}
+      BACKUP_BEFORE: ${{ inputs.backup_before }}
     steps:
       - name: Check confirmation
         if: inputs.confirm != 'RESTORE'
@@ -51,22 +70,20 @@ jobs:
       - name: Download backup
         id: fetch
         run: |
-          name="$BACKUP_FILE"
+          # See scripts/db-backup/pick-backup.sh for how BACKUP_FILE /
+          # BACKUP_AFTER / BACKUP_BEFORE choose the file.
+          case "$BACKUP_FILE" in
+            pre-restore/latest) list=$(rclone lsf "$BACKUP_DIR/pre-restore" --include "pre-restore_*.dump") ;;
+            "") list=$(rclone lsf "$DUMP_DIR" --include "studio-backup_*.dump") ;;
+            *) list="" ;;
+          esac
+          name=$(printf '%s\n' "$list" | scripts/db-backup/pick-backup.sh)
           if [ -z "$name" ]; then
-            name=$(rclone lsf "$DUMP_DIR" --include "studio-backup_*.dump" | sort | tail -n 1)
-          fi
-          if [ -z "$name" ]; then
-            echo "::error::No backup found in $DUMP_DIR"
+            echo "::error::No matching backup found in Drive"
             exit 1
           fi
-          # A bare file name is a regular backup (db-backups/dump);
-          # "pre-restore/<file>" undoes an earlier restore.
-          case "$name" in
-            pre-restore/*) src="$BACKUP_DIR/$name" ;;
-            *) src="$DUMP_DIR/$(basename "$name")" ;;
-          esac
           local_file="$RUNNER_TEMP/$(basename "$name")"
-          rclone copyto "$src" "$local_file"
+          rclone copyto "$BACKUP_DIR/$name" "$local_file"
           echo "Restoring from: $name"
           echo "file=$local_file" >> "$GITHUB_OUTPUT"
 
@@ -74,9 +91,11 @@ jobs:
       # undone by restoring this file. Kept in its own folder, which the
       # 30-day cleanup doesn't touch.
       - name: Safety backup of current data
+        if: inputs.dry_run != 'true'
         run: |
           file=$(scripts/db-backup/backup.sh "$RUNNER_TEMP" pre-restore)
           rclone copy "$file" "$BACKUP_DIR/pre-restore"
 
       - name: Restore
+        if: inputs.dry_run != 'true'
         run: scripts/db-backup/restore.sh "${{ steps.fetch.outputs.file }}"

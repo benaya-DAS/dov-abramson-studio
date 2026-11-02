@@ -2,15 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Camera, DatabaseBackup, LogOut } from "lucide-react";
+import { Camera, DatabaseBackup, History, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { blurActiveElement, initials } from "@/lib/utils";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import type { Profile } from "@/lib/supabase/types";
 import FloatingPanel from "@/components/ui/FloatingPanel";
-import { canRunManualBackup } from "@/lib/backupAdmins";
+import { canRestore, canRunManualBackup } from "@/lib/backupAdmins";
 import BackupStatus, { backupErrorMessage, type BackupState } from "./BackupStatus";
+import RestoreDialog from "./RestoreDialog";
+import { pollRun } from "./pollRun";
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 
@@ -35,9 +37,11 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
 
   useEscapeKey(close, open);
 
-  // Manual backup (see /api/backup): start it, then poll GitHub every few
-  // seconds until that run finishes. Stops polling if the menu unmounts.
+  // Manual backup / restore (see /api/backup, /api/restore): start it, then
+  // follow the GitHub run in a floating status until it finishes. Stops
+  // polling if the menu unmounts.
   const [backup, setBackup] = useState<BackupState>({ phase: "idle" });
+  const [restoreOpen, setRestoreOpen] = useState(false);
   const unmountedRef = useRef(false);
   useEffect(() => {
     unmountedRef.current = false;
@@ -45,10 +49,12 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
       unmountedRef.current = true;
     };
   }, []);
+  const cancelled = () => unmountedRef.current;
 
   async function startBackup() {
     close();
-    setBackup({ phase: "running" });
+    const running = (note: string) => setBackup({ phase: "running", title: "מגבה את המערכת...", note });
+    running("לוקח בערך דקה. אפשר להמשיך לעבוד בינתיים.");
     try {
       const res = await fetch("/api/backup", { method: "POST", body: JSON.stringify({ reason: "manual" }) });
       const body = await res.json();
@@ -59,29 +65,39 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
       let since: string = body.since;
       if (!body.started) {
         since = body.run.createdAt;
-        setBackup({ phase: "running", note: "גיבוי כבר רץ - מחכים שיסתיים." });
+        running("גיבוי כבר רץ - מחכים שיסתיים.");
       }
-      // ~5 minutes at most; a backup normally takes about one.
-      for (let i = 0; i < 60 && !unmountedRef.current; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-        const poll = await fetch(`/api/backup?since=${encodeURIComponent(since)}`);
-        const { run, error } = await poll.json();
-        if (!poll.ok) {
-          setBackup({ phase: "failed", message: backupErrorMessage(error) });
-          return;
-        }
-        if (run?.status === "completed") {
-          setBackup(
-            run.conclusion === "success"
-              ? { phase: "done" }
-              : { phase: "failed", message: "הגיבוי נכשל.", url: run.url }
-          );
-          return;
-        }
-      }
-      if (!unmountedRef.current) {
-        setBackup({ phase: "failed", message: "הגיבוי לוקח יותר מהרגיל - כדאי לבדוק ב־GitHub." });
-      }
+      const result = await pollRun("/api/backup", since, { maxMinutes: 5, cancelled });
+      if (cancelled()) return;
+      if (!result) setBackup({ phase: "failed", message: "הגיבוי לוקח יותר מהרגיל - כדאי לבדוק שוב בעוד כמה דקות." });
+      else if ("error" in result) setBackup({ phase: "failed", message: backupErrorMessage(result.error) });
+      else if (result.run.conclusion === "success") setBackup({ phase: "done", text: "הגיבוי הושלם ונשמר בדרייב." });
+      else setBackup({ phase: "failed", message: "הגיבוי נכשל.", url: result.run.url });
+    } catch {
+      setBackup({ phase: "failed", message: backupErrorMessage(undefined) });
+    }
+  }
+
+  async function followRestore(since: string, undo: boolean) {
+    setRestoreOpen(false);
+    setBackup({
+      phase: "running",
+      title: undo ? "מבטל את השחזור..." : "משחזר את המערכת...",
+      note: "לוקח 2–3 דקות. עדיף לא לבצע שינויים עד שזה מסתיים.",
+    });
+    try {
+      const result = await pollRun("/api/restore", since, { maxMinutes: 15, cancelled });
+      if (cancelled()) return;
+      if (!result) setBackup({ phase: "failed", message: "השחזור לוקח יותר מהרגיל - כדאי לבדוק שוב בעוד כמה דקות." });
+      else if ("error" in result) setBackup({ phase: "failed", message: backupErrorMessage(result.error) });
+      else if (result.run.conclusion === "success")
+        setBackup({ phase: "done", text: undo ? "השחזור בוטל." : "השחזור הושלם.", reload: true });
+      else
+        setBackup({
+          phase: "failed",
+          message: "השחזור נכשל - הנתונים לא השתנו.",
+          url: result.run.url,
+        });
     } catch {
       setBackup({ phase: "failed", message: backupErrorMessage(undefined) });
     }
@@ -217,7 +233,20 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:text-slate-200 dark:hover:bg-night-700"
               >
                 <DatabaseBackup size={16} />
-                {backup.phase === "running" ? "מגבה..." : "צור גיבוי עכשיו"}
+                צור גיבוי עכשיו
+              </button>
+            )}
+            {canRestore(profile.email) && (
+              <button
+                onClick={() => {
+                  close();
+                  setRestoreOpen(true);
+                }}
+                disabled={backup.phase === "running"}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:text-slate-200 dark:hover:bg-night-700"
+              >
+                <History size={16} />
+                שחזור מגיבוי
               </button>
             )}
             <button
@@ -230,6 +259,7 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
           </FloatingPanel>
         </>
       )}
+      {restoreOpen && <RestoreDialog onClose={() => setRestoreOpen(false)} onStarted={followRestore} />}
       <BackupStatus state={backup} onDismiss={() => setBackup({ phase: "idle" })} />
     </div>
   );

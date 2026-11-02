@@ -1,6 +1,9 @@
 # Twice-daily backup of the Supabase database to Google Drive, keeping the
 # last 30 days. Setup and restore instructions: docs/backups.md.
 name: DB backup
+# The reason (manual / rollover, sent by the app's /api/backup) lands in
+# the run's title, which is how the app's restore list labels each backup.
+run-name: DB backup${{ inputs.reason && format(' ({0})', inputs.reason) || '' }}
 
 on:
   schedule:
@@ -8,6 +11,11 @@ on:
     # here is always UTC.
     - cron: "23 4,16 * * *"
   workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why this backup was started (manual / rollover) - optional"
+        required: false
+        default: ""
 
 # A backup and a restore must never run at the same time.
 concurrency:

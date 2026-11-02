@@ -24,12 +24,9 @@ jobs:
       # Only files rclone itself created are visible to it - not the rest
       # of the Drive.
       RCLONE_CONFIG_GDRIVE_SCOPE: drive.file
-      # Either a personal account's token (GDRIVE_TOKEN, saved to that
-      # account's My Drive) or a service account + shared drive - whichever
-      # secrets are set. See docs/backups.md.
+      # The backup Google account's token, from `rclone authorize` - see
+      # docs/backups.md. Files land in that account's My Drive.
       GDRIVE_TOKEN: ${{ secrets.GDRIVE_TOKEN }}
-      RCLONE_CONFIG_GDRIVE_SERVICE_ACCOUNT_CREDENTIALS: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_JSON }}
-      RCLONE_CONFIG_GDRIVE_TEAM_DRIVE: ${{ secrets.GDRIVE_SHARED_DRIVE_ID }}
       BACKUP_DIR: gdrive:db-backups
     steps:
       - uses: actions/checkout@v4
@@ -47,7 +44,19 @@ jobs:
       - name: Upload to Google Drive
         run: rclone copy "${{ steps.dump.outputs.file }}" "$BACKUP_DIR"
 
+      # A readable Excel copy next to the dump (one sheet per board), for
+      # looking things up without restoring. After the dump's own upload,
+      # so a problem here never costs the real backup.
+      - name: Excel copy
+        run: |
+          pip install --quiet openpyxl
+          xlsx="${DUMP_FILE%.dump}.xlsx"
+          scripts/db-backup/export-xlsx.py "$xlsx"
+          rclone copy "$xlsx" "$BACKUP_DIR"
+        env:
+          DUMP_FILE: ${{ steps.dump.outputs.file }}
+
       # Only after a successful upload, so a run of failed backups can never
       # age out the last good ones.
       - name: Delete backups older than 30 days
-        run: rclone delete "$BACKUP_DIR" --max-depth 1 --min-age 30d --include "studio-backup_*.dump"
+        run: rclone delete "$BACKUP_DIR" --max-depth 1 --min-age 30d --include "studio-backup_*.{dump,xlsx}"

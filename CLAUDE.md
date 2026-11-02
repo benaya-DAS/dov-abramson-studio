@@ -90,6 +90,10 @@ table and reloads rows from the dump. So adding a column or table is safe
 or table makes every older backup fail to restore** (it rolls back cleanly,
 but can't be used). Avoid that where possible; if unavoidable, tell the user
 explicitly that backups from before the change are no longer restorable.
+Each backup also writes a read-only Excel copy (`scripts/db-backup/
+export-xlsx.py`, one sheet per board) mirroring `ExportButton.tsx`'s
+columns - a renamed/dropped column it queries breaks the backup run too, and
+a new board column should be added to both.
 
 ## Frontend conventions
 

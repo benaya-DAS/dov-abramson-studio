@@ -62,10 +62,19 @@ jobs:
 
       # Files from before the dump/excel folders existed sat directly in
       # db-backups - sort them in. A no-op once there are none left.
+      # One file at a time: a directory-level `rclone move` refuses a
+      # destination inside its own source ("overlapping remotes").
       - name: Sort older files into folders
         run: |
-          rclone move "$BACKUP_DIR" "$DUMP_DIR" --max-depth 1 --include "studio-backup_*.dump"
-          rclone move "$BACKUP_DIR" "$EXCEL_DIR" --max-depth 1 --include "studio-backup_*.xlsx"
+          rclone lsf "$BACKUP_DIR" --files-only --max-depth 1 --include "studio-backup_*.{dump,xlsx}" |
+            while IFS= read -r f; do
+              case "$f" in
+                *.dump) dest="$DUMP_DIR" ;;
+                *) dest="$EXCEL_DIR" ;;
+              esac
+              echo "Moving $f"
+              rclone moveto "$BACKUP_DIR/$f" "$dest/$f"
+            done
 
       # Only after a successful upload, so a run of failed backups can never
       # age out the last good ones.

@@ -59,7 +59,11 @@ export default function PersonPicker({
         ) : (
           <span className="flex items-center -space-x-2 space-x-reverse">
             {assigned.slice(0, MAX_AVATARS_SHOWN).map((p) => (
-              <span key={p.id} className="shrink-0 rounded-full ring-2 ring-white dark:ring-night-900">
+              // flex (not a plain block): Avatar is inline-block, and as an
+              // inline box it gets the line's descender space below it,
+              // making this ring taller than the avatar - an oval with a
+              // gap at the bottom. As a flex item it's sized exactly.
+              <span key={p.id} className="flex shrink-0 rounded-full ring-2 ring-white dark:ring-night-900">
                 <Avatar profile={p} size={26} />
               </span>
             ))}

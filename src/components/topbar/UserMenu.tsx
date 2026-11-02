@@ -1,14 +1,16 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Camera, LogOut } from "lucide-react";
+import { Camera, DatabaseBackup, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { blurActiveElement, initials } from "@/lib/utils";
 import { useEscapeKey } from "@/lib/useEscapeKey";
 import type { Profile } from "@/lib/supabase/types";
 import FloatingPanel from "@/components/ui/FloatingPanel";
+import { canRunManualBackup } from "@/lib/backupAdmins";
+import BackupStatus, { backupErrorMessage, type BackupState } from "./BackupStatus";
 
 const MAX_AVATAR_BYTES = 5 * 1024 * 1024;
 
@@ -32,6 +34,58 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
   }
 
   useEscapeKey(close, open);
+
+  // Manual backup (see /api/backup): start it, then poll GitHub every few
+  // seconds until that run finishes. Stops polling if the menu unmounts.
+  const [backup, setBackup] = useState<BackupState>({ phase: "idle" });
+  const unmountedRef = useRef(false);
+  useEffect(() => {
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
+    };
+  }, []);
+
+  async function startBackup() {
+    close();
+    setBackup({ phase: "running" });
+    try {
+      const res = await fetch("/api/backup", { method: "POST", body: JSON.stringify({ reason: "manual" }) });
+      const body = await res.json();
+      if (!res.ok) {
+        setBackup({ phase: "failed", message: backupErrorMessage(body.error) });
+        return;
+      }
+      let since: string = body.since;
+      if (!body.started) {
+        since = body.run.createdAt;
+        setBackup({ phase: "running", note: "גיבוי כבר רץ - מחכים שיסתיים." });
+      }
+      // ~5 minutes at most; a backup normally takes about one.
+      for (let i = 0; i < 60 && !unmountedRef.current; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        const poll = await fetch(`/api/backup?since=${encodeURIComponent(since)}`);
+        const { run, error } = await poll.json();
+        if (!poll.ok) {
+          setBackup({ phase: "failed", message: backupErrorMessage(error) });
+          return;
+        }
+        if (run?.status === "completed") {
+          setBackup(
+            run.conclusion === "success"
+              ? { phase: "done" }
+              : { phase: "failed", message: "הגיבוי נכשל.", url: run.url }
+          );
+          return;
+        }
+      }
+      if (!unmountedRef.current) {
+        setBackup({ phase: "failed", message: "הגיבוי לוקח יותר מהרגיל - כדאי לבדוק ב־GitHub." });
+      }
+    } catch {
+      setBackup({ phase: "failed", message: backupErrorMessage(undefined) });
+    }
+  }
 
   async function signOut() {
     const supabase = createClient();
@@ -156,6 +210,16 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
             {uploadError && (
               <p className="px-3 pb-1 text-xs text-red-500 dark:text-red-400">{uploadError}</p>
             )}
+            {canRunManualBackup(profile.email) && (
+              <button
+                onClick={startBackup}
+                disabled={backup.phase === "running"}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:text-slate-200 dark:hover:bg-night-700"
+              >
+                <DatabaseBackup size={16} />
+                {backup.phase === "running" ? "מגבה..." : "צור גיבוי עכשיו"}
+              </button>
+            )}
             <button
               onClick={signOut}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
@@ -166,6 +230,7 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
           </FloatingPanel>
         </>
       )}
+      <BackupStatus state={backup} onDismiss={() => setBackup({ phase: "idle" })} />
     </div>
   );
 }

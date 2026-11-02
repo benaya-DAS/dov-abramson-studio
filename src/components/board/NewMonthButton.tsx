@@ -23,6 +23,16 @@ export default function NewMonthButton({ boardId, boardName }: { boardId: string
   async function rollover() {
     setLoading(true);
     setError(null);
+    // Kick off a backup alongside the rollover (see /api/backup). Fire and
+    // forget - the rollover never waits on it, and keepalive lets the
+    // request finish even though we navigate away right after. The backup
+    // starts within seconds, so it captures the board just after rollover,
+    // which archives the old month rather than deleting anything.
+    fetch("/api/backup", {
+      method: "POST",
+      body: JSON.stringify({ reason: "rollover" }),
+      keepalive: true,
+    }).catch(() => {});
     const supabase = createClient();
     const { data, error } = await supabase.rpc("rollover_board_month", { p_board_id: boardId });
 

@@ -27,7 +27,11 @@ jobs:
       # The backup Google account's token, from `rclone authorize` - see
       # docs/backups.md. Files land in that account's My Drive.
       GDRIVE_TOKEN: ${{ secrets.GDRIVE_TOKEN }}
+      # db-backups/dump: the real backups (restores read from here).
+      # db-backups/excel: read-only Excel copies. Each keeps 30 days.
       BACKUP_DIR: gdrive:db-backups
+      DUMP_DIR: gdrive:db-backups/dump
+      EXCEL_DIR: gdrive:db-backups/excel
     steps:
       - uses: actions/checkout@v4
 
@@ -42,7 +46,7 @@ jobs:
         run: echo "file=$(scripts/db-backup/backup.sh "$RUNNER_TEMP")" >> "$GITHUB_OUTPUT"
 
       - name: Upload to Google Drive
-        run: rclone copy "${{ steps.dump.outputs.file }}" "$BACKUP_DIR"
+        run: rclone copy "${{ steps.dump.outputs.file }}" "$DUMP_DIR"
 
       # A readable Excel copy next to the dump (one sheet per board), for
       # looking things up without restoring. After the dump's own upload,
@@ -52,11 +56,20 @@ jobs:
           pip install --quiet openpyxl
           xlsx="${DUMP_FILE%.dump}.xlsx"
           scripts/db-backup/export-xlsx.py "$xlsx"
-          rclone copy "$xlsx" "$BACKUP_DIR"
+          rclone copy "$xlsx" "$EXCEL_DIR"
         env:
           DUMP_FILE: ${{ steps.dump.outputs.file }}
+
+      # Files from before the dump/excel folders existed sat directly in
+      # db-backups - sort them in. A no-op once there are none left.
+      - name: Sort older files into folders
+        run: |
+          rclone move "$BACKUP_DIR" "$DUMP_DIR" --max-depth 1 --include "studio-backup_*.dump"
+          rclone move "$BACKUP_DIR" "$EXCEL_DIR" --max-depth 1 --include "studio-backup_*.xlsx"
 
       # Only after a successful upload, so a run of failed backups can never
       # age out the last good ones.
       - name: Delete backups older than 30 days
-        run: rclone delete "$BACKUP_DIR" --max-depth 1 --min-age 30d --include "studio-backup_*.{dump,xlsx}"
+        run: |
+          rclone delete "$DUMP_DIR" --max-depth 1 --min-age 30d --include "studio-backup_*.dump"
+          rclone delete "$EXCEL_DIR" --max-depth 1 --min-age 30d --include "studio-backup_*.xlsx"

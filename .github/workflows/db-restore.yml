@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       backup_file:
-        description: "Backup file name from the Drive folder (e.g. studio-backup_2026-10-05_0623.dump). Leave empty for the latest."
+        description: "Backup file name from db-backups/dump in Drive (e.g. studio-backup_2026-10-05_0623.dump). Leave empty for the latest."
         required: false
         default: ""
       confirm:
@@ -31,6 +31,7 @@ jobs:
       # docs/backups.md. Files land in that account's My Drive.
       GDRIVE_TOKEN: ${{ secrets.GDRIVE_TOKEN }}
       BACKUP_DIR: gdrive:db-backups
+      DUMP_DIR: gdrive:db-backups/dump
       BACKUP_FILE: ${{ inputs.backup_file }}
     steps:
       - name: Check confirmation
@@ -52,15 +53,22 @@ jobs:
         run: |
           name="$BACKUP_FILE"
           if [ -z "$name" ]; then
-            name=$(rclone lsf "$BACKUP_DIR" --include "studio-backup_*.dump" | sort | tail -n 1)
+            name=$(rclone lsf "$DUMP_DIR" --include "studio-backup_*.dump" | sort | tail -n 1)
           fi
           if [ -z "$name" ]; then
-            echo "::error::No backup found in $BACKUP_DIR"
+            echo "::error::No backup found in $DUMP_DIR"
             exit 1
           fi
-          rclone copyto "$BACKUP_DIR/$name" "$RUNNER_TEMP/$name"
+          # A bare file name is a regular backup (db-backups/dump);
+          # "pre-restore/<file>" undoes an earlier restore.
+          case "$name" in
+            pre-restore/*) src="$BACKUP_DIR/$name" ;;
+            *) src="$DUMP_DIR/$(basename "$name")" ;;
+          esac
+          local_file="$RUNNER_TEMP/$(basename "$name")"
+          rclone copyto "$src" "$local_file"
           echo "Restoring from: $name"
-          echo "file=$RUNNER_TEMP/$name" >> "$GITHUB_OUTPUT"
+          echo "file=$local_file" >> "$GITHUB_OUTPUT"
 
       # Snapshot of the current state first, so the restore itself can be
       # undone by restoring this file. Kept in its own folder, which the

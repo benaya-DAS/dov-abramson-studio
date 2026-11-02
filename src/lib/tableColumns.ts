@@ -30,19 +30,20 @@ export const COLUMNS: Record<
     /** Mobile width (Tailwind class) - on mobile the table keeps its
      * auto layout and these fixed defaults, see GroupSection. */
     mobileClass: string;
-    /** Horizontal padding/alignment shared by the header and body cells. */
+    /** Horizontal padding/alignment shared by the header and body cells -
+     * everything but the name column is centered. */
     cellClass: string;
   }
 > = {
-  name: { label: "פריט", defaultWidth: 260, minWidth: 120, mobileClass: "", cellClass: "px-2" },
-  person: { label: "איש צוות", defaultWidth: 72, minWidth: 56, mobileClass: "w-16", cellClass: "px-1" },
-  deliverable: { label: "תוצר עיצובי", defaultWidth: 208, minWidth: 90, mobileClass: "w-52", cellClass: "px-2 text-right" },
-  status: { label: "סטטוס", defaultWidth: 128, minWidth: 90, mobileClass: "w-32", cellClass: "px-1" },
-  serial: { label: 'מס"ד', defaultWidth: 112, minWidth: 70, mobileClass: "w-28", cellClass: "px-2" },
-  start_date: { label: "תאריך התחלה", defaultWidth: 128, minWidth: 110, mobileClass: "w-32", cellClass: "px-2" },
-  due_date: { label: "תאריך יעד", defaultWidth: 128, minWidth: 110, mobileClass: "w-32", cellClass: "px-2" },
+  name: { label: "פריט", defaultWidth: 260, minWidth: 120, mobileClass: "", cellClass: "px-2 text-right" },
+  person: { label: "איש צוות", defaultWidth: 72, minWidth: 56, mobileClass: "w-16", cellClass: "px-1 text-center" },
+  deliverable: { label: "תוצר עיצובי", defaultWidth: 208, minWidth: 90, mobileClass: "w-52", cellClass: "px-2 text-center" },
+  status: { label: "סטטוס", defaultWidth: 128, minWidth: 90, mobileClass: "w-32", cellClass: "px-1 text-center" },
+  serial: { label: 'מס"ד', defaultWidth: 112, minWidth: 70, mobileClass: "w-28", cellClass: "px-2 text-center" },
+  start_date: { label: "תאריך התחלה", defaultWidth: 128, minWidth: 110, mobileClass: "w-32", cellClass: "px-2 text-center" },
+  due_date: { label: "תאריך יעד", defaultWidth: 128, minWidth: 110, mobileClass: "w-32", cellClass: "px-2 text-center" },
   hours: { label: "שעות", defaultWidth: 80, minWidth: 56, mobileClass: "w-20", cellClass: "px-2 text-center" },
-  time: { label: "מעקב זמן", defaultWidth: 128, minWidth: 100, mobileClass: "w-32", cellClass: "px-2" },
+  time: { label: "מעקב זמן", defaultWidth: 128, minWidth: 100, mobileClass: "w-32", cellClass: "px-2 text-center" },
 };
 
 export const DEFAULT_ORDER: MovableColumnKey[] = [

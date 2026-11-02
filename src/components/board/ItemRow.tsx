@@ -169,7 +169,7 @@ export default function ItemRow({
           }}
           onKeyDown={(e) => handleEditableKeyDown(e, () => setDeliverable(item.deliverable ?? ""))}
           placeholder="תוצר עיצובי"
-          className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800"
+          className="w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-center text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800"
         />
         {/* Custom dropdown (not a native <input list>/<datalist>) so it can
          * be styled/positioned like every other popover in this app - a
@@ -267,7 +267,7 @@ export default function ItemRow({
           disabled={readOnly}
           onChange={(e) => onUpdate({ start_date: e.target.value || null })}
           onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-          className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800 dark:[color-scheme:dark]"
+          className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-center text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800 dark:[color-scheme:dark]"
         />
       </>
     ),
@@ -279,7 +279,7 @@ export default function ItemRow({
           disabled={readOnly}
           onChange={(e) => onUpdate({ due_date: e.target.value || null })}
           onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-          className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800 dark:[color-scheme:dark]"
+          className="w-full rounded-md border border-transparent bg-transparent px-1 py-1.5 text-center text-xs text-slate-600 outline-none hover:border-slate-200 focus:border-brand-400 focus:bg-white dark:text-slate-300 dark:hover:border-night-700 dark:focus:bg-night-800 dark:[color-scheme:dark]"
         />
       </>
     ),

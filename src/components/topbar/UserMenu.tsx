@@ -10,7 +10,7 @@ import { useEscapeKey } from "@/lib/useEscapeKey";
 import type { Profile } from "@/lib/supabase/types";
 import FloatingPanel from "@/components/ui/FloatingPanel";
 import { canRestore, canRunManualBackup } from "@/lib/backupAdmins";
-import BackupStatus, { backupErrorMessage, type BackupState } from "./BackupStatus";
+import BackupStatus, { backupErrorMessage, failedState, type BackupState } from "./BackupStatus";
 import RestoreDialog from "./RestoreDialog";
 import { pollRun } from "./pollRun";
 
@@ -59,7 +59,7 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
       const res = await fetch("/api/backup", { method: "POST", body: JSON.stringify({ reason: "manual" }) });
       const body = await res.json();
       if (!res.ok) {
-        setBackup({ phase: "failed", message: backupErrorMessage(body.error) });
+        setBackup(failedState(body.error));
         return;
       }
       let since: string = body.since;
@@ -70,7 +70,7 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
       const result = await pollRun("/api/backup", since, { maxMinutes: 5, cancelled });
       if (cancelled()) return;
       if (!result) setBackup({ phase: "failed", message: "הגיבוי לוקח יותר מהרגיל - כדאי לבדוק שוב בעוד כמה דקות." });
-      else if ("error" in result) setBackup({ phase: "failed", message: backupErrorMessage(result.error) });
+      else if ("error" in result) setBackup(failedState(result.error));
       else if (result.run.conclusion === "success") setBackup({ phase: "done", text: "הגיבוי הושלם ונשמר בדרייב." });
       else setBackup({ phase: "failed", message: "הגיבוי נכשל.", url: result.run.url });
     } catch {
@@ -89,7 +89,7 @@ export default function UserMenu({ profile }: { profile: Profile | null }) {
       const result = await pollRun("/api/restore", since, { maxMinutes: 15, cancelled });
       if (cancelled()) return;
       if (!result) setBackup({ phase: "failed", message: "השחזור לוקח יותר מהרגיל - כדאי לבדוק שוב בעוד כמה דקות." });
-      else if ("error" in result) setBackup({ phase: "failed", message: backupErrorMessage(result.error) });
+      else if ("error" in result) setBackup(failedState(result.error));
       else if (result.run.conclusion === "success")
         setBackup({ phase: "done", text: undo ? "השחזור בוטל." : "השחזור הושלם.", reload: true });
       else

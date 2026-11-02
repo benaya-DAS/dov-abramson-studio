@@ -7,12 +7,12 @@ import { History, LoaderCircle, TriangleAlert, Undo2, X } from "lucide-react";
 import { CONFIRM_RESTORE_WORD } from "@/lib/backupAdmins";
 import { blurActiveElement, cn } from "@/lib/utils";
 import { useEscapeKey } from "@/lib/useEscapeKey";
-import { backupErrorMessage } from "./BackupStatus";
+import { TOKEN_HELP_PATH, backupErrorMessage, needsTokenHelp } from "./BackupStatus";
 
 type Backup = { id: number; createdAt: string; kind: "scheduled" | "manual" | "rollover" };
 type ListState =
   | { phase: "loading" }
-  | { phase: "error"; message: string }
+  | { phase: "error"; message: string; help: boolean }
   | { phase: "ready"; backups: Backup[]; active: boolean; lastRestoreAt: string | null };
 
 const KIND_LABELS: Record<Backup["kind"], string> = {
@@ -42,7 +42,7 @@ export default function RestoreDialog({
   const [choice, setChoice] = useState<number | "undo" | null>(null);
   const [typed, setTyped] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<{ message: string; help: boolean } | null>(null);
 
   function close() {
     blurActiveElement();
@@ -59,10 +59,10 @@ export default function RestoreDialog({
         setList(
           res.ok
             ? { phase: "ready", backups: body.backups, active: body.active, lastRestoreAt: body.lastRestoreAt }
-            : { phase: "error", message: backupErrorMessage(body.error) }
+            : { phase: "error", message: backupErrorMessage(body.error), help: needsTokenHelp(body.error) }
         );
       })
-      .catch(() => !cancelled && setList({ phase: "error", message: backupErrorMessage(undefined) }));
+      .catch(() => !cancelled && setList({ phase: "error", message: backupErrorMessage(undefined), help: false }));
     return () => {
       cancelled = true;
     };
@@ -89,13 +89,13 @@ export default function RestoreDialog({
       });
       const body = await res.json();
       if (!res.ok) {
-        setSubmitError(backupErrorMessage(body.error));
+        setSubmitError({ message: backupErrorMessage(body.error), help: needsTokenHelp(body.error) });
         setSubmitting(false);
         return;
       }
       onStarted(body.since, choice === "undo");
     } catch {
-      setSubmitError(backupErrorMessage(undefined));
+      setSubmitError({ message: backupErrorMessage(undefined), help: false });
       setSubmitting(false);
     }
   }
@@ -142,7 +142,16 @@ export default function RestoreDialog({
               טוען את רשימת הגיבויים...
             </p>
           )}
-          {list.phase === "error" && <p className="py-6 text-sm text-red-600 dark:text-red-400">{list.message}</p>}
+          {list.phase === "error" && (
+            <p className="py-6 text-sm text-red-600 dark:text-red-400">
+              {list.message}
+              {list.help && (
+                <a href={TOKEN_HELP_PATH} target="_blank" rel="noreferrer" className="mr-1 underline">
+                  איך מתקנים את זה?
+                </a>
+              )}
+            </p>
+          )}
           {ready?.active && (
             <p className="py-6 text-sm text-slate-600 dark:text-slate-300">
               שחזור כבר רץ ברגע זה. אפשר להתחיל חדש רק אחרי שיסתיים.
@@ -223,7 +232,16 @@ export default function RestoreDialog({
                     {submitting ? "מתחיל..." : choice === "undo" ? "בטל שחזור" : "שחזר"}
                   </button>
                 </div>
-                {submitError && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{submitError}</p>}
+                {submitError && (
+                  <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                    {submitError.message}
+                    {submitError.help && (
+                      <a href={TOKEN_HELP_PATH} target="_blank" rel="noreferrer" className="mr-1 underline">
+                        איך מתקנים את זה?
+                      </a>
+                    )}
+                  </p>
+                )}
               </>
             )}
           </div>

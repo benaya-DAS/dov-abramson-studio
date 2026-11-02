@@ -57,7 +57,11 @@ export async function GET(request: Request) {
 
   const backups = await successfulBackups();
   if (backups instanceof NextResponse) return backups;
-  const lastRestore = restores.find((r) => r.status === "completed" && r.conclusion === "success");
+  // A dry run (db-restore.yml's test mode) changes nothing and leaves no
+  // safety copy, so it's never "the last restore" to undo.
+  const lastRestore = restores.find(
+    (r) => r.status === "completed" && r.conclusion === "success" && !/dry[ -]run/i.test(r.display_title)
+  );
   return NextResponse.json({
     backups: backups.map((r) => ({ id: r.id, createdAt: r.created_at, kind: kind(r) })),
     active: restores.find((r) => r.status !== "completed") ? true : false,

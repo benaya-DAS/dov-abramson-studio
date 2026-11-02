@@ -1,7 +1,7 @@
 # Manual restore of the database from a backup in Google Drive. Replaces ALL
 # current data. Instructions: docs/backups.md.
 name: DB restore
-run-name: DB restore${{ inputs.requested_by && format(' (by {0})', inputs.requested_by) || '' }}
+run-name: DB restore${{ inputs.dry_run == 'true' && ' (dry run)' || '' }}${{ inputs.requested_by && format(' (by {0})', inputs.requested_by) || '' }}
 
 on:
   workflow_dispatch:

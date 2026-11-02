@@ -7,7 +7,7 @@ export type BackupState =
   | { phase: "idle" }
   | { phase: "running"; title: string; note: string }
   | { phase: "done"; text: string; reload?: boolean }
-  | { phase: "failed"; message: string; url?: string };
+  | { phase: "failed"; message: string; url?: string; help?: boolean };
 
 const ERROR_MESSAGES: Record<string, string> = {
   missing_token: "הכפתור עוד לא מחובר ל־GitHub (חסר מפתח גישה ב־Vercel).",
@@ -19,6 +19,17 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 export function backupErrorMessage(code: string | undefined) {
   return (code && ERROR_MESSAGES[code]) || "הפעולה לא הצליחה. נסו שוב בעוד רגע.";
+}
+
+/** A missing/expired GitHub token is fixed by hand - link to the steps. */
+export const TOKEN_HELP_PATH = "/help/backup-token";
+export function needsTokenHelp(code: string | undefined) {
+  return code === "missing_token" || code === "bad_token";
+}
+
+/** The failed status for an API error code. */
+export function failedState(code: string | undefined): BackupState {
+  return { phase: "failed", message: backupErrorMessage(code), help: needsTokenHelp(code) };
 }
 
 /** Floating status for a backup/restore started from the user menu - it
@@ -61,6 +72,11 @@ export default function BackupStatus({ state, onDismiss }: { state: BackupState;
         {state.phase === "failed" && (
           <>
             <p className="font-medium">{state.message}</p>
+            {state.help && (
+              <a href={TOKEN_HELP_PATH} target="_blank" rel="noreferrer" className="mt-0.5 block text-xs underline">
+                איך מתקנים את זה?
+              </a>
+            )}
             {state.url && (
               <a href={state.url} target="_blank" rel="noreferrer" className="mt-0.5 block text-xs underline">
                 פרטים ב־GitHub

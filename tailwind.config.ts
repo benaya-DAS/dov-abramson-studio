@@ -63,7 +63,7 @@ const config: Config = {
         // Text stays on `slate` (kept legible/neutral, not retinted) -
         // only surfaces and borders use this scale.
         night: {
-          500: "#4f5384", // board table lines - clearly visible on 900/800
+          500: "#7377b0", // board table lines - clearly visible on 900/800
           600: "#3a3c5e", // lighter borders (was border-slate-600)
           700: "#2b2d4d", // hover bg / mid borders (was slate-700)
           800: "#20223d", // sidebar, top bar, cards, popovers (was slate-800)

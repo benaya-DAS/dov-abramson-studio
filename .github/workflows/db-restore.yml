@@ -88,8 +88,8 @@ jobs:
           echo "file=$local_file" >> "$GITHUB_OUTPUT"
 
       # Snapshot of the current state first, so the restore itself can be
-      # undone by restoring this file. Kept in its own folder, which the
-      # 30-day cleanup doesn't touch.
+      # undone by restoring this file. Kept in its own folder, pruned at 30
+      # days by the backup workflow like the others.
       - name: Safety backup of current data
         if: inputs.dry_run != 'true'
         run: |

@@ -84,7 +84,7 @@ sudo -u postgres dropdb <scratch_db_name>   # when done
 ```
 
 **Backups** (`docs/backups.md`, `scripts/db-backup/`): restores are
-data-only into the *current* schema - `restore.sh` truncates every `public`
+data-only into the *current* schema - `restore.sh` empties every `public`
 table and reloads rows from the dump. So adding a column or table is safe
 (old backups load with defaults/empty), but **renaming or dropping a column
 or table makes every older backup fail to restore** (it rolls back cleanly,

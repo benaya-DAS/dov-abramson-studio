@@ -57,15 +57,18 @@ export async function GET(request: Request) {
 
   const backups = await successfulBackups();
   if (backups instanceof NextResponse) return backups;
-  // A dry run (db-restore.yml's test mode) changes nothing and leaves no
-  // safety copy, so it's never "the last restore" to undo.
+  // The last real restore, if its safety copy (db-backups/pre-restore,
+  // pruned at 30 days like the backups) is still there to undo it with. A
+  // dry run (db-restore.yml's test mode) changes nothing and leaves no copy.
+  const undoableSince = Date.now() - LIST_DAYS * 86_400_000;
   const lastRestore = restores.find(
     (r) => r.status === "completed" && r.conclusion === "success" && !/dry[ -]run/i.test(r.display_title)
   );
+  const undoable = lastRestore && Date.parse(lastRestore.created_at) >= undoableSince ? lastRestore : null;
   return NextResponse.json({
     backups: backups.map((r) => ({ id: r.id, createdAt: r.created_at, kind: kind(r) })),
     active: restores.find((r) => r.status !== "completed") ? true : false,
-    lastRestoreAt: lastRestore?.created_at ?? null,
+    lastRestoreAt: undoable?.created_at ?? null,
   });
 }
 

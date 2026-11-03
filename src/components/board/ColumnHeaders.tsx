@@ -85,7 +85,7 @@ export default function ColumnHeaders({
         }}
         // Always-visible thin divider so it's clear where to grab - turns
         // brand-colored and thicker on hover / while dragging.
-        className="absolute inset-y-0 left-0 z-20 hidden w-2 -translate-x-1/2 cursor-col-resize touch-none after:absolute after:inset-y-1.5 after:left-1/2 after:w-px after:-translate-x-1/2 after:bg-slate-300 hover:after:w-0.5 hover:after:bg-brand-400 active:after:w-0.5 active:after:bg-brand-500 md:block dark:after:bg-night-600 dark:hover:after:bg-brand-400"
+        className="absolute inset-y-0 left-0 z-20 hidden w-2 -translate-x-1/2 cursor-col-resize touch-none after:absolute after:inset-y-1.5 after:left-1/2 after:w-px after:-translate-x-1/2 after:bg-slate-300 hover:after:w-0.5 hover:after:bg-brand-400 active:after:w-0.5 active:after:bg-brand-500 md:block dark:after:bg-night-500 dark:hover:after:bg-brand-400"
       />
     );
   }

@@ -315,7 +315,7 @@ export default function ItemRow({
     <tr
       ref={rowRef}
       className={cn(
-        "group border-b border-slate-200 hover:bg-slate-100 dark:border-night-800 dark:hover:bg-night-800/60",
+        "group border-b border-slate-200 hover:bg-slate-100 dark:border-night-500 dark:hover:bg-night-800/60",
         selected && "bg-brand-50/60 dark:bg-brand-900/20",
         isDragging && "opacity-40",
         // A thin inset line on the edge the row would land on, rather than

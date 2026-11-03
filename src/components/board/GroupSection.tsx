@@ -414,7 +414,7 @@ export default function GroupSection({
         )}
         inert={group.collapsed}
       >
-        <div className="overflow-x-auto overflow-y-hidden rounded-b-lg border border-t-0 border-slate-300 dark:border-night-700">
+        <div className="overflow-x-auto overflow-y-hidden rounded-b-lg border border-t-0 border-slate-300 dark:border-night-500">
           {/* Desktop: table-layout fixed, with every column's width set by
            * the colgroup from the user's own layout - so every group's
            * table lines up exactly, and a resize applies to all of them at
@@ -440,7 +440,7 @@ export default function GroupSection({
               <col />
             </colgroup>
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-400 dark:border-night-700 dark:bg-night-800/60 dark:text-slate-500">
+              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-400 dark:border-night-500 dark:bg-night-800/60 dark:text-slate-500">
                 {canReorderItems && <th className="w-6 px-1 py-2"></th>}
                 <th className="w-10 px-3 py-2"></th>
                 <ColumnHeaders layout={tableLayout} onChange={onTableLayoutChange} />
@@ -505,7 +505,7 @@ export default function GroupSection({
               )}
             </tbody>
             <tfoot>
-              <tr className="border-t border-slate-300 bg-slate-50 text-xs font-bold text-slate-600 dark:border-night-700 dark:bg-night-800/60 dark:text-slate-300">
+              <tr className="border-t border-slate-300 bg-slate-50 text-xs font-bold text-slate-600 dark:border-night-500 dark:bg-night-800/60 dark:text-slate-300">
                 {canReorderItems && <td />}
                 <td />
                 <td className="px-2 py-2 text-right">סה&quot;כ</td>

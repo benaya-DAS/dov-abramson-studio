@@ -57,3 +57,44 @@ input[type="time"] {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Loading skeleton "whoosh" (board/[boardId]/loading.tsx): one soft light
+   streak sweeping right-to-left (RTL reading direction) across every
+   .skeleton block at once - background-attachment: fixed puts all their
+   gradients on the same viewport-wide canvas, so it reads as a single
+   sweep rather than each block shimmering on its own. Pure CSS, no JS;
+   static under reduced motion. */
+.skeleton {
+  background-image: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 65%
+  );
+  background-size: 200% 100%;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  animation: skeleton-whoosh 1.8s ease-in-out infinite;
+}
+.dark .skeleton {
+  background-image: linear-gradient(
+    100deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 65%
+  );
+}
+@keyframes skeleton-whoosh {
+  from {
+    background-position: -100% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background-image: none;
+  }
+}

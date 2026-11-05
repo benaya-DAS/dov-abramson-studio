@@ -9,6 +9,7 @@ import type { ActiveTimeLog, DeliverableOption, Item, ItemStatus, Profile } from
 import { cn, formatHours } from "@/lib/utils";
 import FloatingPanel from "@/components/ui/FloatingPanel";
 import { COLUMNS, type MovableColumnKey } from "@/lib/tableColumns";
+import { useLongRunningTimer } from "@/lib/useLongRunningTimer";
 
 export default function ItemRow({
   item,
@@ -82,6 +83,13 @@ export default function ItemRow({
   const [name, setName] = useState(item.name);
   const [serial, setSerial] = useState(item.serial_id ?? "");
   const missingSerial = requireSerial && !serial.trim();
+  // A timer on this item running 10h+ straight - probably forgotten. The
+  // whole row slowly pulses red (static tint under reduced motion); the
+  // sticky name cell needs it too, since its opaque background would
+  // otherwise hide the row's wash. TimeTracker says why on hover.
+  const timerAlert =
+    useLongRunningTimer(activeSessions) !== null &&
+    "animate-timer-alert motion-reduce:animate-none motion-reduce:shadow-timer-alert";
   const [deliverable, setDeliverable] = useState(item.deliverable ?? "");
   const [deliverableOpen, setDeliverableOpen] = useState(false);
   const deliverableInputRef = useRef<HTMLInputElement>(null);
@@ -317,6 +325,7 @@ export default function ItemRow({
       className={cn(
         "group border-b border-slate-200 hover:bg-slate-100 dark:border-night-500 dark:hover:bg-night-800/60",
         selected && "bg-brand-50/60 dark:bg-brand-900/20",
+        timerAlert,
         isDragging && "opacity-40",
         // A thin inset line on the edge the row would land on, rather than
         // a box outline/highlight around the whole row - box-shadow (not
@@ -408,7 +417,8 @@ export default function ItemRow({
       <td
         className={cn(
           "sticky right-0 z-10 bg-slate-50 px-2 py-1.5 group-hover:bg-slate-100 dark:bg-night-900 dark:group-hover:bg-night-800/60",
-          selected && "!bg-brand-50/60 dark:!bg-brand-900/20"
+          selected && "!bg-brand-50/60 dark:!bg-brand-900/20",
+          timerAlert
         )}
       >
         <input

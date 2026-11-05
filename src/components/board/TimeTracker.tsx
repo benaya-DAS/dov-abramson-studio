@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pause, Play } from "lucide-react";
+import { Pause, Play, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatDuration } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import TimeLogPopover from "./TimeLogPopover";
+import { useLongRunningTimer } from "@/lib/useLongRunningTimer";
 import type { ActiveTimeLog, Profile } from "@/lib/supabase/types";
 
 function secondsSince(isoStart: string) {
@@ -149,6 +150,12 @@ export default function TimeTracker({
   }, [activeKey]);
 
   const totalSeconds = baseSeconds + liveSeconds;
+  // Same 10h+ check that makes ItemRow pulse - here it explains why.
+  const longRunningSeconds = useLongRunningTimer(allActiveSessions);
+  const longRunningTitle =
+    longRunningSeconds !== null
+      ? `השעון רץ ${Math.floor(longRunningSeconds / 3600)} שעות ברצף - שכחת לעצור?`
+      : null;
 
   async function toggle() {
     if (!userId || readOnly || loading) return;
@@ -231,11 +238,16 @@ export default function TimeTracker({
         ref={durationButtonRef}
         onClick={() => setLogOpen((o) => !o)}
         className={cn(
-          "min-w-[64px] rounded px-1 text-center font-mono text-xs tabular-nums hover:bg-slate-100 dark:hover:bg-night-700",
-          targetSession ? "font-semibold text-[#579bfc]" : "text-slate-500 dark:text-slate-400"
+          "flex min-w-[64px] items-center justify-center gap-1 rounded px-1 text-center font-mono text-xs tabular-nums hover:bg-slate-100 dark:hover:bg-night-700",
+          longRunningTitle
+            ? "font-semibold text-red-600 dark:text-red-400"
+            : targetSession
+              ? "font-semibold text-[#579bfc]"
+              : "text-slate-500 dark:text-slate-400"
         )}
-        title="יומן מעקב זמן"
+        title={longRunningTitle ?? "יומן מעקב זמן"}
       >
+        {longRunningTitle && <TriangleAlert size={12} className="shrink-0" aria-label={longRunningTitle} />}
         {formatDuration(totalSeconds)}
       </button>
 

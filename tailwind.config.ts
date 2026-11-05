@@ -72,6 +72,21 @@ const config: Config = {
       },
       boxShadow: {
         panel: "0 1px 3px 0 rgba(0,0,0,0.08)",
+        // Static stand-in for timer-alert under prefers-reduced-motion.
+        "timer-alert": "inset 0 0 0 9999px rgba(239,68,68,0.16)",
+      },
+      // A slow "breathing" red wash over a row whose timer has run 10h+
+      // (ItemRow). An inset box-shadow rather than background-color, so it
+      // layers over each cell's own background - including the sticky name
+      // cell's opaque one - instead of replacing it.
+      keyframes: {
+        "timer-alert": {
+          "0%, 100%": { boxShadow: "inset 0 0 0 9999px rgba(239,68,68,0.04)" },
+          "50%": { boxShadow: "inset 0 0 0 9999px rgba(239,68,68,0.24)" },
+        },
+      },
+      animation: {
+        "timer-alert": "timer-alert 1.6s ease-in-out infinite",
       },
     },
   },
